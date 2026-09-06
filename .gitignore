@@ -1,0 +1,26 @@
+# v0 sandbox internal files
+__v0_runtime_loader.js
+__v0_devtools.tsx
+__v0_jsx-dev-runtime.ts
+.snowflake/
+.v0-trash/
+.vercel/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Secrets kept outside .env by hand. A key pasted into a note is still a key,
+# and this one was one `git add -A` away from being committed.
+*.rtf
+*key*.txt
+*secret*
+credentials*
+
+# Common ignores
+node_modules
+.next/
+.tools/
+*.tsbuildinfo
+.DS_Store

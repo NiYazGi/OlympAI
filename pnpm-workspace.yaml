@@ -1,0 +1,8 @@
+# pnpm 11 no longer reads the "pnpm" field from package.json; settings live
+# here instead. pnpm 10.6+ already reads this file, so both versions agree.
+#
+# hono reaches the tree only through the shadcn CLI (devDependency) ->
+# @modelcontextprotocol/sdk, which asks for ^4.11.4. The pin freezes it so a
+# fresh install cannot silently pick up a newer 4.x.
+overrides:
+  hono: 4.12.25
