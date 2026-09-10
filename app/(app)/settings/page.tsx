@@ -1,4 +1,4 @@
-import { Suspense } from 'react'
+import { Reveal } from '@/components/reveal'
 import Link from 'next/link'
 import { ArrowRight, LogOut, Palette, Plus, ShieldCheck, User } from 'lucide-react'
 import { PageHeader } from '@/components/page-header'
@@ -20,7 +20,7 @@ export default function SettingsPage() {
         <Appearance />
       </Section>
 
-      <Suspense
+      <Reveal
         fallback={
           <>
             <PendingRegion label="Loading your account" />
@@ -29,7 +29,7 @@ export default function SettingsPage() {
         }
       >
         <Account />
-      </Suspense>
+      </Reveal>
     </div>
   )
 }

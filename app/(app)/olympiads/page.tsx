@@ -1,4 +1,4 @@
-import { Suspense } from 'react'
+import { Reveal } from '@/components/reveal'
 import Link from 'next/link'
 import { CalendarDays, ExternalLink, Flag, Trophy } from 'lucide-react'
 import { PageHeader } from '@/components/page-header'
@@ -16,7 +16,10 @@ export const dynamic = 'force-dynamic'
 function formatRange(startsOn: string | null, endsOn: string | null) {
   // Catalogue entries carry no date: the sitting moves every year and belongs
   // to the official site, not to this table.
-  if (!startsOn) return 'Date set by the organiser'
+  // "Date set by the organiser" read as "they will tell you later". They will
+  // not tell you here — the date is on their site, and this table has never
+  // claimed to know it.
+  if (!startsOn) return 'Dates on the official page'
   const start = new Date(`${startsOn}T00:00:00Z`)
   const options = { month: 'short', day: 'numeric', timeZone: 'UTC' } as const
   if (!endsOn || endsOn === startsOn) return start.toLocaleDateString('en', options)
@@ -31,7 +34,7 @@ export default function OlympiadsPage() {
         title="Olympiads"
         description="Upcoming competitions and your preparation for each."
       />
-      <Suspense
+      <Reveal
         fallback={
           <>
             <PendingRegion label="Loading competitions" />
@@ -44,7 +47,7 @@ export default function OlympiadsPage() {
         }
       >
         <Competitions />
-      </Suspense>
+      </Reveal>
     </div>
   )
 }
@@ -118,7 +121,7 @@ async function Competitions() {
               </div>
               {competition.registered ? (
                 <Badge variant="secondary" className="shrink-0">
-                  Registered
+                  Tracking
                 </Badge>
               ) : null}
             </div>
@@ -138,9 +141,9 @@ async function Competitions() {
                   href={competition.registrationUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-primary hover:underline"
+                  className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
                 >
-                  Official page <ExternalLink className="size-3" />
+                  Enter on the official site <ExternalLink className="size-3" />
                 </a>
               ) : null}
             </div>
@@ -159,10 +162,15 @@ async function Competitions() {
               ) : null}
             </div>
 
-            <RegistrationButton
-              competitionId={competition.id}
-              registered={competition.registered}
-            />
+            <div className="space-y-2">
+              <RegistrationButton
+                competitionId={competition.id}
+                registered={competition.registered}
+              />
+              <p className="text-xs text-muted-foreground">
+                Tracking keeps it on your list here. Entering is done on the organiser&apos;s site.
+              </p>
+            </div>
           </article>
         ))}
       </div>

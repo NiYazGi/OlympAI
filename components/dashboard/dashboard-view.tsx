@@ -1,20 +1,32 @@
 import Link from 'next/link'
-import { ArrowRight, Clock, Library, Sparkles, Target } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { Library, TrendingUp } from 'lucide-react'
 import { DailyGoal } from '@/components/dashboard/daily-goal'
 import { GoalProgress } from '@/components/dashboard/goal-progress'
-import { StatCards, type Stat } from '@/components/dashboard/stat-cards'
+import { NextActionCard } from '@/components/learn/next-action-card'
 import { AccuracyTrendChart } from '@/components/charts'
 import { EmptyState } from '@/components/empty-state'
-import { difficultyLabel } from '@/components/difficulty-stars'
-import { cardClass, cn } from '@/lib/utils'
+import { cardClass, cn, riseDelay } from '@/lib/utils'
 import type { GoalPlan, Readiness } from '@/lib/goal'
-import type { CatalogueTask, Goal, ProgressAnalytics } from '@/lib/types'
+import type { NextAction } from '@/lib/next-action'
+import type { Goal, ProgressAnalytics } from '@/lib/types'
 
+/**
+ * The dashboard answers one question — what should I do today — and then shows
+ * the two things that put the answer in context: the rhythm you are keeping and
+ * the target you are keeping it for.
+ *
+ * It used to open with four counters: attempts, correct, streak and total XP.
+ * The first two are review, not action, and they live on /me where reviewing is
+ * the point. The other two were already on screen a hundred pixels below, inside
+ * the daily goal block, so the row said nothing that was not said twice.
+ *
+ * The old "Start here" hero is now the same instruction the rest of the app
+ * gives, from the same engine, so the dashboard cannot recommend one thing
+ * while /learn recommends another.
+ */
 export function DashboardView({
   analytics,
-  recommended,
+  action,
   remaining,
   libraryEmpty,
   goal,
@@ -22,7 +34,7 @@ export function DashboardView({
   ready,
 }: {
   analytics: ProgressAnalytics
-  recommended: CatalogueTask | null
+  action: NextAction
   remaining: number
   /** Distinct from `remaining === 0`: an empty library is not an achievement. */
   libraryEmpty: boolean
@@ -30,215 +42,119 @@ export function DashboardView({
   plan: GoalPlan | null
   ready: Readiness | null
 }) {
-  const fresh = !analytics.hasData
+  const hasStandings = analytics.hasData && analytics.topics.length > 0
 
-  const stats: Stat[] = [
-    {
-      label: 'Attempts',
-      value: String(analytics.totalAttempts),
-      detail: fresh ? 'Nothing submitted yet' : 'Graded submissions',
-      muted: fresh,
-    },
-    {
-      label: 'Correct',
-      value: String(analytics.correctAnswers),
-      detail: fresh ? 'No accuracy yet' : `${analytics.accuracy}% accuracy`,
-      muted: fresh,
-    },
-    {
-      label: 'Streak',
-      value: `${analytics.activeStreak}`,
-      detail: analytics.activeStreak > 0 ? 'days in a row' : 'days — start one today',
-      muted: analytics.activeStreak === 0,
-    },
-    {
-      label: 'Total XP',
-      value: analytics.xp.total.toLocaleString('en'),
-      detail: fresh ? 'Earned by solving' : `Level ${analytics.xp.level}`,
-      muted: fresh,
-    },
-  ]
+  if (libraryEmpty) {
+    return (
+      <EmptyState
+        icon={Library}
+        title="No problems are available yet"
+        body="The library has not been filled in for this workspace. Once it is, what to do next shows up here."
+        action={{ href: '/sulu-ai', label: 'Ask Sulu something' }}
+      />
+    )
+  }
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      {goal && plan && ready ? <GoalProgress goal={goal} plan={plan} ready={ready} /> : null}
-      <DailyGoal analytics={analytics} />
-      <StatCards stats={stats} />
+      <NextActionCard action={action} tone="hero" />
 
-      {libraryEmpty ? (
-        <EmptyState
-          icon={Library}
-          title="No tasks are available yet"
-          body="The task library has not been filled in for this workspace. Once it is, your next recommendation shows up here."
-          action={{ href: '/sulu-ai', label: 'Ask Sulu something' }}
-        />
-      ) : (
-        <div className="grid gap-6 lg:grid-cols-3">
-          <section className="space-y-6 lg:col-span-2">
-            {recommended ? (
-              <div>
-                <div className="mb-3 flex items-center justify-between">
-                  <h2 className="text-sm font-semibold">Start here</h2>
-                  <Link
-                    href="/tasks"
-                    prefetch
-                    className="text-sm font-medium text-primary hover:underline"
-                  >
-                    {remaining} left to solve
-                  </Link>
-                </div>
-                <div
-                  className={cn(
-                    cardClass,
-                    'relative overflow-hidden bg-primary p-6 text-primary-foreground ring-0',
-                  )}
-                >
-                  <div className="relative z-10">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge className="border-0 bg-white/15 text-white">
-                        {recommended.subject}
-                      </Badge>
-                      <Badge className="border-0 bg-white/15 text-white">
-                        {difficultyLabel(recommended.difficulty)}
-                      </Badge>
-                      {recommended.estimatedMinutes ? (
-                        <span className="inline-flex items-center gap-1 text-xs text-white/75">
-                          <Clock className="size-3.5" /> {recommended.estimatedMinutes} min
-                        </span>
-                      ) : null}
-                    </div>
+      <div className="rise" style={riseDelay(1, 70)}>
+        <DailyGoal analytics={analytics} />
+      </div>
 
-                    <h3 className="mt-4 text-2xl font-semibold tracking-tight text-balance">
-                      {recommended.title}
-                    </h3>
-                    <p className="mt-1.5 text-sm text-white/75">
-                      {recommended.topic}
-                      {recommended.attempts > 0
-                        ? ` · ${recommended.attempts} attempt${recommended.attempts === 1 ? '' : 's'} so far`
-                        : fresh
-                          ? ' · a good place to begin'
-                          : ' · not attempted yet'}
-                    </p>
+      {goal && plan && ready ? (
+        <div className="rise" style={riseDelay(2, 70)}>
+          <GoalProgress goal={goal} plan={plan} ready={ready} />
+        </div>
+      ) : null}
 
-                    <Button
-                      size="lg"
-                      nativeButton={false}
-                      render={
-                        <Link href={`/tasks/${recommended.id}`} prefetch>
-                          Open task <ArrowRight className="size-4" />
-                        </Link>
-                      }
-                      className="mt-6 bg-card text-primary hover:bg-white/90"
-                    />
-                  </div>
-                  <div
-                    aria-hidden
-                    className="pointer-events-none absolute -right-10 -top-20 size-64 rounded-full border-[28px] border-white/10"
-                  />
-                </div>
+      {hasStandings ? (
+        <section className="rise space-y-3" style={riseDelay(3, 70)}>
+          <div className="flex items-end justify-between gap-3">
+            <h2 className="flex items-center gap-2 text-sm font-semibold">
+              <TrendingUp className="size-4 text-primary" />
+              Where you stand
+            </h2>
+            <Link
+              href="/me"
+              prefetch
+              className="text-sm font-medium text-primary hover:underline"
+            >
+              Full analytics
+            </Link>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-3">
+            {analytics.accuracyTrend.length > 1 ? (
+              <div className={cn(cardClass, 'p-5 lg:col-span-2')}>
+                <p className="text-sm font-medium">Accuracy by week</p>
+                <AccuracyTrendChart data={analytics.accuracyTrend} height="h-56" />
               </div>
             ) : (
-              <EmptyState
-                icon={Target}
-                title="Every task is solved"
-                body="Nothing left in the library for now. Revisit an earlier write-up, or bring Sulu a problem of your own."
-                action={{ href: '/sulu-ai', label: 'Open Sulu AI' }}
-              />
+              <div
+                className={cn(
+                  cardClass,
+                  'flex items-center p-5 text-sm leading-6 text-muted-foreground lg:col-span-2',
+                )}
+              >
+                One week of attempts so far. The trend line appears once there are two to compare.
+              </div>
             )}
 
-            {analytics.accuracyTrend.length > 1 ? (
-              <div>
-                <div className="mb-3 flex items-center justify-between">
-                  <h2 className="text-sm font-semibold">Accuracy by week</h2>
-                  <Link
-                    href="/me"
-                    prefetch
-                    className="text-sm font-medium text-primary hover:underline"
-                  >
-                    See analytics
-                  </Link>
-                </div>
-                <div className={cn(cardClass, 'p-5')}>
-                  <AccuracyTrendChart data={analytics.accuracyTrend} height="h-56" />
-                </div>
-              </div>
-            ) : null}
-          </section>
-
-          <aside className="space-y-6">
-            <section className={cn(cardClass, 'p-5')}>
-              <div className="flex items-center gap-2">
-                <Target className="size-4 text-primary" />
-                <h2 className="font-semibold">Focus next</h2>
-              </div>
-              {analytics.weakTopics.length ? (
-                <ul className="mt-3 space-y-2">
-                  {analytics.weakTopics.map((topic) => (
-                    <li
-                      key={topic}
-                      className="flex items-center gap-2 text-sm text-muted-foreground"
-                    >
-                      <span className="size-1.5 shrink-0 rounded-full bg-primary" />
-                      {topic}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                  {fresh
-                    ? 'Solve a task and the topics you find hardest will collect here.'
-                    : 'Nothing below 70% right now — try something harder.'}
-                </p>
-              )}
-            </section>
-
-            {analytics.topics.length ? (
-              <section className={cn(cardClass, 'p-5')}>
-                <h2 className="font-semibold">Topic mastery</h2>
-                <ul className="mt-3 space-y-3">
-                  {analytics.topics.slice(0, 4).map((topic) => (
-                    <li key={topic.topic}>
-                      <div className="flex items-center justify-between gap-2 text-sm">
-                        <span className="min-w-0 truncate">{topic.topic}</span>
-                        <span className="shrink-0 font-semibold tabular-nums text-primary">
-                          {topic.mastery}%
-                        </span>
-                      </div>
-                      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full bg-primary"
-                          style={{ width: `${topic.mastery}%` }}
-                        />
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ) : null}
-
-            <section className={cn(cardClass, 'p-5')}>
-              <div className="flex items-center gap-2">
-                <Sparkles className="size-4 text-primary" />
-                <h2 className="font-semibold">Stuck on something?</h2>
-              </div>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Sulu asks the question that unlocks the next step, rather than handing you the
-                answer.
+            {/* Mastery and the topics that need work were two cards saying the
+                same thing from different ends. One list, weakest first, with the
+                ones below the line marked. */}
+            <div className={cn(cardClass, 'p-5')}>
+              <p className="text-sm font-medium">Topic mastery</p>
+              <ul className="mt-4 space-y-3.5">
+                {[...analytics.topics]
+                  .sort((a, b) => a.mastery - b.mastery)
+                  .slice(0, 5)
+                  .map((topic) => {
+                    const weak = topic.mastery < 70
+                    return (
+                      <li key={topic.topic}>
+                        <div className="flex items-center justify-between gap-2 text-sm">
+                          <span className="min-w-0 truncate">{topic.topic}</span>
+                          <span
+                            className={cn(
+                              'shrink-0 font-semibold tabular-nums',
+                              weak ? 'text-amber-500' : 'text-primary',
+                            )}
+                          >
+                            {topic.mastery}%
+                          </span>
+                        </div>
+                        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
+                          <div
+                            className={cn(
+                              'h-full rounded-full transition-[width] duration-700 ease-out',
+                              weak ? 'bg-amber-500' : 'bg-primary',
+                            )}
+                            style={{ width: `${topic.mastery}%` }}
+                          />
+                        </div>
+                      </li>
+                    )
+                  })}
+              </ul>
+              <p className="mt-4 text-xs text-muted-foreground">
+                {analytics.weakTopics.length
+                  ? `Below 70% is where the next gain is — ${analytics.weakTopics.length} topic${analytics.weakTopics.length === 1 ? '' : 's'} to shore up.`
+                  : 'Nothing below 70%. Try something harder.'}
               </p>
-              <Button
-                variant="outline"
-                className="mt-4 w-full"
-                nativeButton={false}
-                render={
-                  <Link href="/sulu-ai" prefetch>
-                    Ask Sulu AI
-                  </Link>
-                }
-              />
-            </section>
-          </aside>
-        </div>
-      )}
+            </div>
+          </div>
+
+          <p className="text-sm text-muted-foreground">
+            {remaining} problem{remaining === 1 ? '' : 's'} left in the library ·{' '}
+            <Link href="/tasks" prefetch className="text-primary hover:underline">
+              browse them
+            </Link>
+          </p>
+        </section>
+      ) : null}
     </div>
   )
 }

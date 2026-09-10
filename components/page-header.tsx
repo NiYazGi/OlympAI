@@ -12,7 +12,7 @@ export function PageHeader({
   note,
   children,
 }: {
-  title: string
+  title: ReactNode
   description?: string
   note?: ReactNode
   children?: ReactNode

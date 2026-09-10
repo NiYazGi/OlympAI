@@ -64,7 +64,7 @@ function Results({ paper }: { paper: NonNullable<Awaited<ReturnType<typeof getMo
         </div>
         <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
           <div
-            className="h-full rounded-full bg-primary transition-[width] duration-700"
+            className="h-full rounded-full bg-primary transition-[width] duration-700 ease-out"
             style={{ width: `${score}%` }}
           />
         </div>

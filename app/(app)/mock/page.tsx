@@ -1,4 +1,4 @@
-import { Suspense } from 'react'
+import { Reveal } from '@/components/reveal'
 import Link from 'next/link'
 import { ClipboardCheck, Clock, Timer } from 'lucide-react'
 import { PageHeader } from '@/components/page-header'
@@ -17,7 +17,7 @@ export default function MockPage() {
         title="Mock tests"
         description="A timed paper with no hints and no Sulu — the closest thing here to sitting the real thing."
       />
-      <Suspense
+      <Reveal
         fallback={
           <>
             <PendingRegion label="Loading your mock tests" />
@@ -26,7 +26,7 @@ export default function MockPage() {
         }
       >
         <MockList />
-      </Suspense>
+      </Reveal>
     </div>
   )
 }
@@ -42,6 +42,7 @@ async function MockList() {
   const done = history.filter((entry) => entry.submittedAt)
   // Three tasks is the floor below which a score says nothing.
   const eligible = subjects.filter((subject) => subject.taskCount >= 3)
+  const short = subjects.filter((subject) => subject.taskCount < 3)
 
   if (eligible.length === 0) {
     return (
@@ -81,9 +82,9 @@ async function MockList() {
         <section className={cn(cardClass, 'p-5 sm:p-6')}>
           <h2 className="font-semibold">Take a paper</h2>
           <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
-            Five questions spanning the difficulty range, timed. Your answers are graded together
-            at the end and the result sets the level on your profile — replacing the one you
-            guessed at during setup.
+            Up to five questions spanning the difficulty range, timed. Your answers are graded
+            together at the end and the result sets the level on your profile — replacing the one
+            you guessed at during setup.
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
             {eligible.map((subject) => (
@@ -91,11 +92,45 @@ async function MockList() {
                 key={subject.id}
                 subject={subject.name}
                 label={
-                  goal.subjectName === subject.name ? `${subject.name} (your target)` : subject.name
+                  // A subject with four problems produces a four-question paper.
+                  // Saying "five" and handing over three is a promise broken on
+                  // the one screen where the count is the whole point.
+                  `${subject.name}${goal.subjectName === subject.name ? ' (your target)' : ''} · ${Math.min(
+                    5,
+                    subject.taskCount,
+                  )} questions`
                 }
               />
             ))}
           </div>
+
+          {/*
+            The subjects that cannot produce a paper used to be absent with no
+            explanation, so a student whose target was Economics saw three
+            buttons, none of them theirs, and no reason given. /learn explained
+            it; this page did not.
+          */}
+          {short.length ? (
+            <div className="mt-5 border-t border-foreground/10 pt-4">
+              <p className="text-sm text-muted-foreground">
+                Not enough problems for a paper yet — a subject needs three before a score means
+                anything:
+              </p>
+              <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                {short.map((subject) => (
+                  <li key={subject.id} className="text-sm text-muted-foreground">
+                    <span className={cn(goal.subjectName === subject.name && 'font-medium text-foreground')}>
+                      {subject.name}
+                    </span>{' '}
+                    <span className="tabular-nums">
+                      ({subject.taskCount} of 3)
+                    </span>
+                    {goal.subjectName === subject.name ? ' — your target' : ''}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </section>
       )}
 

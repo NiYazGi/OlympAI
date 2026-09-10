@@ -1,12 +1,12 @@
-import { Suspense } from 'react'
+import { Reveal } from '@/components/reveal'
 import { redirect } from 'next/navigation'
 import { DashboardView } from '@/components/dashboard/dashboard-view'
 import { DashboardHeading } from '@/components/dashboard/dashboard-heading'
-import { StatCardsSkeleton, BlockSkeleton, PendingRegion } from '@/components/skeletons'
+import { BlockSkeleton, PendingRegion } from '@/components/skeletons'
 import { hasSupabaseEnv } from '@/lib/supabase/env'
-import { recommendTask } from '@/lib/recommendations'
 import { buildPath } from '@/lib/path'
 import { planForGoal, readiness } from '@/lib/goal'
+import { getNextAction } from '@/lib/supabase/study'
 import {
   getCurrentProfile,
   getGoal,
@@ -26,19 +26,20 @@ export default function DashboardPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-4 sm:space-y-8 sm:p-8">
       <DashboardHeading />
-      <Suspense fallback={<DashboardSkeleton />}>
+      <Reveal fallback={<DashboardSkeleton />}>
         <DashboardData />
-      </Suspense>
+      </Reveal>
     </div>
   )
 }
 
 async function DashboardData() {
-  const [profile, analytics, tasks, goal] = await Promise.all([
+  const [profile, analytics, tasks, goal, action] = await Promise.all([
     getCurrentProfile(),
     getProgressAnalytics(),
     getTaskCatalogue(),
     getGoal(),
+    getNextAction(),
   ])
   if (hasSupabaseEnv() && profile && !profile.onboarding_completed_at) redirect('/onboarding')
 
@@ -51,7 +52,7 @@ async function DashboardData() {
   return (
     <DashboardView
       analytics={analytics}
-      recommended={recommendTask(tasks, analytics)}
+      action={action}
       remaining={tasks.filter((task) => !task.solved).length}
       libraryEmpty={tasks.length === 0}
       goal={hasGoal ? goal : null}
@@ -65,15 +66,11 @@ function DashboardSkeleton() {
   return (
     <div className="space-y-6 sm:space-y-8">
       <PendingRegion label="Loading your dashboard" />
-      <StatCardsSkeleton />
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          <BlockSkeleton className={cn(cardClass, 'h-52')} />
-        </div>
-        <div className="space-y-6">
-          <BlockSkeleton className={cn(cardClass, 'h-36')} />
-          <BlockSkeleton className={cn(cardClass, 'h-40')} />
-        </div>
+      <BlockSkeleton className={cn(cardClass, 'h-52')} />
+      <BlockSkeleton className={cn(cardClass, 'h-44')} />
+      <div className="grid gap-4 lg:grid-cols-3">
+        <BlockSkeleton className={cn(cardClass, 'h-64 lg:col-span-2')} />
+        <BlockSkeleton className={cn(cardClass, 'h-64')} />
       </div>
     </div>
   )

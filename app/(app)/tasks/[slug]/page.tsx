@@ -1,3 +1,4 @@
+import { ViewTransition } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -9,6 +10,8 @@ import { SuluAssistantPanel } from '@/components/problems/sulu-assistant-panel'
 import { Badge } from '@/components/ui/badge'
 import { ResourceList, Attribution } from '@/components/resources/resource-list'
 import { getTaskDetail, getTaskResources } from '@/lib/supabase/queries'
+import { getTopicShortcut } from '@/lib/supabase/study'
+import { TopicShortcutPanel } from '@/components/learn/topic-shortcut'
 import type { Licence } from '@/lib/licence'
 import { xpForFirstSolve } from '@/lib/xp'
 import { cardClass } from '@/lib/utils'
@@ -28,7 +31,10 @@ export default async function TaskPage({ params }: { params: Promise<{ slug: str
   const { slug } = await params
   const task = await getTaskDetail(slug)
   if (!task) notFound()
-  const resources = await getTaskResources(slug)
+  const [resources, shortcut] = await Promise.all([
+    getTaskResources(slug),
+    getTopicShortcut(task.topic),
+  ])
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-5 p-4 sm:gap-6 sm:p-8">
@@ -37,10 +43,17 @@ export default async function TaskPage({ params }: { params: Promise<{ slug: str
         className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
-        Back to tasks
+        Back to problems
       </Link>
 
-      <PageHeader title={task.title} description={`${task.subject} · ${task.topic}`}>
+      <PageHeader
+        title={
+          <ViewTransition name={`task-${task.id}`} share="morph" default="none">
+            <span>{task.title}</span>
+          </ViewTransition>
+        }
+        description={`${task.subject} · ${task.topic}`}
+      >
         <div className="flex flex-wrap items-center gap-2">
           {task.source ? (
             <Badge variant="outline" className="gap-1.5">
@@ -147,6 +160,7 @@ export default async function TaskPage({ params }: { params: Promise<{ slug: str
         <div className="lg:col-span-2">
           <div className="flex flex-col gap-6">
             <SolutionPanel hints={task.hints} taskId={task.id} />
+            {shortcut ? <TopicShortcutPanel shortcut={shortcut} /> : null}
             <SuluAssistantPanel taskId={task.id} />
           </div>
         </div>

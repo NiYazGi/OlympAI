@@ -1,13 +1,13 @@
 'use client'
 
-import type { ReactNode } from 'react'
+import { ViewTransition, type ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   BookOpen,
   ClipboardCheck,
+  GraduationCap,
   LayoutDashboard,
-  Route,
   Settings,
   Sparkles,
   Trophy,
@@ -17,8 +17,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/path', label: 'Your path', icon: Route },
-  { href: '/tasks', label: 'Tasks', icon: BookOpen },
+  { href: '/learn', label: 'Learn', icon: GraduationCap },
+  { href: '/tasks', label: 'Problems', icon: BookOpen },
   { href: '/mock', label: 'Mock tests', icon: ClipboardCheck },
   { href: '/sulu-ai', label: 'Sulu AI', icon: Sparkles },
   { href: '/olympiads', label: 'Olympiads', icon: Trophy },
@@ -91,15 +91,26 @@ function RailLink({
             aria-label={label}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'flex size-11 items-center justify-center rounded-full transition-colors',
+              'relative flex size-11 items-center justify-center rounded-full transition-colors duration-200',
               active
-                // A ring rather than a filled pill: the icon stays legible and
-                // the rail keeps its quiet, monochrome look.
-                ? 'text-foreground ring-2 ring-foreground/70'
+                ? 'text-foreground'
                 : 'text-muted-foreground hover:bg-foreground/10 hover:text-foreground',
             )}
           >
-            {children}
+            {/* One ring for the whole rail, not a border per link. Because the
+                element carries the same view-transition name wherever it lands,
+                the browser animates it from the item you left to the item you
+                opened — the indicator travels instead of blinking out here and
+                reappearing there. */}
+            {active ? (
+              <ViewTransition name="rail-active" share="morph" default="none">
+                <span
+                  aria-hidden
+                  className="absolute inset-0 rounded-full ring-2 ring-foreground/70"
+                />
+              </ViewTransition>
+            ) : null}
+            <span className="relative">{children}</span>
           </Link>
         }
       />

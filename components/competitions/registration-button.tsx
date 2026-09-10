@@ -5,6 +5,12 @@ import { setRegistration } from '@/app/(app)/olympiads/actions'
 import { Button } from '@/components/ui/button'
 
 /**
+ * This marks a competition as one you are following, inside OlympAI. It does
+ * not enter you for anything, and it used to be labelled "Register" with a
+ * "Registered" badge beside a link to the organiser's site — which is exactly
+ * how a student comes to believe they have applied when they have not. Entering
+ * happens on the official page and nowhere else.
+ *
  * Registration is a real row now. The button used to be a `<Button>` with no
  * onClick, sitting next to a hard-coded "Registered" badge.
  */
@@ -34,7 +40,7 @@ export function RegistrationButton({
         onClick={toggle}
         disabled={pending}
       >
-        {pending ? 'Saving…' : registered ? 'Cancel registration' : 'Register'}
+        {pending ? 'Saving…' : registered ? 'Stop tracking' : 'Track this one'}
       </Button>
       {error ? (
         <p role="alert" className="text-xs text-destructive">

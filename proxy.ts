@@ -6,6 +6,7 @@ import { getSupabaseEnv, hasSupabaseEnv } from '@/lib/supabase/env'
 const protectedPrefixes = [
   '/dashboard',
   '/path',
+  '/learn',
   '/mock',
   '/tasks',
   '/sulu-ai',
@@ -96,6 +97,8 @@ export const config = {
     '/dashboard/:path*',
     '/path/:path*',
     '/path',
+    '/learn/:path*',
+    '/learn',
     '/mock/:path*',
     '/mock',
     '/tasks/:path*',

@@ -8,5 +8,5 @@ import { redirect } from 'next/navigation'
  * what to work on; the weekly rhythm now lives inside it as one section.
  */
 export default function StudyPlanPage() {
-  redirect('/path')
+  redirect('/learn')
 }

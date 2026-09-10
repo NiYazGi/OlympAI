@@ -61,7 +61,17 @@ supabase/migrations/202608190007_task_content.sql
 supabase/migrations/202608190008_competitions.sql
 supabase/migrations/202608190009_more_subjects.sql
 supabase/migrations/202608190010_rename_coach.sql
+...
+supabase/migrations/202608190025_lesson_figures_content.sql
 ```
+
+The directory is the list; run everything in it, in name order. Beyond `0010`:
+`0011`-`0016` add progression, goals, more content and mock tests, `0017` adds
+licensing, `0018` the admin flag, `0019`-`0021` the learning ladder (lessons,
+quizzes, flashcards, lesson views, and the physics content), `0022` takes the
+answer-key columns away from the browser's role, `0023` adds the economics
+ladder, and `0024`-`0025` give lesson blocks their figures — parameters in
+`jsonb`, never markup.
 
 `0006` closes the write holes described above and bounds the profile fields that
 reach the model's system prompt. `0007` fills in the full statement, givens,
@@ -130,10 +140,15 @@ pnpm dev
 
 ## Protected routes
 
-`proxy.ts` protects `/dashboard`, `/tasks`, `/sulu-ai`, `/progress`,
-`/study-plan`, `/olympiads`, `/profile` and `/onboarding`. Unauthenticated
-visitors are redirected to `/login` with a `next` path, which is validated as a
-same-origin path before use.
+`proxy.ts` protects `/dashboard`, `/path`, `/learn`, `/tasks`, `/mock`,
+`/sulu-ai`, `/progress`, `/study-plan`, `/olympiads`, `/profile`, `/me`,
+`/settings` and `/onboarding`. Unauthenticated visitors are redirected to
+`/login` with a `next` path, which is validated as a same-origin path before use.
+
+Two lists have to agree: `protectedPrefixes` decides what is gated, and the
+`matcher` at the bottom of the file decides where the middleware runs at all. A
+prefix added to the first but not the second is not protected — the middleware
+is never invoked for it.
 
 When the Supabase variables are absent the proxy passes through so the marketing
 page stays previewable; the authenticated pages then report the missing
@@ -151,6 +166,12 @@ configuration instead of rendering placeholder data.
   body and land verbatim in the system instructions.
 - Conversation history is reloaded from `chat_messages` per turn rather than
   accepted from the client, so a caller cannot forge an assistant turn.
-- `tasks.official_solution` is selected only inside the grader. It is never part
-  of a page payload.
+- `tasks.official_solution`, `quiz_questions.correct_index` and
+  `quiz_questions.explanation` are not readable by `authenticated` at all.
+  Migration `0022` replaced the table-wide grant with a column list that omits
+  them: RLS decides which rows a role may read and says nothing about columns,
+  so until then any signed-in student could have asked PostgREST directly for
+  `select=id,official_solution`. The grader and the quiz marker read them with
+  the service role. A column added to either table stays invisible to the
+  browser until it is added to that grant.
 - `/api/sulu` and the grader are both capped per user per hour.

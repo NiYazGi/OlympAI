@@ -1,7 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, ViewTransition } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { ArrowRight, Check, Clock, Library, Search, Zap } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -14,7 +15,7 @@ import {
 } from '@/components/ui/select'
 import { DifficultyStars, difficultyLabel } from '@/components/difficulty-stars'
 import { EmptyState } from '@/components/empty-state'
-import { cardClass, cn } from '@/lib/utils'
+import { cardClass, cn, riseDelay } from '@/lib/utils'
 import { xpForFirstSolve } from '@/lib/xp'
 import type { CatalogueTask } from '@/lib/types'
 
@@ -60,10 +61,18 @@ function FilterSelect({
  * the identical rows in the database went unread.
  */
 export function ProblemBank({ tasks }: { tasks: CatalogueTask[] }) {
+  // ?topic= is how the ladder's "Apply" step arrives here. It seeds the filter
+  // and nothing more: the selects stay in charge afterwards, so changing one
+  // does not have to fight the URL it was opened from.
+  const requestedTopic = useSearchParams().get('topic')
   const [query, setQuery] = useState('')
   const [subject, setSubject] = useState(ALL_SUBJECTS)
   const [difficulty, setDifficulty] = useState(ALL_LEVELS)
-  const [topic, setTopic] = useState(ALL_TOPICS)
+  const [topic, setTopic] = useState(() =>
+    requestedTopic && tasks.some((task) => task.topic === requestedTopic)
+      ? requestedTopic
+      : ALL_TOPICS,
+  )
   const [state, setState] = useState(ALL_STATES)
 
   // Filter options come from the rows actually present, so they cannot drift
@@ -72,6 +81,9 @@ export function ProblemBank({ tasks }: { tasks: CatalogueTask[] }) {
     () => [ALL_SUBJECTS, ...[...new Set(tasks.map((task) => task.subject))].sort()],
     [tasks],
   )
+  // One subject on the page means the subject select can only say what the
+  // heading already says, so it is not rendered.
+  const showSubjectFilter = subjects.length > 2
   const topics = useMemo(
     () =>
       [
@@ -125,20 +137,22 @@ export function ProblemBank({ tasks }: { tasks: CatalogueTask[] }) {
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search tasks…"
-            aria-label="Search tasks"
+            placeholder="Search problems…"
+            aria-label="Search problems"
             className="h-9 pl-9"
           />
         </div>
-        <FilterSelect
-          label="Subject"
-          value={subject}
-          onChange={(next) => {
-            setSubject(next)
-            setTopic(ALL_TOPICS)
-          }}
-          options={subjects}
-        />
+        {showSubjectFilter ? (
+          <FilterSelect
+            label="Subject"
+            value={subject}
+            onChange={(next) => {
+              setSubject(next)
+              setTopic(ALL_TOPICS)
+            }}
+            options={subjects}
+          />
+        ) : null}
         <FilterSelect label="Topic" value={topic} onChange={setTopic} options={topics} />
         <FilterSelect
           label="Difficulty"
@@ -150,17 +164,17 @@ export function ProblemBank({ tasks }: { tasks: CatalogueTask[] }) {
       </div>
 
       <p className="text-sm text-muted-foreground" aria-live="polite">
-        {filtered.length} of {tasks.length} task{tasks.length === 1 ? '' : 's'}
+        {filtered.length} of {tasks.length} problem{tasks.length === 1 ? '' : 's'}
       </p>
 
       {filtered.length === 0 ? (
         <div className={cn(cardClass, 'p-8 text-center text-sm text-muted-foreground')}>
-          No task matches these filters.
+          No problem matches these filters.
         </div>
       ) : (
         <ul className="grid gap-3">
-          {filtered.map((task) => (
-            <li key={task.id}>
+          {filtered.map((task, index) => (
+            <li key={task.id} className="rise" style={riseDelay(index)}>
               <Link
                 href={`/tasks/${task.id}`}
                 className={cn(
@@ -170,7 +184,11 @@ export function ProblemBank({ tasks }: { tasks: CatalogueTask[] }) {
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-medium">{task.title}</h3>
+                    <h3 className="font-medium">
+                      <ViewTransition name={`task-${task.id}`} share="morph" default="none">
+                        <span>{task.title}</span>
+                      </ViewTransition>
+                    </h3>
                     {task.solved ? (
                       <Badge variant="secondary" className="gap-1">
                         <Check className="size-3" /> Solved

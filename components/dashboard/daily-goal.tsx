@@ -63,7 +63,13 @@ export function DailyGoal({ analytics }: { analytics: ProgressAnalytics }) {
         <p className="mt-1 text-sm text-muted-foreground">
           {reached
             ? 'Goal met. Anything more today is a bonus.'
-            : `${xp.goal - xp.today} XP to go — about one ${xp.goal - xp.today > 40 ? 'hard' : 'medium'} task.`}
+            : `${xp.goal - xp.today} XP to go — a solved problem, or a quiz you have not answered yet.`}
+        </p>
+        {/* Saying the rule beats leaving a student to infer it from a number
+            that did not move. Reviews and "mark as read" are self-reported, so
+            they move the topic and not the level. */}
+        <p className="mt-1 text-xs text-muted-foreground">
+          XP comes from graded work: solved problems and first-time quiz answers.
         </p>
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -78,7 +84,7 @@ export function DailyGoal({ analytics }: { analytics: ProgressAnalytics }) {
             </div>
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
               <div
-                className="h-full rounded-full bg-primary transition-[width] duration-700"
+                className="h-full rounded-full bg-primary transition-[width] duration-700 ease-out"
                 style={{ width: `${xp.levelPercent}%` }}
               />
             </div>
@@ -117,7 +123,7 @@ export function DailyGoal({ analytics }: { analytics: ProgressAnalytics }) {
         </div>
 
         <Link
-          href="/path"
+          href="/learn"
           prefetch
           className="mt-5 inline-block text-sm font-medium text-primary hover:underline"
         >

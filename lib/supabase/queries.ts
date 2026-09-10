@@ -5,7 +5,15 @@ import { getSessionUserId } from '@/lib/supabase/auth'
 import { getReference } from '@/lib/supabase/reference'
 import { createClient } from '@/lib/supabase/server'
 import { hasSupabaseEnv } from '@/lib/supabase/env'
-import { levelFromXp, totalXp, xpOnDay, type XpAttempt } from '@/lib/xp'
+import {
+  levelFromXp,
+  quizXp,
+  quizXpOnDay,
+  totalXp,
+  xpOnDay,
+  type XpAttempt,
+  type XpQuizAnswer,
+} from '@/lib/xp'
 import type {
   CatalogueTask,
   CompetitionOption,
@@ -87,6 +95,23 @@ const getAttempts = cache(async () => {
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
   return data ?? []
+})
+
+/** Quiz answers, for the XP and streak the check step now contributes to. */
+const getQuizAnswers = cache(async (): Promise<XpQuizAnswer[]> => {
+  const userId = await getSessionUserId()
+  if (!userId) return []
+
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('quiz_attempts')
+    .select('question_id, is_correct, created_at')
+    .eq('user_id', userId)
+  return (data ?? []).map((row) => ({
+    questionId: row.question_id,
+    isCorrect: row.is_correct,
+    createdAt: row.created_at,
+  }))
 })
 
 /**
@@ -267,13 +292,18 @@ export const getGoal = cache(async (): Promise<Goal> => {
 export const getProgressAnalytics = cache(async (): Promise<ProgressAnalytics> => {
   if (!hasSupabaseEnv()) return emptyAnalytics
 
-  const [attemptsList, reference, profile] = await Promise.all([
+  const [attemptsList, reference, profile, quizAnswers] = await Promise.all([
     getAttempts(),
     getReference(),
     getCurrentProfile(),
+    getQuizAnswers(),
   ])
   const goal = profile?.daily_xp_goal ?? 50
-  if (attemptsList.length === 0) {
+
+  // A student who has read lessons and answered questions but not yet submitted
+  // a derivation used to fall through here with a blank profile: zero XP, zero
+  // streak, and a dashboard that had just told them to do exactly that.
+  if (attemptsList.length === 0 && quizAnswers.length === 0) {
     return {
       ...emptyAnalytics,
       currentLevel: profile?.level ?? null,
@@ -328,6 +358,13 @@ export const getProgressAnalytics = cache(async (): Promise<ProgressAnalytics> =
     }))
     .sort((a, b) => a.mastery - b.mastery)
 
+  // Answering questions is activity. Counting only submitted derivations meant
+  // a week of lessons and quizzes showed a streak of zero.
+  for (const answer of quizAnswers) {
+    const day = utcDay(answer.createdAt)
+    if (!dayCounts.has(day)) dayCounts.set(day, 0)
+  }
+
   // A streak should survive "today, not yet": start at yesterday when there is
   // no activity today, instead of reporting zero all morning.
   let streak = 0
@@ -360,7 +397,11 @@ export const getProgressAnalytics = cache(async (): Promise<ProgressAnalytics> =
     score: attempt.score,
     createdAt: attempt.created_at,
   }))
-  const xpTotal = totalXp(xpAttempts)
+  // Both halves of the ladder that produce evidence: solved problems and
+  // answered questions. Card reviews and "mark as read" are the student's own
+  // claim about their own work and are written by the client, so they move the
+  // topic's progress and not the level.
+  const xpTotal = totalXp(xpAttempts) + quizXp(quizAnswers)
   const progress = levelFromXp(xpTotal)
 
   const correctAnswers = attemptsList.filter((attempt) => attempt.is_correct).length
@@ -392,7 +433,9 @@ export const getProgressAnalytics = cache(async (): Promise<ProgressAnalytics> =
     ].slice(0, 3),
     xp: {
       total: xpTotal,
-      today: xpOnDay(xpAttempts, utcDay(new Date())),
+      today:
+        xpOnDay(xpAttempts, utcDay(new Date())) +
+        quizXpOnDay(quizAnswers, utcDay(new Date())),
       goal,
       level: progress.level,
       intoLevel: progress.into,

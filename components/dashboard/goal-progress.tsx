@@ -54,7 +54,7 @@ export function GoalProgress({
         ) : null}
 
         <Link
-          href="/path"
+          href="/learn"
           prefetch
           className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
         >

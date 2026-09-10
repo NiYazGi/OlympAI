@@ -104,7 +104,10 @@ export async function submitMock(testId: string, answers: Record<string, string>
   const limit = await checkAttemptRateLimit(supabase)
   if (!limit.allowed) return { ok: false, error: limit.message }
 
-  const { data: tasks } = await supabase
+  // Service role: official_solution is not readable by `authenticated` — see
+  // migration 0022. The paper itself was already checked against this user.
+  const admin = createAdminClient()
+  const { data: tasks } = await admin
     .from('tasks')
     .select('id, title, problem, difficulty, given, find_prompt, official_solution, hints')
     .in('id', test.task_ids)
@@ -147,7 +150,6 @@ export async function submitMock(testId: string, answers: Record<string, string>
     }
   }
 
-  const admin = createAdminClient()
   const { error: insertError } = await admin.from('task_attempts').insert(
     graded.map(({ task, answer, grade }) => ({
       task_id: task.id,

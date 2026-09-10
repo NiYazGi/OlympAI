@@ -155,3 +155,201 @@
     }
   }
 }
+
+/*
+ * Whiteboard figures.
+ *
+ * Every stroke carries pathLength="1", so one dash length works for a straight
+ * axis and a curve alike without measuring either. The lines draw themselves in
+ * order and the labels arrive after the stroke they belong to, which is the
+ * thing a diagram printed all at once cannot do: show which part came first.
+ */
+@keyframes wb-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/*
+ * Opacity only, deliberately. A CSS transform overrides an element's SVG
+ * transform attribute, so animating one here silently cancelled the
+ * rotate(-90) on every vertical axis label and threw them off the canvas.
+ */
+@keyframes wb-appear {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.wb-stroke {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: wb-draw 0.5s ease-out forwards;
+}
+
+.wb-appear {
+  opacity: 0;
+  animation: wb-appear 0.3s ease-out forwards;
+}
+
+/*
+ * Someone who has asked their system to stop animations has asked for a
+ * finished diagram, not a slower one.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .wb-stroke,
+  .wb-appear {
+    animation: none;
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+/* ===========================================================================
+ * Motion.
+ *
+ * Three rules held throughout. Movement has to mean something — arrival,
+ * departure, or the fact that two things are the same thing. It has to be
+ * quick enough that nobody waits on it; nothing below runs longer than the
+ * time it takes to read the word it sits under. And all of it is optional:
+ * the reduced-motion block at the end is not a courtesy, it is the setting
+ * some people need in order to use software at all.
+ * ======================================================================== */
+
+:root {
+  /* Old content leaves faster than new content arrives: it should stop
+     competing for attention before the replacement asks for it. */
+  --duration-exit: 140ms;
+  --duration-enter: 210ms;
+  --duration-move: 360ms;
+  /* Decelerating, so things settle rather than stop dead. */
+  --ease-settle: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes vt-fade {
+  from {
+    opacity: 0;
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+@keyframes vt-slide-y {
+  from {
+    transform: translateY(8px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* A skeleton yielding to the content it stood in for. Down is departure, up
+   is arrival, and the enter waits out the exit so the two never overlap. */
+::view-transition-old(.slide-down) {
+  animation:
+    var(--duration-exit) ease-out both vt-fade reverse,
+    var(--duration-exit) ease-out both vt-slide-y reverse;
+}
+
+::view-transition-new(.slide-up) {
+  animation:
+    var(--duration-enter) ease-in var(--duration-exit) both vt-fade,
+    var(--duration-move) var(--ease-settle) both vt-slide-y;
+}
+
+/* One object moving, rather than two objects swapping: a topic name on the
+   index becomes the heading of its own page. The blur covers the pixel
+   interpolation halfway through, which is where a morph otherwise looks cheap. */
+::view-transition-group(.morph) {
+  animation-duration: 320ms;
+  animation-timing-function: var(--ease-settle);
+}
+
+::view-transition-image-pair(.morph) {
+  animation-name: vt-blur;
+}
+
+@keyframes vt-blur {
+  30% {
+    filter: blur(2px);
+  }
+}
+
+/* Lists arrive in order. --rise-delay staggers them; past about the sixth item
+   the delay stops growing, because a long list should not take a second and a
+   half to finish appearing. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rise {
+  animation: rise 260ms var(--ease-settle) both;
+  animation-delay: var(--rise-delay, 0ms);
+}
+
+/* A card with two faces. The turn is the answer arriving — the one moment in
+   the app where a little theatre is the point. */
+.flip-scene {
+  perspective: 1400px;
+}
+
+.flip-card {
+  transform-style: preserve-3d;
+  transition: transform 460ms var(--ease-settle);
+}
+
+.flip-card[data-face='back'] {
+  transform: rotateY(180deg);
+}
+
+.flip-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.flip-face-back {
+  transform: rotateY(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise {
+    animation: none;
+  }
+
+  .flip-card {
+    transition: none;
+  }
+
+  /* Turning a card with no rotation would show the back mirrored. Without the
+     movement, the two faces simply swap. */
+  .flip-card[data-face='back'] {
+    transform: none;
+  }
+
+  .flip-face {
+    backface-visibility: visible;
+  }
+
+  .flip-face-back {
+    transform: none;
+  }
+
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

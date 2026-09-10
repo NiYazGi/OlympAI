@@ -7,21 +7,21 @@ import {
   Sparkles,
   BookOpen,
   ClipboardCheck,
-  Route,
   Settings,
   Trophy,
   User,
+  GraduationCap,
   MoreHorizontal,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, ViewTransition } from 'react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
   { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
-  { href: '/path', label: 'Your path', icon: Route },
-  { href: '/tasks', label: 'Tasks', icon: BookOpen },
+  { href: '/learn', label: 'Learn', icon: GraduationCap },
+  { href: '/tasks', label: 'Problems', icon: BookOpen },
+  { href: '/mock', label: 'Papers', icon: ClipboardCheck },
   { href: '/sulu-ai', label: 'Sulu', icon: Sparkles },
-  { href: '/mock', label: 'Mock tests', icon: ClipboardCheck },
 ]
 
 const moreItems = [
@@ -53,10 +53,19 @@ export function MobileNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-md px-1 py-2 text-[11px] font-medium transition-colors',
+                'relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-md px-1 py-2 text-[11px] font-medium transition-colors duration-200',
                 active ? 'text-primary' : 'text-muted-foreground',
               )}
             >
+              {/* The same travelling indicator as the desktop rail. */}
+              {active ? (
+                <ViewTransition name="tab-active" share="morph" default="none">
+                  <span
+                    aria-hidden
+                    className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-primary"
+                  />
+                </ViewTransition>
+              ) : null}
               <item.icon className="size-5" />
               {item.label}
             </Link>

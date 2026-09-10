@@ -21,15 +21,31 @@ function isoIn(days: number) {
   return date.toISOString().slice(0, 10)
 }
 
+/**
+ * `preferredType` is the answer to onboarding's "preparing for a particular
+ * kind of competition?" — which was stored and then read by nothing, so the
+ * student was asked the same question twice and the first answer vanished.
+ * Matching entries are sorted to the top rather than filtered, because the
+ * answer was optional and hiding the rest would turn a hint into a wall.
+ */
+/** Onboarding's answers, mapped onto the levels the catalogue actually uses. */
+const LEVELS_FOR_TYPE: Record<string, string[]> = {
+  'School or regional': ['School', 'Regional'],
+  'National selection': ['National'],
+  'International preparation': ['International'],
+}
+
 export function GoalSetup({
   competitions,
   currentId,
   currentDate,
+  preferredType = null,
   compact = false,
 }: {
   competitions: CompetitionOption[]
   currentId: string | null
   currentDate: string | null
+  preferredType?: string | null
   compact?: boolean
 }) {
   const [open, setOpen] = useState(!compact)
@@ -39,10 +55,16 @@ export function GoalSetup({
   const [pending, startTransition] = useTransition()
 
   const grouped = useMemo(() => {
-    const named = competitions.filter((entry) => entry.subjectId)
-    const generic = competitions.filter((entry) => !entry.subjectId)
-    return { named, generic }
-  }, [competitions])
+    const wanted = LEVELS_FOR_TYPE[preferredType ?? ''] ?? []
+    const matches = (entry: CompetitionOption) =>
+      wanted.length > 0 && entry.level !== null && wanted.includes(entry.level)
+    const byPreference = (a: CompetitionOption, b: CompetitionOption) =>
+      Number(matches(b)) - Number(matches(a))
+
+    const named = competitions.filter((entry) => entry.subjectId).sort(byPreference)
+    const generic = competitions.filter((entry) => !entry.subjectId).sort(byPreference)
+    return { named, generic, hasPreference: competitions.some(matches) }
+  }, [competitions, preferredType])
 
   const chosen = competitions.find((entry) => entry.id === competitionId) ?? null
   const tomorrow = isoIn(1)
@@ -77,6 +99,9 @@ export function GoalSetup({
           </div>
           <h2 className="mt-4 text-lg font-semibold">What are you preparing for?</h2>
           <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
+            {grouped.hasPreference && preferredType
+              ? `You said you were aiming at ${preferredType.toLowerCase()}, so those are listed first. `
+              : ''}
             Choose the competition and the date you are aiming at. The schedule, the weekly load
             and your readiness are worked out from there.
           </p>

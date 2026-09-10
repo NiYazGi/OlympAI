@@ -236,7 +236,7 @@ export function OnboardingFlow() {
           aria-label="Setup progress"
         >
           <div
-            className="h-full bg-primary transition-[width] duration-300"
+            className="h-full bg-primary transition-[width] duration-300 ease-out"
             style={{ width: `${Math.max(progress, 4)}%` }}
           />
         </div>

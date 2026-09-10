@@ -40,6 +40,13 @@ export function xpForFirstSolve(difficulty: number): number {
 
 /** Difficulty 1 is worth 12 XP solved, difficulty 5 is worth 60. */
 export function attemptXp(attempt: XpAttempt, alreadySolved: boolean): number {
+  // A non-attempt earns nothing. The grader's score bands make 0 unique to the
+  // `not_an_attempt` verdict — an incorrect answer floors at 5 — so the ledger
+  // can tell "just tell me the answer" apart from a wrong attempt without
+  // task_attempts having to store the verdict. Without this, asking for the
+  // answer on all 23 tasks pays better than solving the hardest one.
+  if (!attempt.isCorrect && attempt.score <= 0) return 0
+
   const base = Math.max(1, attempt.difficulty) * 12
   const share = attempt.isCorrect
     ? VERDICT_SHARE.solved
@@ -114,13 +121,114 @@ export function levelFromXp(xp: number): LevelProgress {
   }
 }
 
-/** Used only to explain the rules in the UI, so they are not a black box. */
+/**
+ * Used only to explain the rules in the UI, so they are not a black box.
+ *
+ * Deliberately a thin wrapper: it used to carry its own copy of the bands and
+ * disagreed with the ledger, promising 0 for a non-attempt while attemptXp
+ * paid out for one.
+ */
 export function xpForVerdict(difficulty: number, verdict: Verdict): number {
-  const isCorrect = verdict === 'correct'
-  const score = verdict === 'partially_correct' ? 50 : verdict === 'incorrect' ? 20 : 0
-  if (verdict === 'not_an_attempt') return 0
+  const score =
+    verdict === 'correct' ? 95 : verdict === 'partially_correct' ? 50 : verdict === 'incorrect' ? 20 : 0
   return attemptXp(
-    { taskId: '', difficulty, isCorrect, score, createdAt: '' },
+    { taskId: '', difficulty, isCorrect: verdict === 'correct', score, createdAt: '' },
     false,
   )
+}
+
+/**
+ * XP from quiz answers.
+ *
+ * The check step was worth nothing, which made the app's own instruction —
+ * "read this, then answer six questions" — earn a student exactly zero, while
+ * the daily goal sat untouched and the streak stayed at zero days. An app that
+ * tells you to do something and then scores you as if you had not is teaching
+ * the wrong lesson about what matters.
+ *
+ * Two rules keep it honest. A question pays once, ever, so re-running a quiz
+ * you have already answered earns nothing — the same reasoning that caps a
+ * repeated solve at a tenth. And it pays far less than a problem does: getting
+ * six questions right is worth about one two-star derivation, because it is
+ * worth about that much.
+ *
+ * Card reviews and "mark as read" deliberately pay nothing. Both are the
+ * student's own claim about their own work, and both are written by the client
+ * under RLS; paying for them would make the level a measure of clicking. They
+ * move the topic's progress instead, where a self-report belongs.
+ */
+export type XpQuizAnswer = {
+  questionId: string
+  isCorrect: boolean
+  createdAt: string
+}
+
+/** Answering at all, once per question. */
+const QUIZ_ATTEMPT_XP = 2
+/** Getting it right, once per question, on top of the attempt. */
+const QUIZ_CORRECT_XP = 4
+
+/** What one question can ever be worth, for showing the rule in the UI. */
+export const QUIZ_QUESTION_MAX_XP = QUIZ_ATTEMPT_XP + QUIZ_CORRECT_XP
+
+/**
+ * Walks answers oldest-first and pays each question at most once for showing
+ * up and once for being right.
+ */
+function walkQuiz(
+  answers: XpQuizAnswer[],
+  onEarn: (xp: number, day: string) => void,
+): void {
+  const attempted = new Set<string>()
+  const solved = new Set<string>()
+
+  for (const answer of [...answers].sort((a, b) => a.createdAt.localeCompare(b.createdAt))) {
+    const day = answer.createdAt.slice(0, 10)
+    if (!attempted.has(answer.questionId)) {
+      attempted.add(answer.questionId)
+      onEarn(QUIZ_ATTEMPT_XP, day)
+    }
+    if (answer.isCorrect && !solved.has(answer.questionId)) {
+      solved.add(answer.questionId)
+      onEarn(QUIZ_CORRECT_XP, day)
+    }
+  }
+}
+
+/**
+ * What a single answer is worth, given what came before it.
+ *
+ * The same arithmetic walkQuiz applies over a history, exposed for the moment
+ * the answer is submitted so the student can be told immediately. Keeping both
+ * in this file is what stops the number shown from drifting from the number
+ * counted.
+ */
+export function quizAnswerXp({
+  attemptedBefore,
+  solvedBefore,
+  isCorrect,
+}: {
+  attemptedBefore: boolean
+  solvedBefore: boolean
+  isCorrect: boolean
+}): number {
+  const forShowingUp = attemptedBefore ? 0 : QUIZ_ATTEMPT_XP
+  const forBeingRight = isCorrect && !solvedBefore ? QUIZ_CORRECT_XP : 0
+  return forShowingUp + forBeingRight
+}
+
+export function quizXp(answers: XpQuizAnswer[]): number {
+  let total = 0
+  walkQuiz(answers, (xp) => {
+    total += xp
+  })
+  return total
+}
+
+export function quizXpOnDay(answers: XpQuizAnswer[], utcDay: string): number {
+  let total = 0
+  walkQuiz(answers, (xp, day) => {
+    if (day === utcDay) total += xp
+  })
+  return total
 }

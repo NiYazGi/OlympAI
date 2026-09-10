@@ -53,16 +53,6 @@ export async function submitTaskAttempt(
   const limit = await checkAttemptRateLimit(supabase)
   if (!limit.allowed) return { ok: false, error: limit.message }
 
-  // Read through the caller's session so RLS still decides what is visible.
-  const { data: task, error: taskError } = await supabase
-    .from('tasks')
-    .select('id, title, problem, difficulty, given, find_prompt, official_solution, hints')
-    .eq('id', taskId)
-    .maybeSingle()
-  if (taskError || !task) {
-    return { ok: false, error: 'This task is unavailable. Please return to the task library.' }
-  }
-
   if (!hasSupabaseSecretKey()) {
     // Without the service role we cannot write a grade the browser could not
     // have written itself, and a score nobody can trust is worse than none.
@@ -70,6 +60,22 @@ export async function submitTaskAttempt(
       ok: false,
       error: 'Grading is not configured on this server. Add SUPABASE_SECRET_KEY and try again.',
     }
+  }
+
+  // Read with the service role, because `authenticated` no longer holds the
+  // column: official_solution was revoked from the browser's role in migration
+  // 0022, which is what stops a student fetching the answer key over the REST
+  // API. Nothing is widened by reading it here — every task row is visible to
+  // every signed-in student anyway, and the id came from the request while the
+  // user came from the verified session above.
+  const admin = createAdminClient()
+  const { data: task, error: taskError } = await admin
+    .from('tasks')
+    .select('id, title, problem, difficulty, given, find_prompt, official_solution, hints')
+    .eq('id', taskId)
+    .maybeSingle()
+  if (taskError || !task) {
+    return { ok: false, error: 'This task is unavailable. Please return to the task library.' }
   }
 
   let grade: Grade
@@ -124,7 +130,6 @@ export async function submitTaskAttempt(
   // The grade is written with the service role, because `authenticated` has no
   // insert on task_attempts: a row the browser can write is a row the browser
   // can score. user_id comes from the verified session above, never from input.
-  const admin = createAdminClient()
   const { error: insertError } = await admin.from('task_attempts').insert({
     task_id: task.id,
     user_id: user.id,
