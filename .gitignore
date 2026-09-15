@@ -21,6 +21,12 @@ credentials*
 # Common ignores
 node_modules
 .next/
-.tools/
+# .tools/ once held a downloaded Windows Node build and was ignored wholesale.
+# It now holds the project's verification scripts — the only checks that run
+# against the live grader and database — so the scripts are tracked. Anything
+# else stays out: magic-link.mjs writes a one-time sign-in page to whatever
+# path it is given, and that page must never reach a commit.
+.tools/*
+!.tools/*.mjs
 *.tsbuildinfo
 .DS_Store
