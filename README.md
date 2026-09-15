@@ -20,6 +20,18 @@ pnpm dev
 `pnpm db:status` lists migrations that have not run. `pnpm typecheck` and
 `pnpm lint` both have to pass; they are the only automated checks in the repo.
 
+Checks that run against the live grader, model and database are in `.tools/`,
+started through a loader that resolves the `@/` import alias:
+
+```bash
+node --import ./.tools/register.mjs .tools/live-mock.mjs [--keep] [Subject]
+```
+
+They write real rows and remove them afterwards; `--keep`, where a script
+accepts it, leaves them in place. They read `.env.local` from an absolute path
+on the machine they were written on, so they need adjusting before they run
+anywhere else.
+
 ## How it fits together
 
 **The dashboard answers one question: what should I do today.** It leads with
@@ -201,9 +213,9 @@ into `/me` and `/learn`.
   be testable and has been checked by hand; nothing runs in CI.
 - The task library is 23 problems written for this project. Real olympiad
   material has not been imported, and there is no ingestion pipeline yet.
-- Study content exists for Physics and Economics: 6 lessons, 36 quiz questions,
-  52 cards and 6 figures across six topics. The other fifteen topics show honest empty rungs,
-  and the five subjects without any are reachable but have nothing to study.
+- Every topic has study content, and only just: one lesson per topic — 21
+  lessons, 126 quiz questions, 192 flashcards and 9 figures across all seven
+  subjects. Enough to exercise the ladder end to end, not yet a course.
 - Four subjects have two problems each, which is below the three a mock paper
   needs, so `/mock` cannot offer them at all.
 - Grading, the mock paper end to end and the coach stream have been exercised
