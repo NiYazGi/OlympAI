@@ -213,6 +213,8 @@ into `/me` and `/learn`.
   be testable and has been checked by hand; nothing runs in CI.
 - The task library is 23 problems written for this project. Real olympiad
   material has not been imported, and there is no ingestion pipeline yet.
+  Candidate sources and what each one's licence allows are listed in
+  `docs/content-sources.md`.
 - Every topic has study content, and only just: one lesson per topic — 21
   lessons, 126 quiz questions, 192 flashcards and 9 figures across all seven
   subjects. Enough to exercise the ladder end to end, not yet a course.
