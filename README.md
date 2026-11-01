@@ -456,7 +456,7 @@ with a keyboard, and with a screen reader.
 
 **`/tasks` opens on the track, not on the catalogue.** The section the student
 is on, the problems it asks for in easiest-first order, then what is next and
-what is behind. The filterable list of all 1792 is `?list=1` — "what is there"
+what is behind. The filterable list of all 1672 is `?list=1` — "what is there"
 is a different question from "what now", and only one of them is worth
 answering unprompted.
 
@@ -657,12 +657,15 @@ into `/me` and `/learn`.
 - No automated tests. Pure logic (`lib/xp.ts`, `lib/mock.ts`, `lib/goal.ts`,
   `lib/licence.ts`, `lib/path.ts`, `lib/ladder.ts`, `lib/srs.ts`) is written to
   be testable and has been checked by hand; nothing runs in CI.
-- **The library is 1792 problems and 221 solutions.** Mathematics 1625 (639
-  oblast, 907 republican, 76 international); physics 167 (62 oblast, 99
-  republican, none international). 1598 of them carry `licence: 'unknown'` —
-  see below. The sources and what each one allows are in
+- **The library is 1672 problems and 76 solutions.** Mathematics 1491 (486
+  oblast, 926 republican, 76 international); physics 167 (62 oblast, 99
+  republican, none international). 1649 of them carry `licence: 'unknown'` —
+  see below. The 159 OpenStax textbook exercises were deleted on 1 November
+  2026: they were not olympiad material and read badly next to it. A copy of
+  the rows is in `.tools/out/openstax-tasks-backup.json` on the machine that
+  deleted them. The sources and what each one allows are in
   `docs/content-sources.md`.
-- **Solutions are the thin part, not problems.** 162 of the mathematics
+- **Solutions are the thin part, not problems.** 3 of the mathematics
   problems have a reference solution and 59 of the physics ones; the rest are
   statements alone. The grader is honest about it (`buildGraderInstructions`
   says when there is no reference) and marks better when there is one, which is

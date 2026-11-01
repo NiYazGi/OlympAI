@@ -35,7 +35,7 @@ Written solutions graded line by line like an olympiad jury: a protocol with poi
 
 - Next.js 16 (App Router), React 19, Tailwind v4, Supabase with RLS, OpenAI for grading and coaching; deployed on Vercel.
 - Surfaces: today (`/dashboard`), study ladder (`/learn` with topic, lesson, quiz, cards), problems (`/tasks`, a problem, an attempt's protocol), papers (`/mock`), plan (`/plan`), olympiad catalogue (`/olympiads`), coach (`/sulu-ai`), progress (`/me`), rules (`/method`), classes (`/class`), settings, the marketing page and auth.
-- Library: 1,792 problems, 221 with a reference solution. Study content is thin: three lessons per subject.
+- Library: 1,672 problems, 76 with a reference solution (the OpenStax textbook exercises were removed on 1 November 2026 for their quality). Study content is thin: three lessons per subject.
 - The olympiad catalogue carries no dates; the student sets their own target date.
 - The grader never states the answer, in any field.
 
