@@ -13,18 +13,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { DifficultyStars, difficultyLabel } from '@/components/difficulty-stars'
+import { DifficultyStars, difficultyKey } from '@/components/difficulty-stars'
 import { EmptyState } from '@/components/empty-state'
-import { cardClass, cn, riseDelay } from '@/lib/utils'
+import { useT } from '@/components/i18n-provider'
+import { cardClass, cn, liftClass, riseDelay } from '@/lib/utils'
 import { xpForFirstSolve } from '@/lib/xp'
 import type { CatalogueTask } from '@/lib/types'
 
-const ALL_SUBJECTS = 'All subjects'
-const ALL_TOPICS = 'All topics'
-const ALL_LEVELS = 'All levels'
-const ALL_STATES = 'All'
-const DIFFICULTIES = [ALL_LEVELS, 'Easy', 'Medium', 'Hard']
-const STATES = [ALL_STATES, 'Solved', 'Unsolved', 'Attempted']
+/**
+ * Every filter stores a key and shows a label.
+ *
+ * They used to be the same string — selecting "Hard" compared the caption
+ * against a caption — which is a filter that silently matches nothing the
+ * moment the interface is in another language. `ANY` is the empty string so a
+ * cleared filter and an unset one are the same thing.
+ */
+const ANY = ''
+
+type Option = { value: string; label: string }
 
 function FilterSelect({
   value,
@@ -34,7 +40,7 @@ function FilterSelect({
 }: {
   value: string
   onChange: (value: string) => void
-  options: string[]
+  options: Option[]
   label: string
 }) {
   return (
@@ -44,8 +50,8 @@ function FilterSelect({
       </SelectTrigger>
       <SelectContent>
         {options.map((option) => (
-          <SelectItem key={option} value={option}>
-            {option}
+          <SelectItem key={option.value} value={option.value}>
+            {option.label}
           </SelectItem>
         ))}
       </SelectContent>
@@ -64,56 +70,86 @@ export function ProblemBank({ tasks }: { tasks: CatalogueTask[] }) {
   // ?topic= is how the ladder's "Apply" step arrives here. It seeds the filter
   // and nothing more: the selects stay in charge afterwards, so changing one
   // does not have to fight the URL it was opened from.
+  const t = useT()
   const requestedTopic = useSearchParams().get('topic')
   const [query, setQuery] = useState('')
-  const [subject, setSubject] = useState(ALL_SUBJECTS)
-  const [difficulty, setDifficulty] = useState(ALL_LEVELS)
+  const [subject, setSubject] = useState(ANY)
+  const [difficulty, setDifficulty] = useState(ANY)
   const [topic, setTopic] = useState(() =>
-    requestedTopic && tasks.some((task) => task.topic === requestedTopic)
-      ? requestedTopic
-      : ALL_TOPICS,
+    requestedTopic && tasks.some((task) => task.topic === requestedTopic) ? requestedTopic : ANY,
   )
-  const [state, setState] = useState(ALL_STATES)
+  const [state, setState] = useState(ANY)
+  const [stage, setStage] = useState(ANY)
 
   // Filter options come from the rows actually present, so they cannot drift
   // out of sync with the catalogue the way two hand-kept lists did.
-  const subjects = useMemo(
-    () => [ALL_SUBJECTS, ...[...new Set(tasks.map((task) => task.subject))].sort()],
-    [tasks],
+  const subjects = useMemo<Option[]>(
+    () => [
+      { value: ANY, label: t.bank.allSubjects },
+      ...[...new Set(tasks.map((task) => task.subject))]
+        .sort()
+        .map((value) => ({ value, label: t.subjects[value] ?? value })),
+    ],
+    [tasks, t],
   )
   // One subject on the page means the subject select can only say what the
   // heading already says, so it is not rendered.
   const showSubjectFilter = subjects.length > 2
-  const topics = useMemo(
-    () =>
-      [
-        ALL_TOPICS,
-        ...[
-          ...new Set(
-            tasks
-              .filter((task) => subject === ALL_SUBJECTS || task.subject === subject)
-              .map((task) => task.topic),
-          ),
-        ].sort(),
-      ],
-    [tasks, subject],
+  const topics = useMemo<Option[]>(
+    () => [
+      { value: ANY, label: t.bank.allTopics },
+      ...[
+        ...new Set(
+          tasks.filter((task) => !subject || task.subject === subject).map((task) => task.topic),
+        ),
+      ]
+        .sort()
+        .map((value) => ({ value, label: t.topics[value] ?? value })),
+    ],
+    [tasks, subject, t],
   )
+
+  // Only offered when the catalogue actually holds more than one stage: a
+  // filter whose every choice returns the same rows is furniture.
+  const stages = useMemo<Option[]>(() => {
+    const present = [...new Set(tasks.map((task) => task.level).filter(Boolean))] as string[]
+    if (present.length < 2) return []
+    const order = ['oblast', 'republican', 'international']
+    return [
+      { value: ANY, label: t.bank.allStages },
+      ...present
+        .sort((a, b) => order.indexOf(a) - order.indexOf(b))
+        .map((value) => ({ value, label: t.bank.stages[value] ?? value })),
+    ]
+  }, [tasks, t])
+
+  const difficulties: Option[] = [
+    { value: ANY, label: t.bank.allLevels },
+    { value: 'easy', label: t.bank.easy },
+    { value: 'medium', label: t.bank.medium },
+    { value: 'hard', label: t.bank.hard },
+  ]
+  const states: Option[] = [
+    { value: ANY, label: t.bank.allStates },
+    { value: 'solved', label: t.bank.solved },
+    { value: 'unsolved', label: t.bank.unsolved },
+    { value: 'attempted', label: t.bank.attempted },
+  ]
 
   const filtered = useMemo(
     () =>
       tasks.filter((task) => {
         if (query && !task.title.toLowerCase().includes(query.trim().toLowerCase())) return false
-        if (subject !== ALL_SUBJECTS && task.subject !== subject) return false
-        if (topic !== ALL_TOPICS && task.topic !== topic) return false
-        if (difficulty !== ALL_LEVELS && difficultyLabel(task.difficulty) !== difficulty) {
-          return false
-        }
-        if (state === 'Solved' && !task.solved) return false
-        if (state === 'Unsolved' && task.solved) return false
-        if (state === 'Attempted' && task.attempts === 0) return false
+        if (subject && task.subject !== subject) return false
+        if (topic && task.topic !== topic) return false
+        if (stage && task.level !== stage) return false
+        if (difficulty && difficultyKey(task.difficulty) !== difficulty) return false
+        if (state === 'solved' && !task.solved) return false
+        if (state === 'unsolved' && task.solved) return false
+        if (state === 'attempted' && task.attempts === 0) return false
         return true
       }),
-    [tasks, query, subject, topic, difficulty, state],
+    [tasks, query, subject, topic, difficulty, state, stage],
   )
 
   if (tasks.length === 0) {
@@ -122,9 +158,9 @@ export function ProblemBank({ tasks }: { tasks: CatalogueTask[] }) {
     return (
       <EmptyState
         icon={Library}
-        title="No tasks here yet"
-        body="Nothing has been added to the library for this workspace. Sulu can still work through a problem with you in the meantime."
-        action={{ href: '/sulu-ai', label: 'Open Sulu AI' }}
+        title={t.bank.emptyTitle}
+        body={t.bank.emptyBody}
+        action={{ href: '/sulu-ai', label: t.bank.emptyAction }}
       />
     )
   }
@@ -137,39 +173,47 @@ export function ProblemBank({ tasks }: { tasks: CatalogueTask[] }) {
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search problems…"
-            aria-label="Search problems"
+            placeholder={t.bank.searchPlaceholder}
+            aria-label={t.bank.searchPlaceholder}
             className="h-9 pl-9"
           />
         </div>
         {showSubjectFilter ? (
           <FilterSelect
-            label="Subject"
+            label={t.bank.subject}
             value={subject}
             onChange={(next) => {
               setSubject(next)
-              setTopic(ALL_TOPICS)
+              setTopic(ANY)
             }}
             options={subjects}
           />
         ) : null}
-        <FilterSelect label="Topic" value={topic} onChange={setTopic} options={topics} />
+        {stages.length ? (
+          <FilterSelect
+            label={t.bank.stage}
+            value={stage}
+            onChange={setStage}
+            options={stages}
+          />
+        ) : null}
+        <FilterSelect label={t.bank.topic} value={topic} onChange={setTopic} options={topics} />
         <FilterSelect
-          label="Difficulty"
+          label={t.bank.difficulty}
           value={difficulty}
           onChange={setDifficulty}
-          options={DIFFICULTIES}
+          options={difficulties}
         />
-        <FilterSelect label="Status" value={state} onChange={setState} options={STATES} />
+        <FilterSelect label={t.bank.status} value={state} onChange={setState} options={states} />
       </div>
 
       <p className="text-sm text-muted-foreground" aria-live="polite">
-        {filtered.length} of {tasks.length} problem{tasks.length === 1 ? '' : 's'}
+        {t.bank.count(filtered.length, tasks.length)}
       </p>
 
       {filtered.length === 0 ? (
         <div className={cn(cardClass, 'p-8 text-center text-sm text-muted-foreground')}>
-          No problem matches these filters.
+          {t.bank.noMatch}
         </div>
       ) : (
         <ul className="grid gap-3">
@@ -179,7 +223,8 @@ export function ProblemBank({ tasks }: { tasks: CatalogueTask[] }) {
                 href={`/tasks/${task.id}`}
                 className={cn(
                   cardClass,
-                  'flex flex-col gap-3 p-4 transition-shadow hover:shadow-md sm:flex-row sm:items-center sm:justify-between sm:p-5',
+                  liftClass,
+                  'group flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5',
                 )}
               >
                 <div className="min-w-0">
@@ -191,23 +236,29 @@ export function ProblemBank({ tasks }: { tasks: CatalogueTask[] }) {
                     </h3>
                     {task.solved ? (
                       <Badge variant="secondary" className="gap-1">
-                        <Check className="size-3" /> Solved
+                        <Check className="size-3" /> {t.bank.solved}
                       </Badge>
                     ) : task.attempts > 0 ? (
                       <Badge variant="outline">
-                        {task.attempts} attempt{task.attempts === 1 ? '' : 's'}
+                        {t.bank.attemptsBadge(task.attempts)}
                       </Badge>
                     ) : null}
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {task.subject} · {task.topic}
-                    {task.source ? ` · ${task.source}` : ''}
+                    {[
+                      task.level ? (t.bank.stages[task.level] ?? task.level) : null,
+                      t.subjects[task.subject] ?? task.subject,
+                      t.topics[task.topic] ?? task.topic,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-4">
                   {!task.solved ? (
                     <span
-                      title="XP for a first solve"
+                      title={t.bank.firstSolveXp}
                       className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground"
                     >
                       <Zap className="size-3" />
@@ -216,11 +267,17 @@ export function ProblemBank({ tasks }: { tasks: CatalogueTask[] }) {
                   ) : null}
                   {task.estimatedMinutes ? (
                     <span className="hidden items-center gap-1.5 text-sm text-muted-foreground sm:flex">
-                      <Clock className="size-3.5" /> {task.estimatedMinutes} min
+                      <Clock className="size-3.5" /> {t.tasks.minutes(task.estimatedMinutes)}
                     </span>
                   ) : null}
-                  <DifficultyStars level={task.difficulty} />
-                  <ArrowRight aria-hidden className="hidden size-4 text-muted-foreground sm:block" />
+                  <DifficultyStars
+                    level={task.difficulty}
+                    label={t.bank.difficultyAria(task.difficulty)}
+                  />
+                  <ArrowRight
+                    aria-hidden
+                    className="hidden size-4 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5 sm:block"
+                  />
                 </div>
               </Link>
             </li>

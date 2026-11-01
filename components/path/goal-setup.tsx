@@ -76,9 +76,13 @@ export function GoalSetup({
     formData.set('competition_id', competitionId)
     formData.set('target_date', date)
     startTransition(async () => {
-      const result = await setGoal(formData)
-      if (result.ok) setOpen(false)
-      else setError(result.error ?? 'That did not save.')
+      try {
+        const result = await setGoal(formData)
+        if (result.ok) setOpen(false)
+        else setError(result.error ?? 'That did not save.')
+      } catch {
+        setError('That did not save. Check your connection and try again.')
+      }
     })
   }
 
@@ -91,7 +95,7 @@ export function GoalSetup({
   }
 
   return (
-    <section className={cn(compact ? 'w-full' : `${cardClass} p-6`)}>
+    <section className={cn(compact ? 'disclose w-full' : `${cardClass} p-6`)}>
       {!compact ? (
         <>
           <div className="flex size-11 items-center justify-center rounded-xl bg-accent text-primary">
@@ -102,14 +106,14 @@ export function GoalSetup({
             {grouped.hasPreference && preferredType
               ? `You said you were aiming at ${preferredType.toLowerCase()}, so those are listed first. `
               : ''}
-            Choose the competition and the date you are aiming at. The schedule, the weekly load
-            and your readiness are worked out from there.
+            Choose the competition and the date you are aiming at. The schedule, the weekly load and
+            your readiness are worked out from there.
           </p>
         </>
       ) : null}
 
       <fieldset className="mt-5">
-        <legend className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <legend className="text-caption font-semibold text-muted-foreground">
           Competition
         </legend>
         {/*
@@ -203,7 +207,7 @@ export function GoalSetup({
       </fieldset>
 
       <fieldset className="mt-6">
-        <legend className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <legend className="text-caption font-semibold text-muted-foreground">
           Target date
         </legend>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -258,7 +262,10 @@ export function GoalSetup({
       </fieldset>
 
       {error ? (
-        <p role="alert" className="mt-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+        <p
+          role="alert"
+          className="disclose mt-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive"
+        >
           {error}
         </p>
       ) : null}

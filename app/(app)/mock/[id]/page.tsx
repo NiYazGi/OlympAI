@@ -1,32 +1,33 @@
+import { getT } from '@/lib/i18n'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, CheckCircle2, Clock, TrendingUp, XCircle } from 'lucide-react'
+import { CheckCircle2, Clock, TrendingUp } from 'lucide-react'
+import { BackLink } from '@/components/back-link'
+import { CountUp } from '@/components/count-up'
+import { Meter } from '@/components/meter'
 import { PageHeader } from '@/components/page-header'
 import { ExamRunner } from '@/components/mock/exam-runner'
 import { DifficultyStars } from '@/components/difficulty-stars'
 import { getMockPaper } from '@/lib/supabase/queries'
 import { cardClass, cn } from '@/lib/utils'
 
-export const metadata = { title: 'Mock test' }
+export async function generateMetadata() {
+  const t = await getT()
+  return { title: t.exam.metaTitle }
+}
 export const dynamic = 'force-dynamic'
 
 export default async function MockTestPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const paper = await getMockPaper(id)
+  const [paper, t] = await Promise.all([getMockPaper(id), getT()])
   if (!paper) notFound()
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-5 p-4 sm:gap-6 sm:p-8">
-      <Link
-        href="/mock"
-        className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" />
-        All mock tests
-      </Link>
+      <div className="mx-auto flex max-w-4xl flex-col gap-5 p-4 sm:gap-6 sm:p-8">
+        <BackLink href="/mock">{t.exam.back}</BackLink>
 
-      {paper.submittedAt ? <Results paper={paper} /> : <Sitting paper={paper} />}
-    </div>
+        {paper.submittedAt ? <Results paper={paper} /> : <Sitting paper={paper} />}
+      </div>
   )
 }
 
@@ -59,15 +60,17 @@ function Results({ paper }: { paper: NonNullable<Awaited<ReturnType<typeof getMo
 
       <section className={cn(cardClass, 'p-5 sm:p-6')}>
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-          <span className="text-4xl font-semibold tabular-nums">{score}%</span>
+          {/* The score is the news on this page, so it counts up to itself
+              once — the one number in the app that does. */}
+          <CountUp
+            value={score}
+            suffix="%"
+            delay={150}
+            className="font-display text-5xl leading-none font-bold tabular-nums"
+          />
           <span className="text-lg font-medium text-primary">{paper.level}</span>
         </div>
-        <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-primary transition-[width] duration-700 ease-out"
-            style={{ width: `${score}%` }}
-          />
-        </div>
+        <Meter value={score} className="mt-4 h-2" label="Score" />
         <p className="mt-3 text-sm text-muted-foreground">
           {answered} of {paper.questions.length} questions answered. The score weights each
           question by its difficulty, so the hard ones count for more. This level now sits on your
@@ -86,7 +89,7 @@ function Results({ paper }: { paper: NonNullable<Awaited<ReturnType<typeof getMo
                   {skipped ? (
                     <Clock className="size-4 shrink-0 text-muted-foreground" />
                   ) : correct ? (
-                    <CheckCircle2 className="size-4 shrink-0 text-emerald-500" />
+                    <CheckCircle2 className="size-4 shrink-0 text-success" />
                   ) : (
                     <TrendingUp className="size-4 shrink-0 text-primary" />
                   )}
@@ -106,7 +109,7 @@ function Results({ paper }: { paper: NonNullable<Awaited<ReturnType<typeof getMo
               </div>
 
               {question.feedback ? (
-                <p className="mt-3 text-sm leading-relaxed text-foreground/90">
+                <p className="font-reading mt-3 text-sm leading-relaxed text-foreground/90">
                   {question.feedback}
                 </p>
               ) : (

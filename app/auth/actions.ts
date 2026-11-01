@@ -45,21 +45,51 @@ export async function signIn(formData: FormData) {
   const { data: profile } = user
     ? await supabase
         .from('profiles')
-        .select('onboarding_completed_at')
+        .select('onboarding_completed_at, role')
         .eq('id', user.id)
         .maybeSingle()
     : { data: null }
-  if (!profile?.onboarding_completed_at) redirect('/onboarding')
+  // Onboarding asks a student's questions, and a teacher's profile is created
+  // with it already marked complete. The `next` is carried through it so an
+  // invite link survives the detour.
+  if (!profile?.onboarding_completed_at) {
+    redirect(next === '/dashboard' ? '/onboarding' : `/onboarding?next=${encodeURIComponent(next)}`)
+  }
+  if (profile.role === 'teacher' && next === '/dashboard') redirect('/class')
 
   redirect(next)
+}
+
+/**
+ * A Telegram username as the person will type it: with or without the @, in
+ * whatever case they like. Stored folded and bare, because Telegram treats
+ * them case-insensitively and the bot matches on what it is handed.
+ */
+function telegramUsername(raw: string): string | null {
+  const value = raw.trim().replace(/^@/, '').toLowerCase()
+  if (!value) return null
+  return /^[a-z0-9_]{5,32}$/.test(value) ? value : ''
 }
 
 export async function signUp(formData: FormData) {
   const fullName = String(formData.get('full_name') ?? '').trim()
   const email = String(formData.get('email') ?? '').trim()
   const password = String(formData.get('password') ?? '')
+  const telegram = telegramUsername(String(formData.get('telegram_username') ?? ''))
+  // Two kinds of account, and the only question that cannot be changed later
+  // from inside the app. Anything other than the two values is a student.
+  const role = formData.get('role') === 'teacher' ? 'teacher' : 'student'
+  // Where they were going before they were asked to sign up — an invite link,
+  // usually. The trigger that creates the profile does not know about it, so it
+  // travels on the query string from here to onboarding and out the other side.
+  const next = safeNext(formData.get('next'), '')
 
   if (!fullName || !email || !password) authError('/signup', 'Complete all required fields.')
+  // An empty string means "given, and not a username". Null means "not given",
+  // which is allowed: the bot is an offer, not a gate.
+  if (telegram === '') {
+    authError('/signup', 'That is not a Telegram username. Five to thirty-two letters, digits or underscores.')
+  }
   if (password.length < MIN_PASSWORD_LENGTH) {
     authError('/signup', `Choose a password of at least ${MIN_PASSWORD_LENGTH} characters.`)
   }
@@ -70,14 +100,24 @@ export async function signUp(formData: FormData) {
     email,
     password,
     options: {
-      data: { full_name: fullName },
+      data: { full_name: fullName, telegram_username: telegram, role },
       emailRedirectTo: `${await siteOrigin()}/auth/callback`,
     },
   })
   if (error) authError('/signup', error.message)
 
-  if (data.session) redirect('/onboarding')
-  redirect('/login?message=Check your email to confirm your account.')
+  if (data.session) {
+    // A teacher skips the six student questions; their profile is created with
+    // onboarding already marked complete, so there is nothing to answer.
+    if (role === 'teacher') redirect(next || '/class')
+    redirect(next ? `/onboarding?next=${encodeURIComponent(next)}` : '/onboarding')
+  }
+  const message = 'Check your email to confirm your account.'
+  redirect(
+    next
+      ? `/login?message=${encodeURIComponent(message)}&next=${encodeURIComponent(next)}`
+      : `/login?message=${encodeURIComponent(message)}`,
+  )
 }
 
 /**

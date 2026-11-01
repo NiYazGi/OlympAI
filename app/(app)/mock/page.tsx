@@ -4,23 +4,28 @@ import { ClipboardCheck, Clock, Timer } from 'lucide-react'
 import { PageHeader } from '@/components/page-header'
 import { EmptyState } from '@/components/empty-state'
 import { StartMock } from '@/components/mock/start-mock'
+import { StartPaper } from '@/components/mock/start-paper'
 import { BlockSkeleton, PendingRegion } from '@/components/skeletons'
-import { getGoal, getMockHistory, getSubjectSummary } from '@/lib/supabase/queries'
+import { getGoal, getMockHistory, getSubjectSummary, getTaskCatalogue } from '@/lib/supabase/queries'
+import { realPapers } from '@/lib/mock'
+import { getT } from '@/lib/i18n'
 import { cardClass, cn } from '@/lib/utils'
 
-export const metadata = { title: 'Mock tests' }
+export async function generateMetadata() {
+  const t = await getT()
+  return { title: t.mock.title }
+}
 
-export default function MockPage() {
+export default async function MockPage() {
+  const t = await getT()
+
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-5 p-4 sm:gap-6 sm:p-8">
-      <PageHeader
-        title="Mock tests"
-        description="A timed paper with no hints and no Sulu — the closest thing here to sitting the real thing."
-      />
+      <PageHeader title={t.mock.title} description={t.mock.description} />
       <Reveal
         fallback={
           <>
-            <PendingRegion label="Loading your mock tests" />
+            <PendingRegion label={t.mock.loading} />
             <BlockSkeleton className={`${cardClass} h-40`} />
           </>
         }
@@ -32,11 +37,20 @@ export default function MockPage() {
 }
 
 async function MockList() {
-  const [history, subjects, goal] = await Promise.all([
+  const [history, subjects, goal, tasks, t] = await Promise.all([
     getMockHistory(),
     getSubjectSummary(),
     getGoal(),
+    getTaskCatalogue(),
+    getT(),
   ])
+
+  // Real sittings, narrowed to what the student is training for. Showing a
+  // physics paper to someone preparing in mathematics is the same mistake the
+  // catalogue made before it learned about targets.
+  const papers = realPapers(
+    goal.subjectName ? tasks.filter((task) => task.subject === goal.subjectName) : tasks,
+  )
 
   const open = history.find((entry) => !entry.submittedAt) ?? null
   const done = history.filter((entry) => entry.submittedAt)
@@ -48,9 +62,9 @@ async function MockList() {
     return (
       <EmptyState
         icon={ClipboardCheck}
-        title="Not enough tasks for a mock yet"
-        body="A subject needs at least three tasks before a paper can measure anything."
-        action={{ href: '/tasks', label: 'Browse tasks' }}
+        title={t.mock.emptyTitle}
+        body={t.mock.emptyBody}
+        action={{ href: '/tasks', label: t.mock.browseTasks }}
       />
     )
   }
@@ -61,12 +75,14 @@ async function MockList() {
         <section className={cn(cardClass, 'p-5 sm:p-6')}>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-amber-500">
-                In progress
+              <p className="text-caption font-semibold text-warning">
+                {t.mock.inProgress}
               </p>
-              <h2 className="mt-1 text-lg font-semibold">{open.subject} mock</h2>
+              <h2 className="mt-1 text-lg font-semibold">
+                {t.mock.subjectMock(t.subjects[open.subject] ?? open.subject)}
+              </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                {open.taskCount} questions · {open.durationMinutes} minutes
+                {t.mock.questionsMinutes(open.taskCount, open.durationMinutes)}
               </p>
             </div>
             <Link
@@ -74,18 +90,31 @@ async function MockList() {
               prefetch
               className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
             >
-              Resume
+              {t.mock.resume}
             </Link>
           </div>
         </section>
       ) : (
+        <>
+        {papers.length ? (
+          <section className="space-y-3">
+            <div>
+              <h2 className="font-semibold">{t.mock.realPapers}</h2>
+              <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
+                {t.mock.realPapersNote}
+              </p>
+            </div>
+            <ul className="grid gap-2">
+              {papers.map((paper) => (
+                <StartPaper key={paper.paper} paper={paper} />
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
         <section className={cn(cardClass, 'p-5 sm:p-6')}>
-          <h2 className="font-semibold">Take a paper</h2>
-          <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
-            Up to five questions spanning the difficulty range, timed. Your answers are graded
-            together at the end and the result sets the level on your profile — replacing the one
-            you guessed at during setup.
-          </p>
+          <h2 className="font-semibold">{papers.length ? t.mock.composed : t.mock.takeAPaper}</h2>
+          <p className="mt-1.5 text-sm leading-6 text-muted-foreground">{t.mock.takeNote}</p>
           <div className="mt-5 flex flex-wrap gap-2">
             {eligible.map((subject) => (
               <StartMock
@@ -95,10 +124,11 @@ async function MockList() {
                   // A subject with four problems produces a four-question paper.
                   // Saying "five" and handing over three is a promise broken on
                   // the one screen where the count is the whole point.
-                  `${subject.name}${goal.subjectName === subject.name ? ' (your target)' : ''} · ${Math.min(
-                    5,
-                    subject.taskCount,
-                  )} questions`
+                  t.mock.startLabel(
+                    t.subjects[subject.name] ?? subject.name,
+                    goal.subjectName === subject.name,
+                    Math.min(5, subject.taskCount),
+                  )
                 }
               />
             ))}
@@ -113,30 +143,28 @@ async function MockList() {
           {short.length ? (
             <div className="mt-5 border-t border-foreground/10 pt-4">
               <p className="text-sm text-muted-foreground">
-                Not enough problems for a paper yet — a subject needs three before a score means
-                anything:
+                {t.mock.shortNote}
               </p>
               <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
                 {short.map((subject) => (
                   <li key={subject.id} className="text-sm text-muted-foreground">
                     <span className={cn(goal.subjectName === subject.name && 'font-medium text-foreground')}>
-                      {subject.name}
+                      {t.subjects[subject.name] ?? subject.name}
                     </span>{' '}
-                    <span className="tabular-nums">
-                      ({subject.taskCount} of 3)
-                    </span>
-                    {goal.subjectName === subject.name ? ' — your target' : ''}
+                    <span className="tabular-nums">{t.mock.shortCount(subject.taskCount)}</span>
+                    {goal.subjectName === subject.name ? ` — ${t.mock.yourTarget}` : ''}
                   </li>
                 ))}
               </ul>
             </div>
           ) : null}
         </section>
+        </>
       )}
 
       {done.length ? (
         <section className={cn(cardClass, 'p-5 sm:p-6')}>
-          <h2 className="font-semibold">Past papers</h2>
+          <h2 className="font-semibold">{t.mock.pastPapers}</h2>
           <ul className="mt-4 space-y-2">
             {done.map((entry) => (
               <li key={entry.id}>
@@ -146,7 +174,9 @@ async function MockList() {
                   className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-muted/60"
                 >
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">{entry.subject}</span>
+                    <span className="block truncate text-sm font-medium">
+                      {t.subjects[entry.subject] ?? entry.subject}
+                    </span>
                     <span className="block text-xs text-muted-foreground">
                       {new Date(entry.startedAt).toLocaleDateString('en', {
                         day: 'numeric',
@@ -167,7 +197,7 @@ async function MockList() {
       ) : (
         <p className="flex items-center gap-2 text-sm text-muted-foreground">
           <Timer className="size-4" />
-          No papers yet. The first one takes about an hour.
+          {t.mock.noPapers}
         </p>
       )}
     </>

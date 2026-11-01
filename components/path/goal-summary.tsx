@@ -1,20 +1,23 @@
 import Link from 'next/link'
 import { ArrowRight, BookOpen, CalendarDays, Gauge, TriangleAlert } from 'lucide-react'
+import { RING_LENGTH, ringStyle } from '@/components/meter'
 import { GoalSetup } from '@/components/path/goal-setup'
 import { TargetPicker } from '@/components/path/target-picker'
-import { WORKLOAD_COPY, type GoalPlan, type Readiness } from '@/lib/goal'
+import { workloadCopy, type GoalPlan, type Readiness } from '@/lib/goal'
+import { getT } from '@/lib/i18n'
+import type { Dictionary } from '@/lib/i18n/dictionaries'
 import { cardClass, cn } from '@/lib/utils'
 import type { CompetitionOption, Goal } from '@/lib/types'
 import type { PathTask } from '@/lib/path'
 
 const WORKLOAD_TONE: Record<GoalPlan['workload'], string> = {
-  light: 'text-emerald-500',
+  light: 'text-success',
   steady: 'text-primary',
-  demanding: 'text-amber-500',
+  demanding: 'text-warning',
   unrealistic: 'text-destructive',
 }
 
-export function GoalSummary({
+export async function GoalSummary({
   goal,
   plan,
   ready,
@@ -29,27 +32,28 @@ export function GoalSummary({
   subjects: { id: string; name: string; taskCount: number }[]
   next: PathTask | null
 }) {
-  const workload = WORKLOAD_COPY[plan.workload]
+  const t = await getT()
+  const workload = workloadCopy(plan.workload, t)
 
   return (
     <section className={cn(cardClass, 'p-5 sm:p-6')}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Preparing for
+          <p className="text-caption font-semibold text-muted-foreground">
+            {t.dashboard.preparingFor}
           </p>
-          <h2 className="mt-1 text-2xl font-semibold text-balance">
+          <h2 className="font-display mt-1 text-2xl leading-tight font-bold tracking-[-0.03em] text-balance">
             {goal.competition?.name ?? goal.subjectName}
           </h2>
           <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
             <span className="inline-flex items-center gap-1.5">
               <BookOpen className="size-3.5" />
-              {goal.subjectName}
-              {goal.subjectLocked ? ' (set by the competition)' : ''}
+              {goal.subjectName ? (t.subjects[goal.subjectName] ?? goal.subjectName) : null}
+              {goal.subjectLocked ? t.learn.setBySubject : ''}
             </span>
             <span className="inline-flex items-center gap-1.5">
               <CalendarDays className="size-3.5" />
-              {plan.daysLeft} day{plan.daysLeft === 1 ? '' : 's'} left
+              {t.common.daysLeft(plan.daysLeft)}
             </span>
           </p>
         </div>
@@ -73,20 +77,18 @@ export function GoalSummary({
       </div>
 
       <div className="mt-6 grid gap-6 sm:grid-cols-[auto_1fr] sm:items-center">
-        <ReadinessRing ready={ready} />
+        <ReadinessRing ready={ready} t={t} />
 
         <div className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-3">
-            <Figure label="Per week" value={`${plan.tasksPerWeek} task${plan.tasksPerWeek === 1 ? '' : 's'}`} />
-            <Figure label="Time" value={`~${plan.minutesPerWeek} min`} />
+            <Figure label={t.learn.summary.perWeek} value={t.learn.tasksCount(plan.tasksPerWeek)} />
+            <Figure label={t.learn.summary.time} value={`~${t.common.minutes(plan.minutesPerWeek)}`} />
             <Figure
-              label="Load"
+              label={t.learn.summary.load}
               value={workload.label}
               className={WORKLOAD_TONE[plan.workload]}
             />
           </div>
-
-          <p className="text-sm leading-6 text-muted-foreground">{workload.note}</p>
 
           {plan.remaining > 0 ? (
             <p
@@ -94,7 +96,7 @@ export function GoalSummary({
                 'flex items-start gap-2 rounded-lg p-3 text-sm',
                 plan.onTrack
                   ? 'bg-accent text-accent-foreground'
-                  : 'bg-amber-500/10 text-amber-500',
+                  : 'bg-warning/10 text-warning',
               )}
             >
               {plan.onTrack ? (
@@ -103,9 +105,11 @@ export function GoalSummary({
                 <TriangleAlert className="mt-0.5 size-4 shrink-0" />
               )}
               <span>
-                {plan.onTrack
-                  ? `On track — ${plan.currentPace} attempt${plan.currentPace === 1 ? '' : 's'} in the last week against a target of ${plan.tasksPerWeek}.`
-                  : `Behind pace — ${plan.currentPace} attempt${plan.currentPace === 1 ? '' : 's'} last week against a target of ${plan.tasksPerWeek}.`}
+                {t.learn.paceLine(
+                  plan.onTrack ? t.learn.onTrack : t.learn.behindPace,
+                  plan.currentPace,
+                  plan.tasksPerWeek,
+                )}
               </span>
             </p>
           ) : null}
@@ -116,34 +120,28 @@ export function GoalSummary({
         <Link
           href={`/tasks/${next.id}`}
           prefetch
-          className="mt-6 flex items-center justify-between gap-3 rounded-xl bg-primary p-4 text-primary-foreground transition-opacity hover:opacity-95"
+          className="group mt-6 flex items-center justify-between gap-3 rounded-xl bg-primary/10 p-4 ring-1 ring-primary/25 transition-colors hover:bg-primary/15"
         >
           <span className="min-w-0">
-            <span className="block text-xs uppercase tracking-wide text-primary-foreground/70">
-              Next up
+            <span className="block text-caption font-semibold text-primary">
+              {t.learn.nextUp}
             </span>
-            <span className="mt-0.5 block truncate font-medium">{next.title}</span>
+            <span className="font-display mt-0.5 block truncate text-lg font-bold">
+              {next.title}
+            </span>
           </span>
-          <ArrowRight className="size-4 shrink-0" />
+          <ArrowRight className="size-4 shrink-0 text-primary transition-transform duration-200 group-hover:translate-x-0.5" />
         </Link>
       ) : (
         <p className="mt-6 rounded-xl bg-accent p-4 text-sm text-accent-foreground">
-          Every task in this subject is solved. Move the date forward, or pick a harder target.
+          {t.learn.allSolved}
         </p>
       )}
     </section>
   )
 }
 
-function Figure({
-  label,
-  value,
-  className,
-}: {
-  label: string
-  value: string
-  className?: string
-}) {
+function Figure({ label, value, className }: { label: string; value: string; className?: string }) {
   return (
     <div className="rounded-lg bg-muted/40 p-3">
       <p className="text-xs text-muted-foreground">{label}</p>
@@ -152,10 +150,16 @@ function Figure({
   )
 }
 
-const RING = 2 * Math.PI * 52
-
 /** Shows the two components as well as the score, so it is not a black box. */
-export function ReadinessRing({ ready, size = 'size-32' }: { ready: Readiness; size?: string }) {
+export function ReadinessRing({
+  ready,
+  t,
+  size = 'size-32',
+}: {
+  ready: Readiness
+  t: Dictionary
+  size?: string
+}) {
   return (
     <div className="mx-auto sm:mx-0">
       <div className={cn('relative', size)}>
@@ -168,19 +172,22 @@ export function ReadinessRing({ ready, size = 'size-32' }: { ready: Readiness; s
             fill="none"
             strokeWidth="10"
             strokeLinecap="round"
-            className="stroke-primary transition-[stroke-dashoffset] duration-700"
-            strokeDasharray={RING}
-            strokeDashoffset={RING * (1 - Math.min(1, ready.percent / 100))}
+            className="ring-fill stroke-primary"
+            style={ringStyle()}
+            strokeDasharray={RING_LENGTH}
+            strokeDashoffset={RING_LENGTH * (1 - Math.min(1, ready.percent / 100))}
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-semibold tabular-nums">{ready.percent}%</span>
-          <span className="text-xs text-muted-foreground">ready</span>
+          <span className="font-display text-3xl leading-none font-bold tabular-nums">{ready.percent}%</span>
+          <span className="mt-1 text-caption font-semibold text-muted-foreground">
+            {t.goal.ready}
+          </span>
         </div>
       </div>
       <p className="mt-2 text-center text-xs text-muted-foreground">
-        {ready.coverage}% covered
-        {ready.quality !== null ? ` · ${ready.quality}% accurate` : ''}
+        {t.goal.covered(ready.coverage)}
+        {ready.quality !== null ? ` · ${t.goal.accurate(ready.quality)}` : ''}
       </p>
     </div>
   )

@@ -35,7 +35,7 @@ export function SuluWorkspace({
           <MessageSquarePlus className="size-4" /> New conversation
         </Link>
 
-        <p className="px-2 pt-6 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <p className="px-2 pt-6 text-caption font-semibold text-muted-foreground">
           Recent chats
         </p>
         <div className="mt-2 min-h-0 flex-1 space-y-1 overflow-y-auto">

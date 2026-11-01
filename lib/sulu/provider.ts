@@ -1,5 +1,7 @@
 import 'server-only'
 
+import type { ModelImage } from '@/lib/sulu/images'
+
 export type SuluMessage = { role: 'user' | 'assistant'; content: string }
 
 export const SULU_MODEL = process.env.SULU_MODEL ?? 'gpt-5.4-mini'
@@ -89,6 +91,34 @@ async function providerError(response: Response) {
     return new SuluError('Sulu AI is temporarily unavailable. Try again in a moment.', 502)
   }
 
+  /*
+   * A 400 is the server's fault, not the network's.
+   *
+   * This used to fall through to "could not be reached. Try again in a moment",
+   * which is the one sentence that is certainly wrong about a request the
+   * provider rejected as malformed: retrying sends the same request again. The
+   * usual cause is a model name the account cannot use — a typo in SULU_MODEL
+   * on the deployment is indistinguishable, from the chat window, from the
+   * internet being down.
+   *
+   * Only `code` and `type` are read, as above: the provider's own `message`
+   * echoes the request back, and for grading the request carries the reference
+   * solution.
+   */
+  if (response.status === 404 || code === 'model_not_found') {
+    return new SuluError(
+      'Sulu AI is misconfigured on this server: the model named in SULU_MODEL was rejected by the provider.',
+      503,
+    )
+  }
+
+  if (response.status === 400 || type === 'invalid_request_error') {
+    return new SuluError(
+      'Sulu AI is misconfigured on this server: the provider rejected the request as malformed. This needs an administrator, not a retry.',
+      503,
+    )
+  }
+
   return new SuluError('Sulu AI could not be reached. Try again in a moment.', 502)
 }
 
@@ -117,11 +147,16 @@ export async function requestSuluJson<T>(
   instructions: string,
   input: string,
   schema: { name: string; schema: Record<string, unknown> },
+  images: ModelImage[] = [],
 ): Promise<T> {
   const response = await post({
     model: SULU_MODEL,
     instructions,
-    input,
+    // With figures the input becomes one user turn of text and pictures;
+    // without, it stays the plain string it always was.
+    input: images.length
+      ? [{ role: 'user', content: [{ type: 'input_text', text: input }, ...images] }]
+      : input,
     text: {
       format: {
         type: 'json_schema',

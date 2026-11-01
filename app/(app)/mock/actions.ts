@@ -9,8 +9,9 @@ import { hasSupabaseSecretKey } from '@/lib/supabase/secret-env'
 import { checkAttemptRateLimit } from '@/lib/rate-limit'
 import { gradeAttempt } from '@/lib/sulu/grade'
 import { SuluError } from '@/lib/sulu/provider'
+import { getLocale } from '@/lib/i18n'
 import { attemptXp } from '@/lib/xp'
-import { composeMock, scoreMock } from '@/lib/mock'
+import { composeMock, realPapers, scoreMock } from '@/lib/mock'
 import { getTaskCatalogue } from '@/lib/supabase/queries'
 
 export type MockResult = { ok: boolean; error?: string }
@@ -77,6 +78,65 @@ export async function startMock(subjectName: string): Promise<MockResult> {
 }
 
 /**
+ * Sits a real past paper.
+ *
+ * Same table, same grading, same XP — the difference is only where the
+ * question set came from. `startMock` composes one from the library;
+ * this one takes a sitting that happened, in the order it was printed and for
+ * the time it was given.
+ *
+ * The task ids are read back from the database rather than taken from the
+ * caller: the argument names a paper, and what that paper contains is not the
+ * browser's to decide.
+ */
+export async function startPaper(paper: string): Promise<MockResult> {
+  const user = await getVerifiedUser()
+  if (!user) return { ok: false, error: 'Your session has expired. Please log in again.' }
+  if (!hasSupabaseSecretKey()) {
+    return { ok: false, error: 'Mock tests are not configured on this server.' }
+  }
+
+  const supabase = await createClient()
+  const { data: open } = await supabase
+    .from('mock_tests')
+    .select('id')
+    .eq('user_id', user.id)
+    .is('submitted_at', null)
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (open) redirect(`/mock/${open.id}`)
+
+  const catalogue = await getTaskCatalogue()
+  const found = realPapers(catalogue).find((entry) => entry.paper === paper)
+  if (!found) return { ok: false, error: 'That paper is no longer available.' }
+
+  const subjectName = catalogue.find((task) => task.id === found.taskIds[0])?.subject
+  const { data: subject } = await supabase
+    .from('subjects')
+    .select('id')
+    .eq('name', subjectName ?? '')
+    .maybeSingle()
+  if (!subject) return { ok: false, error: 'That subject is no longer available.' }
+
+  const admin = createAdminClient()
+  const { data: created, error } = await admin
+    .from('mock_tests')
+    .insert({
+      user_id: user.id,
+      subject_id: subject.id,
+      task_ids: found.taskIds,
+      duration_minutes: Math.min(360, found.durationMinutes),
+    })
+    .select('id')
+    .single()
+  if (error || !created) return { ok: false, error: 'The paper could not be started.' }
+
+  revalidatePath('/mock')
+  redirect(`/mock/${created.id}`)
+}
+
+/**
  * Grades a finished paper.
  *
  * Every answer is graded by the same model that grades practice, in parallel,
@@ -109,7 +169,7 @@ export async function submitMock(testId: string, answers: Record<string, string>
   const admin = createAdminClient()
   const { data: tasks } = await admin
     .from('tasks')
-    .select('id, title, problem, difficulty, given, find_prompt, official_solution, hints')
+    .select('id, title, problem, difficulty, given, find_prompt, official_solution, hints, diagram_url')
     .in('id', test.task_ids)
   if (!tasks?.length) return { ok: false, error: 'The questions for this test are unavailable.' }
 
@@ -118,6 +178,7 @@ export async function submitMock(testId: string, answers: Record<string, string>
     return { ok: false, error: 'Answer at least one question before submitting.' }
   }
 
+  const language = await getLocale()
   let graded
   try {
     graded = await Promise.all(
@@ -132,6 +193,8 @@ export async function submitMock(testId: string, answers: Record<string, string>
             officialSolution: task.official_solution,
             difficulty: task.difficulty,
             hints: task.hints ?? [],
+            diagramUrl: task.diagram_url,
+            language,
           },
           answer,
         )
@@ -162,6 +225,11 @@ export async function submitMock(testId: string, answers: Record<string, string>
       model: grade.model,
       mock_test_id: test.id,
       source: 'mock',
+      points: grade.points,
+      summary: grade.summary,
+      marks: grade.marks,
+      criteria: grade.criteria,
+      break_point: grade.breakPoint,
     })),
   )
   if (insertError) return { ok: false, error: 'Your answers could not be saved. Please try again.' }
@@ -200,4 +268,3 @@ export async function submitMock(testId: string, answers: Record<string, string>
   return { ok: true }
 }
 
-export { GRACE_MINUTES }

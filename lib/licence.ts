@@ -4,6 +4,7 @@ export type Licence =
   | 'cc-by'
   | 'cc-by-sa'
   | 'cc-by-nc'
+  | 'cc-by-nc-sa'
   | 'permission-granted'
   | 'fair-quotation'
   | 'original'
@@ -43,6 +44,11 @@ export const LICENCES: Record<Licence, Info> = {
     note: 'Credit required, and non-commercial use only — check this before charging for access.',
     requiresAttribution: true,
   },
+  'cc-by-nc-sa': {
+    label: 'CC BY-NC-SA',
+    note: 'Credit required, no commercial use, and anything derived from it must carry the same licence.',
+    requiresAttribution: true,
+  },
   'permission-granted': {
     label: 'Used with permission',
     note: 'The rights holder gave written permission for this use.',
@@ -63,6 +69,22 @@ export const LICENCES: Record<Licence, Info> = {
     note: 'Nothing is known about the terms. Do not publish this until it is checked.',
     requiresAttribution: true,
   },
+}
+
+/**
+ * The terms for a licence, whatever is in the column.
+ *
+ * `LICENCES[licence]` on its own is a lookup that can miss: the database
+ * carries an enum, the map carries a union, and the two drifted apart the day
+ * `cc-by-nc-sa` was added to Postgres and not to this file. Every page that
+ * showed an OpenStax reading then died on `undefined.note` — a crash, in
+ * production, over a label.
+ *
+ * An unrecognised licence reads as an unrecorded one, which is both true and
+ * the safest thing to say.
+ */
+export function licenceInfo(licence: string): Info {
+  return LICENCES[licence as Licence] ?? LICENCES.unknown
 }
 
 /** Reachable is not the same as licensed; only these are cleared to reproduce. */

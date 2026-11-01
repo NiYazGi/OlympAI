@@ -4,11 +4,13 @@ import Link from 'next/link'
 import { useSyncExternalStore } from 'react'
 import { Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useLocale, useT } from '@/components/i18n-provider'
+import type { Dictionary } from '@/lib/i18n/dictionaries'
 
-function greeting(hour: number) {
-  if (hour < 12) return 'Good morning'
-  if (hour < 18) return 'Good afternoon'
-  return 'Good evening'
+function greeting(hour: number, t: Dictionary) {
+  if (hour < 12) return t.dashboard.morning
+  if (hour < 18) return t.dashboard.afternoon
+  return t.dashboard.evening
 }
 
 // Never emits, so the snapshot is read once per render pass and both snapshots
@@ -27,25 +29,24 @@ const onServer = () => false
 export function DashboardHeading() {
   const hydrated = useSyncExternalStore(neverChanges, onClient, onServer)
   const now = hydrated ? new Date() : null
+  const t = useT()
+  const locale = useLocale()
 
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="space-y-1">
-        <p className="min-h-5 text-sm font-medium text-primary">
+        <p className="min-h-5 text-caption font-semibold text-muted-foreground">
           {now
-            ? now.toLocaleDateString(undefined, {
+            ? now.toLocaleDateString(locale, {
                 weekday: 'long',
                 month: 'long',
                 day: 'numeric',
               })
             : ''}
         </p>
-        <h1 className="text-3xl font-semibold tracking-tight">
-          {now ? greeting(now.getHours()) : 'Welcome back'}
+        <h1 className="font-display text-page font-bold tracking-[-0.02em]">
+          {now ? greeting(now.getHours(), t) : t.dashboard.welcome}
         </h1>
-        <p className="text-sm text-muted-foreground">
-          Your next breakthrough is one focused session away.
-        </p>
       </div>
       <Button
         variant="outline"
@@ -53,7 +54,7 @@ export function DashboardHeading() {
         nativeButton={false}
         render={
           <Link href="/sulu-ai" prefetch>
-            <Sparkles className="size-4" /> Ask Sulu AI
+            <Sparkles className="size-4" /> {t.dashboard.askSulu}
           </Link>
         }
       />

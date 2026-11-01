@@ -5,12 +5,13 @@ import { getSessionUserId } from '@/lib/supabase/auth'
 import { getReference, getStudyReference } from '@/lib/supabase/reference'
 import { createClient } from '@/lib/supabase/server'
 import { hasSupabaseEnv } from '@/lib/supabase/env'
-import { buildLadder, ladderPercent, nextStep } from '@/lib/ladder'
+import { buildCardsAside, buildLadder, ladderPercent, nextStep } from '@/lib/ladder'
 import { nextAction, type NextAction } from '@/lib/next-action'
 import { recommendTask } from '@/lib/recommendations'
 import { getGoal, getProgressAnalytics, getTaskCatalogue } from '@/lib/supabase/queries'
 import { cardState, isDue, isLearned, orderForReview, type Rating } from '@/lib/srs'
 import { parseFigure } from '@/lib/figures'
+import { getT } from '@/lib/i18n'
 import type {
   Lesson,
   LessonBlock,
@@ -108,11 +109,12 @@ type OrderedTopic = TopicLadder & { order: number }
 async function buildTopicLadders(): Promise<OrderedTopic[]> {
   if (!hasSupabaseEnv()) return []
 
-  const [reference, study, progress, mocks] = await Promise.all([
+  const [reference, study, progress, mocks, t] = await Promise.all([
     getReference(),
     getStudyReference(),
     getStudyProgress(),
     getMockCountsBySubject(),
+    getT(),
   ])
 
   const solvedTasks = new Set(
@@ -186,7 +188,7 @@ async function buildTopicLadders(): Promise<OrderedTopic[]> {
         subjectEligible: (tasksBySubject.get(topic.subject_id) ?? 0) >= 3,
       },
     }
-    const stages = buildLadder(input)
+    const stages = buildLadder(input, t)
 
     return {
       id: topic.id,
@@ -195,26 +197,23 @@ async function buildTopicLadders(): Promise<OrderedTopic[]> {
       subjectName,
       subjectSlug: subject?.slug ?? '',
       stages,
+      cards: buildCardsAside(input, t),
       input,
       percent: ladderPercent(stages),
       next: nextStep(stages),
       // Ordering key, dropped before the result leaves this module.
-      order: meanDifficulty(reference.tasks.filter((task) => task.topic_id === topic.id)),
+      order: topic.position,
     }
   })
 }
 
-/**
- * Topics are taken easiest-first, by the mean difficulty of their problems.
- *
- * The same rule lib/path.ts uses to order its stages, and for the same reason:
- * the catalogue is the syllabus. A topic with no problems yet cannot be
- * finished, so it sorts last rather than blocking the sequence.
+/*
+ * Topics run in the syllabus order (`topics.position`, migration 44), which is
+ * the same key lib/path.ts sorts its stages by. They used to be ordered by the
+ * mean difficulty of their problems — so /learn and /tasks agreed only as long
+ * as no import shifted an average, and the sequence a student was taught was a
+ * property of what had been imported last.
  */
-function meanDifficulty(tasks: { difficulty: number }[]): number {
-  if (tasks.length === 0) return Number.POSITIVE_INFINITY
-  return tasks.reduce((sum, task) => sum + task.difficulty, 0) / tasks.length
-}
 
 /** Papers sat per subject. Read here rather than through queries.ts to keep
  *  the ladder's dependencies to the reference cache and one session. */
@@ -261,10 +260,11 @@ const getFocusTopics = cache(async (): Promise<{ subject: string | null; topics:
  * what the app says you ought to be doing.
  */
 export const getNextAction = cache(async (): Promise<NextAction> => {
-  const [{ subject, topics }, catalogue, analytics] = await Promise.all([
+  const [{ subject, topics }, catalogue, analytics, t] = await Promise.all([
     getFocusTopics(),
     getTaskCatalogue(),
     getProgressAnalytics(),
+    getT(),
   ])
 
   const pick = subject
@@ -292,7 +292,50 @@ export const getNextAction = cache(async (): Promise<NextAction> => {
           estimatedMinutes: pick.estimatedMinutes,
         }
       : null,
+    t,
   )
+})
+
+export type SkillShape = {
+  subject: string | null
+  /** In the order the student meets them, so neighbouring axes are neighbours. */
+  topics: { topic: string; mastery: number }[]
+  /** The ones below the line, weakest first, for the sentence under the chart. */
+  weak: string[]
+}
+
+/** Below this a topic is where the next session should go. */
+const WEAK_BELOW = 70
+
+/**
+ * The shape of the subject: every topic in the target, and how far it has been
+ * taken through the ladder.
+ *
+ * Built from the ladder rather than from graded attempts, which is what the
+ * dashboard used to draw. Attempts only exist once a student has submitted a
+ * derivation, so an account three lessons and two quizzes in had no topics at
+ * all and the chart was simply absent — at exactly the point in a student's
+ * first week where seeing the outline start to fill in is the whole reward.
+ *
+ * A topic at nought is drawn at nought. That is a fact about the plan, not an
+ * invented figure, and the collapsed side of the shape is the point.
+ */
+export const getSkillShape = cache(async (): Promise<SkillShape> => {
+  const focus = await getFocusTopics()
+  const t = await getT()
+  const topics = focus.topics.map((topic) => ({
+    topic: t.topics[topic.name] ?? topic.name,
+    mastery: topic.percent,
+  }))
+
+  return {
+    subject: focus.subject,
+    topics,
+    weak: topics
+      .filter((topic) => topic.mastery < WEAK_BELOW)
+      .sort((a, b) => a.mastery - b.mastery)
+      .map((topic) => topic.topic),
+  }
 })
 
 function groupBySubject(topics: TopicLadder[]): SubjectStudy[] {

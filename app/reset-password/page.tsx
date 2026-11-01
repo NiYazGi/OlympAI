@@ -1,8 +1,12 @@
+import { getT } from '@/lib/i18n'
 import { AuthShell } from '@/components/auth-shell'
-import { Button } from '@/components/ui/button'
+import { SubmitButton } from '@/components/submit-button'
 import { updatePassword } from '@/app/auth/actions'
 
-export const metadata = { title: 'Choose a new password' }
+export async function generateMetadata() {
+  const t = await getT()
+  return { title: t.auth.newPassword }
+}
 
 const inputClass =
   'mt-2 h-11 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus:border-primary focus:ring-3 focus:ring-primary/15'
@@ -48,9 +52,9 @@ export default async function ResetPasswordPage({
           />
         </label>
 
-        <Button className="h-11 w-full" type="submit">
+        <SubmitButton className="h-11 w-full" pendingLabel="Saving…">
           Save new password
-        </Button>
+        </SubmitButton>
       </form>
     </AuthShell>
   )

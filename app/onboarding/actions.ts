@@ -61,5 +61,9 @@ export async function completeOnboarding(formData: FormData): Promise<Onboarding
     .eq('id', user.id)
   if (error) return { ok: false, error: 'Unable to save your setup. Please try again.' }
 
-  redirect('/dashboard')
+  // Back to wherever they were going. Validated here rather than trusted:
+  // this value arrives in a form field, and a path that is not a path on this
+  // site would make the redirect an open one.
+  const next = String(formData.get('next') ?? '')
+  redirect(next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard')
 }

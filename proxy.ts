@@ -13,6 +13,7 @@ const protectedPrefixes = [
   '/progress',
   '/study-plan',
   '/olympiads',
+  '/class',
   '/profile',
   '/me',
   '/settings',
@@ -108,6 +109,12 @@ export const config = {
     '/study-plan/:path*',
     '/study-plan',
     '/olympiads/:path*',
+    '/class/:path*',
+    '/class',
+    // Listed but not protected: an invite link is opened by people who have no
+    // account yet, and the page itself offers them sign-up. It runs through
+    // here so a student who is already signed in is recognised as one.
+    '/join/:path*',
     '/profile/:path*',
     '/profile',
     '/me/:path*',

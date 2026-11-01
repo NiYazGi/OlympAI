@@ -46,6 +46,12 @@ export type CatalogueTask = {
   title: string
   subject: string
   topic: string
+  /** Where the topic sits in the syllabus — what orders a route. */
+  topicPosition: number
+  /** 'oblast' | 'republican' | 'international', or null when unclassified. */
+  level: string | null
+  /** The sitting it was written for, when it came from a real paper. */
+  paper: string | null
   difficulty: number
   estimatedMinutes: number | null
   source: string | null
@@ -78,6 +84,7 @@ export type StoredMessage = { id: string; role: 'user' | 'assistant'; content: s
 
 export type Competition = {
   id: string
+  slug: string | null
   name: string
   subject: string | null
   level: string | null
@@ -89,6 +96,16 @@ export type Competition = {
   registered: boolean
   /** Accuracy in this competition's subject, or null when nothing was attempted there. */
   readiness: number | null
+  /** Structural facts, which do not move from year to year. */
+  region: string | null
+  founded: number | null
+  officialUrl: string | null
+  papersUrl: string | null
+  /** The write-up, in the reader's language. Null when none has been written. */
+  summary: string | null
+  format: string | null
+  route: string | null
+  eligibility: string | null
 }
 
 export type CompetitionOption = {
@@ -189,6 +206,8 @@ export type TopicLadder = {
   subjectName: string
   subjectSlug: string
   stages: LadderStage[]
+  /** Flashcards: beside the ladder rather than on it. See lib/ladder.ts. */
+  cards: LadderStage
   /** The figures the stages were built from, for lib/next-action.ts. */
   input: LadderInput
   percent: number

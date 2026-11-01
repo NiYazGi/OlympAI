@@ -4,8 +4,50 @@
     {
       "name": "olympai-dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 3000
+    },
+    {
+      "name": "olympai-no-auth",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "NEXT_PUBLIC_SUPABASE_URL=",
+        "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=",
+        "npx",
+        "next",
+        "dev",
+        "--port",
+        "3100"
+      ],
+      "port": 3100
+    },
+    {
+      "name": "olympai-built",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "next",
+        "start",
+        "--port",
+        "3001"
+      ],
+      "port": 3001
+    },
+    {
+      "name": "olympai-telegram",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "TELEGRAM_BOT_TOKEN=test-token-not-a-real-one",
+        "TELEGRAM_WEBHOOK_SECRET=test-webhook-secret",
+        "npx",
+        "next",
+        "start",
+        "--port",
+        "3002"
+      ],
+      "port": 3002
     }
   ]
 }

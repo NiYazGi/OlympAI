@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { ClipboardCheck, Loader2 } from 'lucide-react'
 import { startMock } from '@/app/(app)/mock/actions'
+import { useT } from '@/components/i18n-provider'
 import { Button } from '@/components/ui/button'
 
 export function StartMock({
@@ -14,6 +15,7 @@ export function StartMock({
   disabled?: boolean
   label?: string
 }) {
+  const t = useT()
   const [error, setError] = useState('')
   const [pending, startTransition] = useTransition()
 
@@ -24,8 +26,12 @@ export function StartMock({
         onClick={() => {
           setError('')
           startTransition(async () => {
-            const result = await startMock(subject)
-            if (!result.ok) setError(result.error ?? 'The test could not be started.')
+            try {
+              const result = await startMock(subject)
+              if (!result.ok) setError(result.error ?? t.exam.notStarted)
+            } catch {
+              setError(t.common.offline)
+            }
           })
         }}
       >
@@ -40,7 +46,7 @@ export function StartMock({
         )}
       </Button>
       {error ? (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="disclose text-sm text-destructive">
           {error}
         </p>
       ) : null}

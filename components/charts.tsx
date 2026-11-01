@@ -6,6 +6,11 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  PolarAngleAxis,
+  PolarGrid,
+  PolarRadiusAxis,
+  Radar,
+  RadarChart,
   XAxis,
   YAxis,
 } from 'recharts'
@@ -15,6 +20,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from '@/components/ui/chart'
+import { AXIS_MAX, DAY_TARGET } from '@/lib/day-state'
 
 const accuracyConfig = {
   accuracy: { label: 'Accuracy %', color: 'var(--chart-1)' },
@@ -127,6 +133,121 @@ export function ActivityChart({
         <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
         <Bar dataKey="problems" fill="var(--color-problems)" radius={[6, 6, 0, 0]} />
       </BarChart>
+    </ChartContainer>
+  )
+}
+
+const skillsConfig = {
+  mastery: { label: 'Mastery %', color: 'var(--chart-1)' },
+} satisfies ChartConfig
+
+/** Eight axes is the most a radar can carry before the labels collide. */
+const MAX_AXES = 8
+/** Longer than this and the label runs off its corner of the chart. */
+const MAX_LABEL = 12
+
+/**
+ * Mastery per topic, as one shape.
+ *
+ * A row of bars answers "how am I doing at X" one topic at a time; the point
+ * of the subject is the shape they make together — where the outline caves in
+ * is where the next session goes. Ordered so neighbouring axes are topics the
+ * student meets in order, not by score, because a ranking is what the list
+ * underneath is for.
+ *
+ * It needs three axes to be a shape at all; with fewer, the caller shows the
+ * bars instead.
+ */
+export function SkillsRadarChart({
+  data,
+  height = 'h-72',
+}: {
+  data: { topic: string; mastery: number }[]
+  height?: string
+}) {
+  const axes = data.slice(0, MAX_AXES)
+
+  return (
+    <ChartContainer config={skillsConfig} className={`${height} w-full`}>
+      <RadarChart data={axes} outerRadius="64%" margin={{ top: 12, right: 12, bottom: 12, left: 12 }}>
+        <PolarGrid stroke="var(--border)" />
+        <PolarAngleAxis
+          dataKey="topic"
+          tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }}
+          tickFormatter={(value: string) =>
+            value.length > MAX_LABEL ? `${value.slice(0, MAX_LABEL - 1)}…` : value
+          }
+        />
+        <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
+        <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+        <Radar
+          dataKey="mastery"
+          stroke="var(--color-mastery)"
+          strokeWidth={2}
+          fill="var(--color-mastery)"
+          fillOpacity={0.18}
+          dot={{ r: 2.5, fill: 'var(--color-mastery)', strokeWidth: 0 }}
+        />
+      </RadarChart>
+    </ChartContainer>
+  )
+}
+
+const dayConfig = {
+  score: { label: 'Today', color: 'var(--chart-1)' },
+  even: { label: 'Bar, spread evenly', color: 'var(--muted-foreground)' },
+} satisfies ChartConfig
+
+/** What each axis would be worth if the bar were cleared evenly across five. */
+const EVEN = DAY_TARGET / 5
+
+/**
+ * The day's five axes, with the bar drawn behind them.
+ *
+ * The dashed pentagon is not a target for each axis — the bar is a total, and
+ * a day that sleeps badly and reads for six hours clears it too. It is there
+ * so the filled shape can be read at a glance as bigger or smaller than the
+ * thing it has to beat, which a number alone does not do.
+ */
+export function DayStateRadar({
+  data,
+  height = 'h-60',
+}: {
+  data: { axis: string; score: number }[]
+  height?: string
+}) {
+  const shaped = data.map((entry) => ({ ...entry, even: EVEN }))
+
+  return (
+    <ChartContainer config={dayConfig} className={`${height} w-full`}>
+      <RadarChart data={shaped} outerRadius="62%" margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+        <PolarGrid stroke="var(--border)" />
+        {/* The shape has to leave room for its own labels. At 74% the outline
+            filled the box and "Загруженность" came out as "...нность": a chart
+            drawn at the width of its data rather than the width of the thing
+            it has to be read with. */}
+        {/* No truncation here, unlike the skills radar: these five labels are
+            fixed and known, so the chart is given room for the longest of them
+            instead of the longest being cut to fit. */}
+        <PolarAngleAxis dataKey="axis" tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }} />
+        <PolarRadiusAxis domain={[0, AXIS_MAX]} tick={false} axisLine={false} />
+        <Radar
+          dataKey="even"
+          stroke="var(--border)"
+          strokeWidth={1}
+          strokeDasharray="4 4"
+          fill="none"
+          isAnimationActive={false}
+        />
+        <Radar
+          dataKey="score"
+          stroke="var(--color-score)"
+          strokeWidth={2}
+          fill="var(--color-score)"
+          fillOpacity={0.2}
+          dot={{ r: 2.5, fill: 'var(--color-score)', strokeWidth: 0 }}
+        />
+      </RadarChart>
     </ChartContainer>
   )
 }

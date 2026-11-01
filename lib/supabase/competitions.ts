@@ -5,6 +5,7 @@ import { getSessionUserId } from '@/lib/supabase/auth'
 import { getReference } from '@/lib/supabase/reference'
 import { createClient } from '@/lib/supabase/server'
 import { hasSupabaseEnv } from '@/lib/supabase/env'
+import { getLocale } from '@/lib/i18n'
 
 import type { Competition } from '@/lib/types'
 
@@ -22,22 +23,35 @@ export const getCompetitions = cache(async (): Promise<Competition[]> => {
   if (!userId) return []
 
   const supabase = await createClient()
+  const locale = await getLocale()
   const today = new Date().toISOString().slice(0, 10)
-  const [{ data: competitions }, reference, { data: registrations }] = await Promise.all([
+  const [{ data: competitions }, reference, { data: registrations }, { data: details }] =
+    await Promise.all([
     // Dateless catalogue entries are included: filtering on starts_on would
     // have hidden every one of them.
     supabase
       .from('competitions')
       .select('*')
+      // `active` hides a competition without deleting it — see migration 46,
+      // which narrowed the catalogue to Kazakhstan.
+      .eq('active', true)
       .or(`starts_on.is.null,starts_on.gte.${today}`)
       .order('starts_on', { ascending: true, nullsFirst: false })
       .order('name', { ascending: true }),
     getReference(),
     supabase.from('competition_registrations').select('competition_id').eq('user_id', userId),
+    // The write-up in the reader's language. A competition with no row for
+    // this locale renders its facts and no prose, which is the honest state
+    // for one nobody has written up yet.
+    supabase
+      .from('competition_details')
+      .select('competition_id, summary, format, route, eligibility')
+      .eq('locale', locale),
   ])
   if (!competitions?.length) return []
 
   const registered = new Set((registrations ?? []).map((row) => row.competition_id))
+  const detailOf = new Map((details ?? []).map((row) => [row.competition_id, row]))
 
   // Readiness is accuracy in the competition's subject, computed from real
   // attempts. Null when there is nothing to compute it from, so the page can
@@ -59,8 +73,10 @@ export const getCompetitions = cache(async (): Promise<Competition[]> => {
 
   return competitions.map((competition) => {
     const stats = competition.subject_id ? bySubject.get(competition.subject_id) : undefined
+    const detail = detailOf.get(competition.id)
     return {
       id: competition.id,
+      slug: competition.slug,
       name: competition.name,
       subject: competition.subject_id
         ? reference.subjectById[competition.subject_id] ?? null
@@ -72,6 +88,20 @@ export const getCompetitions = cache(async (): Promise<Competition[]> => {
       registrationDeadline: competition.registration_deadline,
       registered: registered.has(competition.id),
       readiness: stats?.total ? Math.round((stats.correct / stats.total) * 100) : null,
+      region: competition.region,
+      founded: competition.founded,
+      officialUrl: competition.official_url,
+      papersUrl: competition.papers_url,
+      summary: detail?.summary ?? null,
+      format: detail?.format ?? null,
+      route: detail?.route ?? null,
+      eligibility: detail?.eligibility ?? null,
     }
   })
+})
+
+/** One olympiad by slug, for the detail page. */
+export const getCompetition = cache(async (slug: string): Promise<Competition | null> => {
+  const all = await getCompetitions()
+  return all.find((competition) => competition.slug === slug) ?? null
 })

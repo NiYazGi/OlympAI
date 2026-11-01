@@ -1,6 +1,5 @@
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft } from 'lucide-react'
+import { BackLink } from '@/components/back-link'
 import { PageHeader } from '@/components/page-header'
 import { MaterialForm, type ExistingResource } from '@/components/settings/material-form'
 import { createClient } from '@/lib/supabase/server'
@@ -58,21 +57,15 @@ export default async function MaterialPage() {
   }))
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-5 p-4 sm:gap-6 sm:p-8">
-      <Link
-        href="/settings"
-        className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" />
-        Settings
-      </Link>
+      <div className="mx-auto flex max-w-3xl flex-col gap-5 p-4 sm:gap-6 sm:p-8">
+        <BackLink href="/settings">Settings</BackLink>
 
-      <PageHeader
-        title="Add material"
-        description="Lectures and readings for a task or a whole topic. Nothing is saved without a recorded licence."
-      />
+        <PageHeader
+          title="Add material"
+          description="Lectures and readings for a task or a whole topic. Nothing is saved without a recorded licence."
+        />
 
-      <MaterialForm tasks={tasks} topics={topics} existing={existing} />
-    </div>
+        <MaterialForm tasks={tasks} topics={topics} existing={existing} />
+      </div>
   )
 }

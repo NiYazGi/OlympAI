@@ -15,11 +15,13 @@
 export type Rating = 0 | 1 | 2 | 3
 
 /** 0 forgot · 1 hard · 2 good · 3 easy — the four buttons under a card. */
-export const RATINGS: { value: Rating; label: string; hint: string }[] = [
-  { value: 0, label: 'Forgot', hint: 'Back to the start of the ladder.' },
-  { value: 1, label: 'Hard', hint: 'Drops a step.' },
-  { value: 2, label: 'Good', hint: 'Up a step.' },
-  { value: 3, label: 'Easy', hint: 'Up two.' },
+export type RatingKey = 'forgot' | 'hard' | 'good' | 'easy'
+
+export const RATINGS: { value: Rating; key: RatingKey }[] = [
+  { value: 0, key: 'forgot' },
+  { value: 1, key: 'hard' },
+  { value: 2, key: 'good' },
+  { value: 3, key: 'easy' },
 ]
 
 /**
@@ -77,11 +79,15 @@ export function isDue(state: CardState, now = new Date()): boolean {
 }
 
 /** What the buttons promise, so the choice is not a guess. */
-export function intervalAfter(state: CardState, rating: Rating): string {
+export function intervalAfter(
+  state: CardState,
+  rating: Rating,
+  copy: { today: string; tomorrow: string; days: (n: number) => string },
+): string {
   const days = INTERVAL_DAYS[nextBox(state.box, rating)]
-  if (days === 0) return 'again today'
-  if (days === 1) return 'tomorrow'
-  return `in ${days} days`
+  if (days === 0) return copy.today
+  if (days === 1) return copy.tomorrow
+  return copy.days(days!)
 }
 
 /**

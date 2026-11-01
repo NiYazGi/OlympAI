@@ -15,15 +15,14 @@ import { EmptyState } from '@/components/empty-state'
 import { ProfilePreferences } from '@/components/profile-preferences'
 import { AccuracyTrendChart, ActivityChart, TopicBarChart } from '@/components/charts'
 import { BlockSkeleton, PendingRegion, StatCardsSkeleton } from '@/components/skeletons'
+import { SubmitButton } from '@/components/submit-button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { signOut } from '@/app/auth/actions'
 import { buildAchievements } from '@/lib/achievements'
 import { getCurrentProfile, getProgressAnalytics } from '@/lib/supabase/queries'
+import { getT } from '@/lib/i18n'
 import { cardClass, cn, initials } from '@/lib/utils'
-
-export const metadata = { title: 'Me' }
 
 /**
  * Everything about the student in one place.
@@ -32,20 +31,27 @@ export const metadata = { title: 'Me' }
  * doing" made two pages that were each half an answer, and the analytics were
  * the half nobody went looking for.
  */
-export default function MePage() {
+export async function generateMetadata() {
+  const t = await getT()
+  return { title: t.me.title }
+}
+
+export default async function MePage() {
+  const t = await getT()
+
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-5 p-4 sm:gap-6 sm:p-8">
-      <PageHeader title="Me" description="Your setup, your numbers and what you have earned.">
+      <PageHeader title={t.me.title} description={t.me.description}>
         <form action={signOut}>
-          <Button variant="outline" type="submit">
-            Log out
-          </Button>
+          <SubmitButton variant="outline" pendingLabel={t.me.loggingOut}>
+            {t.me.logOut}
+          </SubmitButton>
         </form>
       </PageHeader>
       <Reveal
         fallback={
           <>
-            <PendingRegion label="Loading your account" />
+            <PendingRegion label={t.me.loading} />
             <BlockSkeleton className={`${cardClass} h-44`} />
             <StatCardsSkeleton />
           </>
@@ -58,7 +64,11 @@ export default function MePage() {
 }
 
 async function MeBody() {
-  const [profile, analytics] = await Promise.all([getCurrentProfile(), getProgressAnalytics()])
+  const [profile, analytics, t] = await Promise.all([
+    getCurrentProfile(),
+    getProgressAnalytics(),
+    getT(),
+  ])
   const achievements = buildAchievements(analytics)
   const earned = achievements.filter((achievement) => achievement.earned).length
   const ordered = [...achievements].sort((a, b) => {
@@ -68,11 +78,17 @@ async function MeBody() {
 
   const fresh = !analytics.hasData
   const stats = [
-    { label: 'Attempts', value: String(analytics.totalAttempts), muted: fresh },
-    { label: 'Solved', value: String(analytics.correctAnswers), muted: fresh },
-    { label: 'Accuracy', value: fresh ? '0%' : `${analytics.accuracy}%`, muted: fresh },
+    { label: t.me.attempts, value: String(analytics.totalAttempts), muted: fresh },
+    { label: t.me.solvedStat, value: String(analytics.correctAnswers), muted: fresh },
+    // Nothing graded yet is unknown, not nought: a first week of quizzes would
+    // otherwise be reported back as 0% accurate.
     {
-      label: 'Day streak',
+      label: t.me.accuracy,
+      value: analytics.totalAttempts > 0 ? `${analytics.accuracy}%` : '—',
+      muted: analytics.totalAttempts === 0,
+    },
+    {
+      label: t.me.dayStreak,
       value: String(analytics.activeStreak),
       muted: analytics.activeStreak === 0,
     },
@@ -89,8 +105,8 @@ async function MeBody() {
           </Avatar>
 
           <div className="min-w-0 flex-1">
-            <h2 className="truncate text-xl font-semibold">
-              {profile?.full_name ?? 'Your account'}
+            <h2 className="font-display truncate text-xl font-bold tracking-[-0.02em]">
+              {profile?.full_name ?? t.me.yourAccount}
             </h2>
             <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
               {profile?.grade ? (
@@ -115,10 +131,10 @@ async function MeBody() {
           </div>
 
           <div className="shrink-0 text-center sm:text-right">
-            <p className="text-2xl font-semibold tabular-nums">
+            <p className="font-display text-3xl leading-none font-bold tabular-nums">
               {analytics.xp.total.toLocaleString('en')}
             </p>
-            <p className="text-xs text-muted-foreground">XP · level {analytics.xp.level}</p>
+            <p className="text-xs text-muted-foreground">{t.me.xpLevel(analytics.xp.level)}</p>
           </div>
         </div>
 
@@ -127,19 +143,21 @@ async function MeBody() {
             <div key={stat.label} className="text-center">
               <p
                 className={cn(
-                  'text-2xl font-semibold tabular-nums',
+                  'font-display text-2xl leading-none font-bold tabular-nums',
                   stat.muted && 'text-muted-foreground/50',
                 )}
               >
                 {stat.value}
               </p>
-              <p className="mt-0.5 text-xs text-muted-foreground">{stat.label}</p>
+              <p className="mt-2 text-caption font-semibold text-muted-foreground">
+                {stat.label}
+              </p>
             </div>
           ))}
         </div>
       </section>
 
-      <h2 className="mt-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+      <h2 className="mt-2 text-caption font-semibold text-muted-foreground">
         Progress
       </h2>
 
@@ -191,34 +209,34 @@ async function MeBody() {
             <section className={`${cardClass} p-5`}>
               <div className="flex items-center gap-2">
                 <Flame className="size-4 text-primary" />
-                <h3 className="font-semibold">Train next</h3>
+                <h3 className="font-semibold">{t.me.trainNext}</h3>
               </div>
               <p className="mt-3 text-sm text-muted-foreground">
                 {analytics.weakTopics[0]
-                  ? `${analytics.weakTopics[0]} needs more focused practice.`
-                  : 'Nothing below 70% — step up the difficulty.'}
+                  ? t.me.needsPractice(analytics.weakTopics[0])
+                  : t.me.nothingWeak}
               </p>
             </section>
 
             <section className={`${cardClass} p-5`}>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="size-4 text-primary" />
-                <h3 className="font-semibold">Strong topics</h3>
+                <h3 className="font-semibold">{t.me.strongTopics}</h3>
               </div>
               <p className="mt-3 text-sm text-muted-foreground">
                 {analytics.strongTopics.length
                   ? analytics.strongTopics.join(', ')
-                  : 'Keep practising to identify your strongest.'}
+                  : t.me.keepPractising}
               </p>
             </section>
 
             <section className={`${cardClass} p-5`}>
-              <h3 className="font-semibold">Review mistakes</h3>
+              <h3 className="font-semibold">{t.me.reviewMistakes}</h3>
               <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
                 {analytics.recentMistakes.length ? (
                   analytics.recentMistakes.map((task) => <li key={task}>• {task}</li>)
                 ) : (
-                  <li>Nothing incorrect to review.</li>
+                  <li>{t.me.nothingWrong}</li>
                 )}
               </ul>
             </section>
@@ -227,35 +245,33 @@ async function MeBody() {
       ) : (
         <EmptyState
           icon={Target}
-          title="Your numbers start with one attempt"
-          body="Submit a solution and this section fills in: accuracy, mastery per topic, your streak, and what to practise next."
-          action={{ href: '/tasks', label: 'Browse tasks' }}
+          title={t.me.emptyTitle}
+          body={t.me.emptyBody}
+          action={{ href: '/tasks', label: t.mock.browseTasks }}
         />
       )}
 
-      <h2 className="mt-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-        Achievements
+      <h2 className="mt-2 text-caption font-semibold text-muted-foreground">
+        {t.me.achievements}
       </h2>
 
       <section className={`${cardClass} p-6`}>
         <div className="mb-1 flex items-center justify-between">
           <h3 className="font-semibold">
-            {earned} of {achievements.length} earned
+            {t.me.earnedOf(earned, achievements.length)}
           </h3>
           <Link href="/mock" prefetch className="text-sm font-medium text-primary hover:underline">
-            Take a mock <ArrowRight className="inline size-3.5" />
+            {t.me.takeAMock} <ArrowRight className="inline size-3.5" />
           </Link>
         </div>
         <p className="mb-5 text-sm text-muted-foreground">
-          {earned === 0
-            ? 'Nothing yet — the first one needs a single solved task.'
-            : 'Closest to unlocking, first.'}
+          {earned === 0 ? t.me.noneYet : t.me.closestFirst}
         </p>
 
         <ul className="grid gap-3 sm:grid-cols-2">
           {ordered.map((achievement) => (
             <li
-              key={achievement.name}
+              key={achievement.key}
               className={cn(
                 'flex items-center gap-3 rounded-xl p-4 ring-1',
                 achievement.earned ? 'bg-accent ring-primary/20' : 'bg-muted/30 ring-border',
@@ -272,9 +288,9 @@ async function MeBody() {
                 {achievement.earned ? <Award className="size-4" /> : <Lock className="size-3.5" />}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium">{achievement.name}</p>
+                <p className="text-sm font-medium">{t.achievements[achievement.key].name}</p>
                 <p className="mt-0.5 text-pretty text-xs text-muted-foreground">
-                  {achievement.description}
+                  {t.achievements[achievement.key].description}
                 </p>
                 {!achievement.earned && achievement.progress > 0 ? (
                   <Progress value={achievement.progress} className="mt-2 h-1" />
@@ -285,7 +301,7 @@ async function MeBody() {
         </ul>
       </section>
 
-      <h2 className="mt-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+      <h2 className="mt-2 text-caption font-semibold text-muted-foreground">
         Settings
       </h2>
 

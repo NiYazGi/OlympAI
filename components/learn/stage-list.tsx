@@ -1,7 +1,9 @@
 import Link from 'next/link'
 import { ArrowRight, BookOpen, Brain, Check, ClipboardCheck, PenLine, Timer } from 'lucide-react'
+import { Meter } from '@/components/meter'
 import type { LadderStage, StageKey } from '@/lib/ladder'
-import { cardClass, cn, riseDelay } from '@/lib/utils'
+import { getT } from '@/lib/i18n'
+import { cardClass, cn, liftClass, riseDelay } from '@/lib/utils'
 
 const ICONS: Record<StageKey, React.ComponentType<{ className?: string }>> = {
   study: BookOpen,
@@ -12,19 +14,26 @@ const ICONS: Record<StageKey, React.ComponentType<{ className?: string }>> = {
 }
 
 /**
- * The five rungs, in order, with the next one to do picked out.
+ * The four rungs, in order, with the next one to do picked out.
  *
  * A rung with no content behind it stays visible and says so. Hiding it would
  * make the ladder look complete when it is only unwritten, and a student who
  * cannot see that mechanics has no cards yet has no way to ask for them.
+ *
+ * Only the next rung explains itself. Four rungs each carrying a line of state
+ * and a line of description is eight lines of prose to get past on the way to
+ * a button, and by the second visit the descriptions are furniture — the one
+ * you have not done yet is the only one still worth a sentence.
  */
-export function StageList({
+export async function StageList({
   stages,
   next,
 }: {
   stages: LadderStage[]
   next: LadderStage | null
 }) {
+  const t = await getT()
+
   return (
     <ol className="space-y-3">
       {stages.map((stage, index) => {
@@ -38,7 +47,8 @@ export function StageList({
             className={cn(
               cardClass,
               'flex items-start gap-4 p-4 sm:p-5',
-              isNext && 'ring-2 ring-primary/60',
+              stage.href && liftClass,
+              isNext && 'ring-2 ring-primary/60 hover:ring-primary/80',
               empty && 'opacity-60',
             )}
           >
@@ -63,31 +73,28 @@ export function StageList({
                 <h3 className="font-semibold">{stage.label}</h3>
                 {isNext ? (
                   <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">
-                    Next
+                    {t.ladder.next}
                   </span>
                 ) : null}
                 {done ? (
-                  <span className="text-xs font-medium text-primary">Done</span>
+                  <span className="text-xs font-medium text-primary">{t.ladder.done}</span>
                 ) : null}
               </div>
 
-              <p className="mt-1 text-sm leading-6 text-muted-foreground">{stage.blurb}</p>
-              <p className={cn('mt-1.5 text-sm', empty ? 'text-muted-foreground' : 'font-medium')}>
+              <p className={cn('mt-1 text-sm', empty ? 'text-muted-foreground' : 'font-medium')}>
                 {stage.detail}
               </p>
+              {isNext ? (
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">{stage.blurb}</p>
+              ) : null}
 
               {!empty && stage.percent > 0 ? (
-                <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full rounded-full bg-primary transition-[width] duration-700 ease-out"
-                    style={{ width: `${stage.percent}%` }}
-                  />
-                </div>
+                <Meter value={stage.percent} className="mt-3 h-1" />
               ) : null}
             </div>
 
             {stage.href ? (
-              <ArrowRight className="mt-2.5 size-4 shrink-0 text-muted-foreground" />
+              <ArrowRight className="mt-2.5 size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5" />
             ) : null}
           </div>
         )
@@ -95,11 +102,7 @@ export function StageList({
         return (
           <li key={stage.key} className="rise" style={riseDelay(index, 50)}>
             {stage.href ? (
-              <Link
-                href={stage.href}
-                prefetch
-                className="block rounded-xl transition-opacity hover:opacity-90"
-              >
+              <Link href={stage.href} prefetch className="group block rounded-xl">
                 {inner}
               </Link>
             ) : (

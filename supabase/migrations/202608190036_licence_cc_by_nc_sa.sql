@@ -1,0 +1,16 @@
+-- The licence OpenStax actually uses.
+--
+-- The enum had cc-by-nc and cc-by-sa separately but not the combination, which
+-- is the one most of the large open textbook projects publish under. A row
+-- that is both non-commercial and share-alike had nowhere honest to sit, and
+-- the migration that added the OpenStax readings recorded it as plain cc-by —
+-- dropping both conditions at once.
+--
+-- Its own value rather than a note on the row, because the two conditions are
+-- what a reader has to act on: non-commercial decides whether this service may
+-- carry it at all, and share-alike decides what terms our own adaptations have
+-- to be published under.
+--
+-- Alone in this file: Postgres will not let a new enum value be used in the
+-- transaction that created it, and the runner wraps each file in one.
+alter type public.content_licence add value if not exists 'cc-by-nc-sa';

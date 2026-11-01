@@ -1,19 +1,20 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Check, Settings2 } from 'lucide-react'
+import { Check, Loader2, Settings2 } from 'lucide-react'
 import { saveProfilePreferences } from '@/app/(app)/me/actions'
 import { GOALS, INTENSITIES, LEVELS, SUBJECTS } from '@/lib/profile-options'
 import { Button } from '@/components/ui/button'
+import { useT } from '@/components/i18n-provider'
 import { cn } from '@/lib/utils'
 
-type Choice = { field: string; label: string; options: readonly string[] }
+type Choice = { field: string; labelKey: string; options: readonly string[] }
 
 const SECTIONS: Choice[] = [
-  { field: 'primary_subject', label: 'Primary subject', options: SUBJECTS },
-  { field: 'level', label: 'Current level', options: LEVELS },
-  { field: 'goal', label: 'Current goal', options: GOALS },
-  { field: 'training_intensity', label: 'Training rhythm', options: INTENSITIES },
+  { field: 'primary_subject', labelKey: 'primarySubject', options: SUBJECTS },
+  { field: 'level', labelKey: 'currentLevel', options: LEVELS },
+  { field: 'goal', labelKey: 'currentGoal', options: GOALS },
+  { field: 'training_intensity', labelKey: 'trainingRhythm', options: INTENSITIES },
 ]
 
 export function ProfilePreferences({
@@ -23,27 +24,30 @@ export function ProfilePreferences({
 }) {
   const [values, setValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(
-      SECTIONS.map((section) => [
-        section.field,
-        initial[section.field] ?? section.options[0]!,
-      ]),
+      SECTIONS.map((section) => [section.field, initial[section.field] ?? section.options[0]!]),
     ),
   )
   const [status, setStatus] = useState<'idle' | 'saved' | 'error'>('idle')
   const [error, setError] = useState('')
   const [pending, startTransition] = useTransition()
+  const t = useT()
 
   function save() {
     const formData = new FormData()
     for (const [field, value] of Object.entries(values)) formData.set(field, value)
     startTransition(async () => {
-      const result = await saveProfilePreferences(formData)
-      if (result.ok) {
-        setStatus('saved')
-        setError('')
-      } else {
+      try {
+        const result = await saveProfilePreferences(formData)
+        if (result.ok) {
+          setStatus('saved')
+          setError('')
+        } else {
+          setStatus('error')
+          setError(result.error ?? t.settings.prefsFailed)
+        }
+      } catch {
         setStatus('error')
-        setError(result.error ?? 'Your preferences could not be saved.')
+        setError(t.common.offline)
       }
     })
   }
@@ -63,8 +67,8 @@ export function ProfilePreferences({
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         {SECTIONS.map((section) => (
           <fieldset key={section.field}>
-            <legend className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {section.label}
+            <legend className="text-caption font-semibold text-muted-foreground">
+              {t.settings[section.labelKey as 'primarySubject']}
             </legend>
             <div className="mt-3 grid gap-2">
               {section.options.map((option) => {
@@ -93,7 +97,7 @@ export function ProfilePreferences({
                     >
                       {active ? <Check className="size-3" /> : null}
                     </span>
-                    {option}
+                    {t.subjects[option] ?? t.options[option] ?? option}
                   </button>
                 )
               })}
@@ -103,13 +107,26 @@ export function ProfilePreferences({
       </div>
 
       {status === 'error' ? (
-        <p role="alert" className="mt-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+        <p
+          role="alert"
+          className="disclose mt-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive"
+        >
           {error}
         </p>
       ) : null}
 
       <Button className="mt-6 w-full sm:w-auto" onClick={save} disabled={pending}>
-        {pending ? 'Saving…' : status === 'saved' ? 'Preferences saved' : 'Save preferences'}
+        {pending ? (
+          <>
+            <Loader2 className="size-4 animate-spin" /> Saving…
+          </>
+        ) : status === 'saved' ? (
+          <>
+            <Check className="size-4" /> Preferences saved
+          </>
+        ) : (
+          t.settings.savePreferences
+        )}
       </Button>
     </section>
   )

@@ -1,19 +1,23 @@
 import { ViewTransition } from 'react'
 import Image from 'next/image'
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, Clock, Trophy, Zap } from 'lucide-react'
+import { Clock, Trophy, Zap } from 'lucide-react'
+import { BackLink } from '@/components/back-link'
 import { PageHeader } from '@/components/page-header'
 import { DifficultyStars, difficultyLabel } from '@/components/difficulty-stars'
+import { MathParagraphs, MathText } from '@/components/math-text'
+import { AttemptList } from '@/components/problems/attempt-list'
 import { SolutionPanel } from '@/components/problems/solution-panel'
 import { SuluAssistantPanel } from '@/components/problems/sulu-assistant-panel'
+import { TaskWorkspace } from '@/components/problems/task-workspace'
 import { Badge } from '@/components/ui/badge'
 import { ResourceList, Attribution } from '@/components/resources/resource-list'
-import { getTaskDetail, getTaskResources } from '@/lib/supabase/queries'
+import { getTaskAttemptHistory, getTaskDetail, getTaskResources } from '@/lib/supabase/queries'
 import { getTopicShortcut } from '@/lib/supabase/study'
 import { TopicShortcutPanel } from '@/components/learn/topic-shortcut'
 import type { Licence } from '@/lib/licence'
 import { xpForFirstSolve } from '@/lib/xp'
+import { getT } from '@/lib/i18n'
 import { cardClass } from '@/lib/utils'
 
 // Task content is behind RLS and the solved state is per-user, so this page is
@@ -31,20 +35,16 @@ export default async function TaskPage({ params }: { params: Promise<{ slug: str
   const { slug } = await params
   const task = await getTaskDetail(slug)
   if (!task) notFound()
-  const [resources, shortcut] = await Promise.all([
+  const [resources, shortcut, history, t] = await Promise.all([
     getTaskResources(slug),
     getTopicShortcut(task.topic),
+    getTaskAttemptHistory(task.id),
+    getT(),
   ])
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-5 p-4 sm:gap-6 sm:p-8">
-      <Link
-        href="/tasks"
-        className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" />
-        Back to problems
-      </Link>
+      <BackLink href="/tasks">{t.tasks.back}</BackLink>
 
       <PageHeader
         title={
@@ -52,7 +52,7 @@ export default async function TaskPage({ params }: { params: Promise<{ slug: str
             <span>{task.title}</span>
           </ViewTransition>
         }
-        description={`${task.subject} · ${task.topic}`}
+        description={`${t.subjects[task.subject] ?? task.subject} · ${t.topics[task.topic] ?? task.topic}`}
       >
         <div className="flex flex-wrap items-center gap-2">
           {task.source ? (
@@ -64,7 +64,7 @@ export default async function TaskPage({ params }: { params: Promise<{ slug: str
           {task.estimatedMinutes ? (
             <Badge variant="outline" className="gap-1.5">
               <Clock className="size-3" />
-              {task.estimatedMinutes} min
+              {t.tasks.minutes(task.estimatedMinutes)}
             </Badge>
           ) : null}
           {!task.solved ? (
@@ -74,35 +74,31 @@ export default async function TaskPage({ params }: { params: Promise<{ slug: str
             </Badge>
           ) : null}
           <div className={`${cardClass} flex items-center gap-2 px-3 py-1.5`}>
-            <span className="text-xs text-muted-foreground">{difficultyLabel(task.difficulty)}</span>
-            <DifficultyStars level={task.difficulty} />
+            <span className="text-xs text-muted-foreground">
+              {difficultyLabel(task.difficulty, t)}
+            </span>
+            <DifficultyStars level={task.difficulty} label={t.bank.difficultyAria(task.difficulty)} />
           </div>
         </div>
       </PageHeader>
 
-      {task.attempts > 0 ? (
-        <section
-          className={`${cardClass} flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between`}
-        >
-          <div>
-            <p className="text-sm font-medium">
-              {task.solved ? 'You have solved this task.' : 'Attempted, not solved yet.'}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {task.attempts} attempt{task.attempts === 1 ? '' : 's'}
-              {task.bestScore !== null ? ` · best score ${task.bestScore}/100` : ''}
-            </p>
-          </div>
-        </section>
-      ) : null}
-
-      <div className="grid gap-6 lg:grid-cols-5">
-        <div className="flex flex-col gap-6 lg:col-span-3">
-          <section className={`${cardClass} p-6`}>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              Problem
-            </h2>
-            <p className="mt-3 leading-relaxed text-foreground">{task.problem}</p>
+      {/* The attempts used to be a line above the statement — "3 attempts, best
+          score 71/100". They are a list beside the solution now, each opening
+          its own protocol, which is where a second try is worth comparing. */}
+      <TaskWorkspace
+        statement={
+          <>
+          {/* Given, not written: the statement sits on the wall tint, and the
+              student's own work beside it on white. */}
+          <section className="rounded-sm bg-muted p-6 ring-1 ring-border">
+            <h2 className="font-display text-block font-semibold">{t.tasks.problem}</h2>
+            <div className="mt-3 space-y-3">
+              <MathParagraphs
+                text={task.problem}
+                className="font-reading max-w-[68ch] text-reading text-foreground"
+                figureAlt={t.tasks.diagramAlt(task.title)}
+              />
+            </div>
 
             <div className="mt-3">
             <Attribution
@@ -113,10 +109,10 @@ export default async function TaskPage({ params }: { params: Promise<{ slug: str
             </div>
 
             {task.diagramUrl ? (
-              <div className="mt-5 overflow-hidden rounded-lg ring-1 ring-foreground/10">
+              <div className="mt-5 overflow-hidden rounded-sm bg-card p-3 ring-1 ring-border">
                 <Image
                   src={task.diagramUrl}
-                  alt={`Diagram for ${task.title}`}
+                  alt={t.tasks.diagramAlt(task.title)}
                   width={720}
                   height={420}
                   className="h-auto w-full bg-card"
@@ -129,14 +125,16 @@ export default async function TaskPage({ params }: { params: Promise<{ slug: str
             <section className={`${cardClass} p-6`}>
               {task.given.length ? (
                 <>
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                    Given
+                  <h2 className="text-caption font-semibold text-muted-foreground">
+                    {t.tasks.given}
                   </h2>
                   <ul className="mt-3 flex flex-col gap-2">
                     {task.given.map((item) => (
                       <li key={item} className="flex items-start gap-2.5 text-sm">
-                        <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
-                        <span className="font-mono text-foreground">{item}</span>
+                        <span className="mt-2 size-1.5 shrink-0 bg-foreground" />
+                        <span className="text-foreground">
+                          <MathText>{item}</MathText>
+                        </span>
                       </li>
                     ))}
                   </ul>
@@ -144,27 +142,32 @@ export default async function TaskPage({ params }: { params: Promise<{ slug: str
               ) : null}
 
               {task.findPrompt ? (
-                <div className="mt-5 rounded-lg bg-accent p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-accent-foreground">
-                    Find
+                <div className="mt-5 border-t border-border pt-4">
+                  <p className="text-caption font-semibold text-accent-foreground">
+                    {t.tasks.find}
                   </p>
-                  <p className="mt-1 text-sm text-foreground">{task.findPrompt}</p>
+                  <p className="mt-1 text-sm text-foreground">
+                    <MathText>{task.findPrompt}</MathText>
+                  </p>
                 </div>
               ) : null}
             </section>
           ) : null}
 
           <ResourceList resources={resources} />
-        </div>
-
-        <div className="lg:col-span-2">
-          <div className="flex flex-col gap-6">
-            <SolutionPanel hints={task.hints} taskId={task.id} />
+          </>
+        }
+        solution={
+          <>
+            <section className={`${cardClass} p-5 sm:p-6`}>
+              <SolutionPanel hints={task.hints} taskId={task.id} />
+            </section>
+            <AttemptList taskId={task.id} attempts={history} />
             {shortcut ? <TopicShortcutPanel shortcut={shortcut} /> : null}
             <SuluAssistantPanel taskId={task.id} />
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
     </div>
   )
 }

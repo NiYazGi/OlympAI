@@ -5,8 +5,21 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+  /* One family in three widths, as a wall chart is set: Sofia Sans for words,
+     the semi-condensed cut for headings, the condensed cut for the big figures
+     (points, counts). --font-mono is kept as a name because figures across the
+     app ask for it, but it is the same family with tabular numerals now: a
+     monospaced face was a costume for "technical", not a reason. */
+  --font-sans: var(--font-sofia), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-sofia), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-sofia-semi), var(--font-sofia), ui-sans-serif, sans-serif;
+  --font-figure: var(--font-sofia-condensed), var(--font-sofia), ui-sans-serif, sans-serif;
+  --font-reading: var(--font-sofia), ui-sans-serif, system-ui, sans-serif;
+  --color-chrome: var(--chrome);
+  --color-ink: var(--ink);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -47,80 +60,141 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/*
+ * The type scale is roles, not sizes. A screen picks the role and the role
+ * carries the size and the line it sits on, so the statement of a problem and
+ * the body of a lesson cannot drift apart. Reading text keeps its 28px line
+ * because the line numbers of a marked solution are set on the same beat.
+ */
+@theme {
+  --text-page: 2rem;
+  --text-page--line-height: 2.25rem;
+  --text-block: 1.25rem;
+  --text-block--line-height: 1.75rem;
+  --text-reading: 1.0625rem;
+  --text-reading--line-height: 1.75rem;
+  --text-ui: 0.9375rem;
+  --text-ui--line-height: 1.375rem;
+  --text-caption: 0.8125rem;
+  --text-caption--line-height: 1.125rem;
+  --text-score: 2rem;
+  --text-score--line-height: 2.25rem;
+}
+
 :root {
   color-scheme: light;
-  --background: oklch(0.995 0.001 265);
-  --foreground: oklch(0.21 0.02 265);
+  /*
+   * A physics wall chart in the classroom: a board-green rail, a white plane
+   * the work sits on, and three printing inks that each mean one thing.
+   *
+   * Cinnabar is a mistake, chrome yellow is a gap, cobalt is a strong idea —
+   * and cobalt is also every link, focus ring and selection, because those are
+   * the places the eye is sent. Material that is given rather than written (a
+   * statement, a reference, a quiet panel) sits on the pale green-grey of the
+   * classroom wall. Nothing else is coloured: a page that paints everything
+   * has no way left to point.
+   *
+   * The main action is ink, not a colour, so a colour on screen is always a
+   * meaning. Every text token clears 4.5:1 on the surfaces it is set on, in
+   * both themes — .tools/contrast.mjs reads this file and says so.
+   */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.213 0.007 164.2);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.21 0.02 265);
+  --card-foreground: oklch(0.213 0.007 164.2);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.21 0.02 265);
-  --primary: oklch(0.56 0.19 249);
+  --popover-foreground: oklch(0.213 0.007 164.2);
+  --primary: oklch(0.457 0.2 266.1);
   --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.968 0.004 265);
-  --secondary-foreground: oklch(0.28 0.02 265);
-  --muted: oklch(0.968 0.004 265);
-  --muted-foreground: oklch(0.52 0.02 265);
-  --accent: oklch(0.95 0.025 240);
-  --accent-foreground: oklch(0.4 0.15 244);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.925 0.005 265);
-  --input: oklch(0.925 0.005 265);
-  --ring: oklch(0.56 0.19 249);
-  --chart-1: oklch(0.56 0.19 249);
-  --chart-2: oklch(0.65 0.16 185);
-  --chart-3: oklch(0.7 0.15 190);
-  --chart-4: oklch(0.75 0.15 85);
-  --chart-5: oklch(0.65 0.2 15);
-  --radius: 0.75rem;
-  --sidebar: oklch(0.988 0.002 265);
-  --sidebar-foreground: oklch(0.21 0.02 265);
-  --sidebar-primary: oklch(0.56 0.19 249);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.95 0.025 240);
-  --sidebar-accent-foreground: oklch(0.4 0.15 244);
-  --sidebar-border: oklch(0.925 0.005 265);
-  --sidebar-ring: oklch(0.52 0.24 271);
+  --secondary: oklch(0.943 0.008 157.1);
+  --secondary-foreground: oklch(0.213 0.007 164.2);
+  --muted: oklch(0.943 0.008 157.1);
+  --muted-foreground: oklch(0.479 0.015 164.3);
+  --accent: oklch(0.943 0.008 157.1);
+  --accent-foreground: oklch(0.327 0.037 173.6);
+  --destructive: oklch(0.55 0.187 32.2);
+  --success: oklch(0.488 0.093 162.7);
+  --warning: oklch(0.473 0.099 77.4);
+  --chrome: oklch(0.811 0.166 85);
+  --ink: oklch(0.213 0.007 164.2);
+  --border: oklch(0.859 0.011 158.8);
+  --input: oklch(0.637 0.014 164.6);
+  --ring: oklch(0.457 0.2 266.1);
+  --chart-1: oklch(0.457 0.2 266.1);
+  --chart-2: oklch(0.55 0.187 32.2);
+  --chart-3: oklch(0.811 0.166 85);
+  --chart-4: oklch(0.327 0.037 173.6);
+  --chart-5: oklch(0.479 0.015 164.3);
+  --radius: 0.25rem;
+  --sidebar: oklch(0.327 0.037 173.6);
+  --sidebar-foreground: oklch(0.985 0.004 165);
+  --sidebar-primary: oklch(0.811 0.166 85);
+  --sidebar-primary-foreground: oklch(0.213 0.007 164.2);
+  --sidebar-accent: oklch(0.385 0.04 173);
+  --sidebar-accent-foreground: oklch(0.985 0.004 165);
+  --sidebar-muted: oklch(0.814 0.023 167.3);
+  --sidebar-border: oklch(1 0 0 / 14%);
+  --sidebar-ring: oklch(0.811 0.166 85);
 }
 
 .dark {
   color-scheme: dark;
-  /* Built from the light palette rather than the stock greyscale that shipped
-     with the template: that version set --primary to near-white and flattened
-     every chart colour to grey, so the product lost its identity in the theme
-     it now defaults to. Backgrounds carry a slight blue cast so they sit under
-     the brand instead of fighting it. */
-  --background: oklch(0.17 0.014 265);
-  --foreground: oklch(0.97 0.004 265);
-  --card: oklch(0.213 0.016 265);
-  --card-foreground: oklch(0.97 0.004 265);
-  --popover: oklch(0.213 0.016 265);
-  --popover-foreground: oklch(0.97 0.004 265);
-  --primary: oklch(0.63 0.185 249);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.265 0.015 265);
-  --secondary-foreground: oklch(0.95 0.004 265);
-  --muted: oklch(0.265 0.015 265);
-  --muted-foreground: oklch(0.7 0.016 265);
-  --accent: oklch(0.3 0.055 246);
-  --accent-foreground: oklch(0.86 0.09 245);
-  --destructive: oklch(0.68 0.2 22);
+  /* The same chart with the lights down: the board goes darker than the
+     plane, the inks are raised until they read on it, and the main action
+     turns to paper so it is still the one ink-coloured thing to press. */
+  --background: oklch(0.17 0.008 165);
+  --foreground: oklch(0.95 0.006 160);
+  --card: oklch(0.205 0.01 165);
+  --card-foreground: oklch(0.95 0.006 160);
+  --popover: oklch(0.22 0.01 165);
+  --popover-foreground: oklch(0.95 0.006 160);
+  --primary: oklch(0.74 0.12 266);
+  --primary-foreground: oklch(0.18 0.04 266);
+  --secondary: oklch(0.24 0.012 165);
+  --secondary-foreground: oklch(0.95 0.006 160);
+  --muted: oklch(0.24 0.012 165);
+  --muted-foreground: oklch(0.75 0.015 160);
+  --accent: oklch(0.27 0.02 168);
+  --accent-foreground: oklch(0.9 0.03 165);
+  --destructive: oklch(0.7 0.16 33);
+  --success: oklch(0.75 0.11 162);
+  --warning: oklch(0.83 0.14 85);
+  --chrome: oklch(0.83 0.15 85);
+  --ink: oklch(0.95 0.006 160);
   --border: oklch(1 0 0 / 11%);
-  --input: oklch(1 0 0 / 16%);
-  --ring: oklch(0.63 0.185 249);
-  --chart-1: oklch(0.66 0.18 249);
-  --chart-2: oklch(0.72 0.15 185);
-  --chart-3: oklch(0.75 0.14 190);
-  --chart-4: oklch(0.79 0.14 85);
-  --chart-5: oklch(0.7 0.19 15);
-  --sidebar: oklch(0.148 0.014 265);
-  --sidebar-foreground: oklch(0.97 0.004 265);
-  --sidebar-primary: oklch(0.63 0.185 249);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.3 0.055 246);
-  --sidebar-accent-foreground: oklch(0.86 0.09 245);
+  --input: oklch(1 0 0 / 26%);
+  --ring: oklch(0.74 0.12 266);
+  --chart-1: oklch(0.74 0.12 266);
+  --chart-2: oklch(0.7 0.16 33);
+  --chart-3: oklch(0.83 0.15 85);
+  --chart-4: oklch(0.75 0.11 162);
+  --chart-5: oklch(0.75 0.015 160);
+  --sidebar: oklch(0.235 0.032 172);
+  --sidebar-foreground: oklch(0.96 0.006 160);
+  --sidebar-primary: oklch(0.83 0.15 85);
+  --sidebar-primary-foreground: oklch(0.213 0.007 164.2);
+  --sidebar-accent: oklch(0.3 0.035 172);
+  --sidebar-accent-foreground: oklch(0.96 0.006 160);
+  --sidebar-muted: oklch(0.78 0.02 167);
   --sidebar-border: oklch(1 0 0 / 11%);
-  --sidebar-ring: oklch(0.63 0.185 249);
+  --sidebar-ring: oklch(0.83 0.15 85);
+}
+
+/*
+ * Inside the rail and the phone's tab bar the page tokens point at the board,
+ * so controls that were drawn for the page (the theme and language toggles,
+ * the streak, the tour button) read on green without a second set of styles.
+ */
+.rail-scope {
+  --background: var(--sidebar);
+  --foreground: var(--sidebar-foreground);
+  --muted: var(--sidebar-accent);
+  --muted-foreground: var(--sidebar-muted);
+  --accent: var(--sidebar-accent);
+  --accent-foreground: var(--sidebar-accent-foreground);
+  --border: var(--sidebar-border);
+  --ring: var(--sidebar-ring);
+  --warning: var(--sidebar-primary);
 }
 
 @layer base {
@@ -128,23 +202,61 @@
     @apply border-border outline-ring/50;
   }
 
-  /* Dark is the default, so the very first paint must not be white. */
+  /* The first paint is the page colour of whichever theme the inline script
+     settled on. A plain surface: the grid and the soft glow that used to be
+     painted here read as texture in a screenshot and as noise on a page being
+     worked through. */
   html {
     background-color: var(--background);
   }
 
+  /* Sofia Sans is variable, so the interface sits a quarter step above
+     regular: 450 keeps 13px labels from reading thin without turning every
+     paragraph bold. Figures are tabular everywhere, so a count does not shift
+     under its label when it changes. */
   body {
     @apply bg-background text-foreground;
+    font-weight: 450;
+    font-variant-numeric: tabular-nums;
+    /* Sofia Sans draws Bulgarian letterforms unless told the text is Russian,
+       and the problems are Russian even when the interface is in English
+       (lang="en"). This pins the Russian forms of д, в, л and the rest
+       whatever the page language; Latin text is not affected. */
+    font-language-override: 'RUS';
   }
 
   ::selection {
     @apply bg-primary/20 text-foreground;
   }
 
+  /* Focus is always visible: 2px of ink, 2px clear of the thing it marks.
+     Components that draw their own ring keep it; this is the floor for every
+     link and control that does not. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  /* `clip`, not `hidden`: hidden on both html and body turns the body into a
+     scroll container that never scrolls, and every sticky element inside it —
+     the rail, the statement beside a solution — silently stops sticking. */
   html,
   body {
     min-width: 320px;
-    overflow-x: hidden;
+    overflow-x: clip;
+  }
+
+  /* The phone's header is sticky, so anything scrolled to — an anchor, a
+     focused field, a question in the paper — would otherwise land underneath
+     it. A laptop has no bar above the page, only the rail beside it. */
+  html {
+    scroll-padding-top: 5rem;
+  }
+
+  @media (min-width: 768px) {
+    html {
+      scroll-padding-top: 1.5rem;
+    }
   }
 
   @media (max-width: 640px) {
@@ -324,9 +436,255 @@
   transform: rotateY(180deg);
 }
 
+/* The live page stays clickable while a transition plays. Without this the
+   overlay swallows any click made during the third of a second a navigation
+   takes to settle. */
+::view-transition {
+  pointer-events: none;
+}
+
+/* Something the student asked for, opening from the control that asked for
+   it: a hint, a verdict, a form behind a button, a menu. From just above where
+   it lands, so it reads as unfolding rather than arriving from elsewhere. */
+@keyframes disclose {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.disclose {
+  animation: disclose var(--duration-enter) var(--ease-settle) both;
+}
+
+/* The jury's marks, arriving down the margin in line order after a solution is
+   submitted. Opacity only: the student's own lines are already in place and
+   nothing they wrote moves. The delay is capped where it is set, so the last
+   mark lands inside 400ms whatever the length of the solution. */
+@keyframes mark-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.mark-in {
+  animation: mark-in 100ms ease-out both;
+  animation-delay: var(--mark-delay, 0ms);
+}
+
+/* A sheet that rises from the bar it belongs to. */
+@keyframes sheet-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+}
+
+.sheet-up {
+  animation: sheet-up var(--duration-enter) var(--ease-settle) both;
+  transform-origin: bottom center;
+}
+
+/* The flame, the moment the day's first visit adds to it: one swell and back.
+   It answers something the student did — opening the app today — and plays
+   once, on the flame itself, never on the page around it. */
+@keyframes flame-pop {
+  40% {
+    transform: scale(1.35) rotate(-6deg);
+  }
+  70% {
+    transform: scale(0.95);
+  }
+}
+
+.flame-pop {
+  animation: flame-pop 600ms var(--ease-settle) both;
+  transform-origin: 50% 80%;
+}
+
+/* A measure fills from empty the first time it appears, so the eye lands on
+   its length — the one thing it is there to say. After that a new value
+   slides rather than jumps. `backwards` rather than `both`: once the fill has
+   played, the inline width is back in charge and the transition takes over. */
+@keyframes meter-fill {
+  from {
+    width: 0;
+  }
+}
+
+.meter-fill {
+  animation: meter-fill 600ms var(--ease-settle) backwards;
+  transition: width 400ms var(--ease-settle);
+}
+
+/* The same gesture for the rings. --ring-length is the circumference, so an
+   empty ring is a dash offset by its own length. */
+@keyframes ring-fill {
+  from {
+    stroke-dashoffset: var(--ring-length);
+  }
+}
+
+.ring-fill {
+  animation: ring-fill 700ms var(--ease-settle) backwards;
+  transition: stroke-dashoffset 500ms var(--ease-settle);
+}
+
+/* Sulu is writing. Three dots rather than the word "Thinking…", which read as
+   a message that had arrived rather than one that was on its way. */
+@keyframes typing-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+    translate: 0 0;
+  }
+  40% {
+    opacity: 1;
+    translate: 0 -2px;
+  }
+}
+
+.typing-dot {
+  animation: typing-dot 1.1s ease-in-out infinite;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 140ms;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 280ms;
+}
+
+/* The end of a reply that is still streaming. */
+@keyframes caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.stream-caret::after {
+  content: '';
+  display: inline-block;
+  width: 0.45em;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  border-radius: 1px;
+  background: currentColor;
+  opacity: 0.6;
+  animation: caret-blink 1s steps(1) infinite;
+}
+
+/* A placeholder that is actively being filled, rather than one waiting for
+   data: the grader reading a derivation. A light passes across it. */
+@keyframes shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+
+.shimmer {
+  background-image: linear-gradient(
+    100deg,
+    transparent 30%,
+    color-mix(in oklch, var(--foreground) 9%, transparent) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+/* Navigation feedback. A click that has to wait for the server shows a thin
+   bar that creeps towards the end and never quite gets there, then completes
+   and fades once the new page commits. It only becomes visible after 120ms:
+   a navigation that is already fast should not flash anything at all. */
+.nav-progress-bar {
+  height: 100%;
+  width: 82%;
+  opacity: 1;
+  background: var(--primary);
+  box-shadow: 0 0 10px color-mix(in oklch, var(--primary) 70%, transparent);
+  transition:
+    width 7s cubic-bezier(0.08, 0.7, 0.15, 1),
+    opacity 160ms ease-out 120ms;
+}
+
+@starting-style {
+  .nav-progress-bar {
+    width: 0;
+    opacity: 0;
+  }
+}
+
+.nav-progress-bar[data-state='done'] {
+  width: 100%;
+  opacity: 0;
+  transition:
+    width 180ms ease-out,
+    opacity 240ms ease-out 140ms;
+}
+
+/* How far through the lesson the reader is, driven by the scroll position
+   itself rather than a listener. Where scroll timelines are unsupported the
+   bar simply never grows. */
+@keyframes read-progress {
+  to {
+    scale: 1 1;
+  }
+}
+
+.reading-progress {
+  scale: 0 1;
+  transform-origin: 0 50%;
+}
+
+@supports (animation-timeline: scroll()) {
+  .reading-progress {
+    animation: read-progress linear both;
+    animation-timeline: scroll(root block);
+  }
+}
+
+/* A theme change spreads out from the control that asked for it. The class is
+   set only for the duration of that one transition, so navigations keep the
+   browser's own cross-fade. */
+html.theme-transition::view-transition-old(root),
+html.theme-transition::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .rise {
-    animation: none;
+  .rise,
+  .disclose,
+  .mark-in,
+  .sheet-up,
+  .flame-pop,
+  .meter-fill,
+  .ring-fill,
+  .typing-dot,
+  .shimmer,
+  .stream-caret::after {
+    animation: none !important;
+  }
+
+  .meter-fill,
+  .ring-fill {
+    transition: none;
+  }
+
+  /* Still says how far the page has come; it just stops sliding there. */
+  .nav-progress-bar {
+    transition: opacity 120ms ease-out 120ms;
+  }
+
+  .reading-progress {
+    display: none;
   }
 
   .flip-card {

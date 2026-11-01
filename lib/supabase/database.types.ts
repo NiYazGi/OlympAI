@@ -4,27 +4,30 @@ export type Database = {
   public: {
     Tables: {
       profiles: {
-        Row: { id: string; full_name: string | null; username: string | null; grade: string | null; primary_subject: string | null; level: string | null; goal: string | null; target_competition_type: string | null; training_intensity: string | null; onboarding_completed_at: string | null; daily_xp_goal: number; target_subject_id: string | null; target_competition_id: string | null; target_date: string | null; is_admin: boolean; created_at: string }
-        Insert: { id: string; full_name?: string | null; username?: string | null; grade?: string | null; primary_subject?: string | null; level?: string | null; goal?: string | null; target_competition_type?: string | null; training_intensity?: string | null; onboarding_completed_at?: string | null; daily_xp_goal?: number; target_subject_id?: string | null; target_competition_id?: string | null; target_date?: string | null; is_admin?: boolean; created_at?: string }
-        Update: { full_name?: string | null; username?: string | null; grade?: string | null; primary_subject?: string | null; level?: string | null; goal?: string | null; target_competition_type?: string | null; training_intensity?: string | null; onboarding_completed_at?: string | null; daily_xp_goal?: number; target_subject_id?: string | null; target_competition_id?: string | null; target_date?: string | null; is_admin?: boolean }
+        Row: { id: string; full_name: string | null; username: string | null; grade: string | null; primary_subject: string | null; level: string | null; goal: string | null; target_competition_type: string | null; training_intensity: string | null; onboarding_completed_at: string | null; daily_xp_goal: number; target_subject_id: string | null; target_competition_id: string | null; target_date: string | null; target_university: string | null; telegram_username: string | null; telegram_chat_id: number | null; telegram_linked_at: string | null; telegram_link_code: string | null; is_admin: boolean; role: 'student' | 'teacher'; tour_completed_at: string | null; created_at: string }
+        Insert: { id: string; full_name?: string | null; username?: string | null; grade?: string | null; primary_subject?: string | null; level?: string | null; goal?: string | null; target_competition_type?: string | null; training_intensity?: string | null; onboarding_completed_at?: string | null; daily_xp_goal?: number; target_subject_id?: string | null; target_competition_id?: string | null; target_date?: string | null; target_university?: string | null; telegram_username?: string | null; telegram_chat_id?: number | null; telegram_linked_at?: string | null; telegram_link_code?: string | null; is_admin?: boolean; role?: 'student' | 'teacher'; tour_completed_at?: string | null; created_at?: string }
+        Update: { full_name?: string | null; username?: string | null; grade?: string | null; primary_subject?: string | null; level?: string | null; goal?: string | null; target_competition_type?: string | null; training_intensity?: string | null; onboarding_completed_at?: string | null; daily_xp_goal?: number; target_subject_id?: string | null; target_competition_id?: string | null; target_date?: string | null; target_university?: string | null; telegram_username?: string | null; telegram_chat_id?: number | null; telegram_linked_at?: string | null; telegram_link_code?: string | null; is_admin?: boolean; role?: 'student' | 'teacher'; tour_completed_at?: string | null }
         Relationships: []
       }
       subjects: {
-        Row: { id: string; name: string; slug: string }
-        Insert: { id?: string; name: string; slug: string }
-        Update: { name?: string; slug?: string }
+        // `active` hides a subject from every read without deleting anything.
+        Row: { id: string; name: string; slug: string; active: boolean }
+        Insert: { id?: string; name: string; slug: string; active?: boolean }
+        Update: { name?: string; slug?: string; active?: boolean }
         Relationships: []
       }
       topics: {
-        Row: { id: string; subject_id: string; name: string; slug: string }
-        Insert: { id?: string; subject_id: string; name: string; slug: string }
-        Update: { subject_id?: string; name?: string; slug?: string }
+        // position is the syllabus order — see migration 44. A class may
+        // replace it in class_tracks.
+        Row: { id: string; subject_id: string; name: string; slug: string; position: number }
+        Insert: { id?: string; subject_id: string; name: string; slug: string; position?: number }
+        Update: { subject_id?: string; name?: string; slug?: string; position?: number }
         Relationships: []
       }
       tasks: {
-        Row: { id: string; subject_id: string; topic_id: string; title: string; problem: string; difficulty: number; official_solution: string | null; hints: string[]; source: string | null; estimated_minutes: number | null; given: string[]; find_prompt: string | null; diagram_url: string | null; source_url: string | null; licence: string; attribution: string | null; created_at: string }
-        Insert: { id: string; subject_id: string; topic_id: string; title: string; problem: string; difficulty: number; official_solution?: string | null; hints?: string[]; source?: string | null; estimated_minutes?: number | null; given?: string[]; find_prompt?: string | null; diagram_url?: string | null; source_url?: string | null; licence?: string; attribution?: string | null; created_at?: string }
-        Update: { subject_id?: string; topic_id?: string; title?: string; problem?: string; difficulty?: number; official_solution?: string | null; hints?: string[]; source?: string | null; estimated_minutes?: number | null; given?: string[]; find_prompt?: string | null; diagram_url?: string | null; source_url?: string | null; licence?: string; attribution?: string | null }
+        Row: { id: string; subject_id: string; topic_id: string; title: string; problem: string; difficulty: number; official_solution: string | null; hints: string[]; source: string | null; estimated_minutes: number | null; given: string[]; find_prompt: string | null; diagram_url: string | null; source_url: string | null; licence: string; attribution: string | null; level: string | null; derived_from: string | null; paper: string | null; created_at: string }
+        Insert: { id: string; subject_id: string; topic_id: string; title: string; problem: string; difficulty: number; official_solution?: string | null; hints?: string[]; source?: string | null; estimated_minutes?: number | null; given?: string[]; find_prompt?: string | null; diagram_url?: string | null; source_url?: string | null; licence?: string; attribution?: string | null; level?: string | null; derived_from?: string | null; paper?: string | null; created_at?: string }
+        Update: { subject_id?: string; topic_id?: string; title?: string; problem?: string; difficulty?: number; official_solution?: string | null; hints?: string[]; source?: string | null; estimated_minutes?: number | null; given?: string[]; find_prompt?: string | null; diagram_url?: string | null; source_url?: string | null; licence?: string; attribution?: string | null; level?: string | null; derived_from?: string | null; paper?: string | null }
         Relationships: []
       }
       lessons: {
@@ -47,6 +50,15 @@ export type Database = {
         Row: { id: string; user_id: string; lesson_id: string; opened_at: string; completed_at: string | null }
         Insert: { id?: string; user_id: string; lesson_id: string; opened_at?: string; completed_at?: string | null }
         Update: { opened_at?: string; completed_at?: string | null }
+        Relationships: []
+      }
+      day_states: {
+        // The student's own report of their own day, like lesson_views: no
+        // artefact proves a night's sleep. Pays no XP and unlocks nothing, so
+        // RLS lets them write it directly.
+        Row: { id: string; user_id: string; on_date: string; theory_minutes: number; solving_minutes: number; mental: number; sleep_hours: number; lights_out: boolean; load_minutes: number; created_at: string; updated_at: string }
+        Insert: { id?: string; user_id: string; on_date: string; theory_minutes?: number; solving_minutes?: number; mental?: number; sleep_hours?: number; lights_out?: boolean; load_minutes?: number; updated_at?: string }
+        Update: { theory_minutes?: number; solving_minutes?: number; mental?: number; sleep_hours?: number; lights_out?: boolean; load_minutes?: number; updated_at?: string }
         Relationships: []
       }
       quiz_questions: {
@@ -83,8 +95,10 @@ export type Database = {
       task_attempts: {
         // Writable only through the service-role client in lib/supabase/admin.ts:
         // RLS grants `authenticated` select but no insert, update or delete.
-        Row: { id: string; user_id: string; task_id: string; answer: string; is_correct: boolean; score: number; feedback: string | null; graded_by: string; model: string | null; mock_test_id: string | null; source: string; created_at: string }
-        Insert: { id?: string; user_id: string; task_id: string; answer: string; is_correct?: boolean; score?: number; feedback?: string | null; graded_by?: string; model?: string | null; mock_test_id?: string | null; source?: string; created_at?: string }
+        // points, summary, marks, criteria and break_point are the grader's
+        // protocol (migration 54); attempts graded before it have them null.
+        Row: { id: string; user_id: string; task_id: string; answer: string; is_correct: boolean; score: number; feedback: string | null; graded_by: string; model: string | null; mock_test_id: string | null; source: string; created_at: string; points: number | null; summary: string | null; marks: Json | null; criteria: Json | null; break_point: Json | null }
+        Insert: { id?: string; user_id: string; task_id: string; answer: string; is_correct?: boolean; score?: number; feedback?: string | null; graded_by?: string; model?: string | null; mock_test_id?: string | null; source?: string; created_at?: string; points?: number | null; summary?: string | null; marks?: Json | null; criteria?: Json | null; break_point?: Json | null }
         Update: { feedback?: string | null }
         Relationships: []
       }
@@ -109,9 +123,17 @@ export type Database = {
         Relationships: []
       }
       competitions: {
-        Row: { id: string; name: string; slug: string | null; subject_id: string | null; level: string | null; starts_on: string | null; ends_on: string | null; registration_url: string | null; registration_deadline: string | null; created_by: string | null; created_at: string }
-        Insert: { id?: string; name: string; slug?: string | null; subject_id?: string | null; level?: string | null; starts_on?: string | null; ends_on?: string | null; registration_url?: string | null; registration_deadline?: string | null; created_by?: string | null; created_at?: string }
-        Update: { name?: string; slug?: string | null; subject_id?: string | null; level?: string | null; starts_on?: string | null; ends_on?: string | null; registration_url?: string | null; registration_deadline?: string | null }
+        Row: { id: string; name: string; slug: string | null; subject_id: string | null; level: string | null; starts_on: string | null; ends_on: string | null; registration_url: string | null; registration_deadline: string | null; region: string | null; founded: number | null; official_url: string | null; papers_url: string | null; active: boolean; created_by: string | null; created_at: string }
+        Insert: { id?: string; name: string; slug?: string | null; subject_id?: string | null; level?: string | null; starts_on?: string | null; ends_on?: string | null; registration_url?: string | null; registration_deadline?: string | null; region?: string | null; founded?: number | null; official_url?: string | null; papers_url?: string | null; active?: boolean; created_by?: string | null; created_at?: string }
+        Update: { name?: string; slug?: string | null; subject_id?: string | null; level?: string | null; starts_on?: string | null; ends_on?: string | null; registration_url?: string | null; registration_deadline?: string | null; region?: string | null; founded?: number | null; official_url?: string | null; papers_url?: string | null; active?: boolean }
+        Relationships: []
+      }
+      competition_details: {
+        // The write-up, one row per language. Read-only from the client: it
+        // arrives by migration, like every other piece of reference content.
+        Row: { competition_id: string; locale: string; summary: string; format: string | null; route: string | null; eligibility: string | null }
+        Insert: { competition_id: string; locale: string; summary: string; format?: string | null; route?: string | null; eligibility?: string | null }
+        Update: { summary?: string; format?: string | null; route?: string | null; eligibility?: string | null }
         Relationships: []
       }
       resources: {
@@ -128,6 +150,57 @@ export type Database = {
         Update: { submitted_at?: string | null; score_percent?: number | null; level?: string | null }
         Relationships: []
       }
+      classes: {
+        // join_code defaults to public.gen_join_code() — six unambiguous
+        // characters. Insert never sets it; rotating one is an update to null
+        // and back is not a thing, so the action writes a fresh code instead.
+        Row: { id: string; teacher_id: string; name: string; subject_id: string | null; join_code: string; created_at: string }
+        Insert: { id?: string; teacher_id: string; name: string; subject_id?: string | null; join_code?: string; created_at?: string }
+        Update: { name?: string; subject_id?: string | null; join_code?: string }
+        Relationships: []
+      }
+      telegram_sessions: {
+        // The half-asked check-in. Written only by the webhook, with the
+        // service role: a row keyed by a Telegram chat id is not something a
+        // browser session can be trusted about. See migration 45.
+        Row: { chat_id: number; user_id: string; step: number; answers: Json; updated_at: string }
+        Insert: { chat_id: number; user_id: string; step?: number; answers?: Json; updated_at?: string }
+        Update: { user_id?: string; step?: number; answers?: Json; updated_at?: string }
+        Relationships: []
+      }
+      class_tracks: {
+        // The teacher's order for one class, and how many problems each topic
+        // asks for. A missing row means the subject's default.
+        // Since migration 48 also whether the class skips the topic, when the
+        // teacher wants it done, and a note for the students.
+        Row: { class_id: string; topic_id: string; position: number; target: number | null; skipped: boolean; due_date: string | null; note: string | null; updated_at: string }
+        Insert: { class_id: string; topic_id: string; position: number; target?: number | null; skipped?: boolean; due_date?: string | null; note?: string | null; updated_at?: string }
+        Update: { position?: number; target?: number | null; skipped?: boolean; due_date?: string | null; note?: string | null; updated_at?: string }
+        Relationships: []
+      }
+      daily_visits: {
+        // One row per calendar day (the student's own) the app was opened.
+        Row: { user_id: string; day: string; created_at: string }
+        Insert: { user_id: string; day: string; created_at?: string }
+        Update: { day?: string }
+        Relationships: []
+      }
+      class_track_tasks: {
+        // The problems a teacher chose for a topic, in their order. Written only
+        // through save_class_plan, together with class_tracks.
+        Row: { class_id: string; topic_id: string; task_id: string; position: number }
+        Insert: { class_id: string; topic_id: string; task_id: string; position: number }
+        Update: { position?: number }
+        Relationships: []
+      }
+      class_members: {
+        // Inserted only through the service-role client, after the join code
+        // has been checked. See the note in migration 43.
+        Row: { class_id: string; student_id: string; joined_at: string }
+        Insert: { class_id: string; student_id: string; joined_at?: string }
+        Update: { joined_at?: string }
+        Relationships: []
+      }
       competition_registrations: {
         Row: { user_id: string; competition_id: string; created_at: string }
         Insert: { user_id: string; competition_id: string; created_at?: string }
@@ -136,7 +209,16 @@ export type Database = {
       }
     }
     Views: { [_ in never]: never }
-    Functions: { [_ in never]: never }
+    Functions: {
+      visit_streak: {
+        Args: { today: string }
+        Returns: { current_streak: number; best_streak: number; last_day: string | null }[]
+      }
+      save_class_plan: {
+        Args: { plan_class: string; sections: Json; chosen: Json }
+        Returns: undefined
+      }
+    }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }
   }

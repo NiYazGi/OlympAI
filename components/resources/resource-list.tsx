@@ -1,7 +1,8 @@
 import { BookOpen, ExternalLink, Link2 } from 'lucide-react'
 import { YouTubeEmbed } from '@/components/resources/youtube-embed'
-import { LICENCES, type Licence } from '@/lib/licence'
-import { cardClass, cn } from '@/lib/utils'
+import { LICENCES, licenceInfo, type Licence } from '@/lib/licence'
+import { getT } from '@/lib/i18n'
+import { cardClass, cn, labelClass } from '@/lib/utils'
 
 export type Resource = {
   id: string
@@ -21,14 +22,21 @@ export type Resource = {
  * the licence, not a courtesy, and a condition that depends on someone
  * remembering is a condition that will be missed.
  */
-export function ResourceList({ resources }: { resources: Resource[] }) {
+export async function ResourceList({
+  resources,
+  heading,
+}: {
+  resources: Resource[]
+  /** Defaults to "Material"; the topic page calls it "Read further". */
+  heading?: string
+}) {
   if (resources.length === 0) return null
+  const t = await getT()
+  const title = heading ?? t.learn.material
 
   return (
     <section className="space-y-4">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-        Material
-      </h2>
+      <h2 className={labelClass}>{title}</h2>
       <ul className="space-y-4">
         {resources.map((resource) => (
           <li key={resource.id} className="space-y-2">
@@ -76,7 +84,7 @@ export function Attribution({
   attribution: string | null
   url?: string | null
 }) {
-  const info = LICENCES[licence]
+  const info = licenceInfo(licence)
   // Original material needs no credit line and no disclaimer.
   if (licence === 'original' && !attribution) return null
 
@@ -88,7 +96,7 @@ export function Attribution({
         className={cn(
           'rounded-full border px-2 py-0.5',
           licence === 'unknown'
-            ? 'border-amber-500/40 text-amber-500'
+            ? 'border-warning/40 text-warning'
             : 'border-border text-muted-foreground',
         )}
       >

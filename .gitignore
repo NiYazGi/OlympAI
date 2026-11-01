@@ -28,5 +28,12 @@ node_modules
 # path it is given, and that page must never reach a commit.
 .tools/*
 !.tools/*.mjs
+# The figure renderer the PDF importers call: CoreGraphics, so Swift.
+!.tools/*.swift
 *.tsbuildinfo
 .DS_Store
+
+# Downloaded olympiad archives. Sixteen hundred files of someone else's
+# content, kept on disk as the input to .tools/import-bcpf*.mjs. The importers
+# are tracked; what they read is not, and neither is what they extract.
+Олимпиады_по_*/

@@ -1,7 +1,11 @@
+import { getT } from '@/lib/i18n'
 import { SuluWorkspace } from '@/components/sulu/sulu-workspace'
 import { getChatMessages, getChatSessions } from '@/lib/supabase/chat'
 
-export const metadata = { title: 'Sulu AI' }
+export async function generateMetadata() {
+  const t = await getT()
+  return { title: t.nav.sulu }
+}
 export const dynamic = 'force-dynamic'
 
 export default async function SuluAiPage({
@@ -16,10 +20,6 @@ export default async function SuluAiPage({
   const messages = activeSessionId ? await getChatMessages(activeSessionId) : []
 
   return (
-    <SuluWorkspace
-      sessions={sessions}
-      activeSessionId={activeSessionId}
-      messages={messages}
-    />
+      <SuluWorkspace sessions={sessions} activeSessionId={activeSessionId} messages={messages} />
   )
 }

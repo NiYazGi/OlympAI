@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { setRegistration } from '@/app/(app)/olympiads/actions'
+import { useT } from '@/components/i18n-provider'
 import { Button } from '@/components/ui/button'
 
 /**
@@ -21,14 +22,19 @@ export function RegistrationButton({
   competitionId: string
   registered: boolean
 }) {
+  const t = useT()
   const [error, setError] = useState('')
   const [pending, startTransition] = useTransition()
 
   function toggle() {
     setError('')
     startTransition(async () => {
-      const result = await setRegistration(competitionId, !registered)
-      if (!result.ok) setError(result.error ?? 'That did not go through.')
+      try {
+        const result = await setRegistration(competitionId, !registered)
+        if (!result.ok) setError(result.error ?? t.track.failed)
+      } catch {
+        setError(t.common.offline)
+      }
     })
   }
 
@@ -40,10 +46,10 @@ export function RegistrationButton({
         onClick={toggle}
         disabled={pending}
       >
-        {pending ? 'Saving…' : registered ? 'Stop tracking' : 'Track this one'}
+        {pending ? `${t.common.saving}…` : registered ? t.track.stop : t.track.start}
       </Button>
       {error ? (
-        <p role="alert" className="text-xs text-destructive">
+        <p role="alert" className="disclose text-xs text-destructive">
           {error}
         </p>
       ) : null}

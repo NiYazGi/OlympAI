@@ -1,3 +1,4 @@
+import type { Dictionary } from '@/lib/i18n/dictionaries'
 import type { LadderInput, LadderStage } from '@/lib/ladder'
 
 /**
@@ -14,7 +15,6 @@ import type { LadderInput, LadderStage } from '@/lib/ladder'
  */
 
 export type NextActionKind =
-  | 'recall'
   | 'study'
   | 'check'
   | 'apply'
@@ -60,31 +60,42 @@ const stageOf = (topic: TopicPlan, key: LadderStage['key']) =>
 /**
  * Order of business, and the reasoning for it:
  *
- * 1. Cards that are due, anywhere in the subject. Spacing is the one thing here
- *    with a deadline — a card met a week late has already been forgotten, and
- *    the whole schedule is worthless if the queue is not cleared. It is also
- *    the shortest job on the list.
- * 2. A lesson already opened and not finished. Something half-read is a worse
+ * 1. A lesson already opened and not finished. Something half-read is a worse
  *    state to leave than something unstarted.
- * 3. Otherwise the current topic's ladder, in order. The current topic is the
+ * 2. Otherwise the current topic's ladder, in order. The current topic is the
  *    first one that still has something in it.
- * 4. A paper, once everything else in the subject is done.
+ * 3. A paper, once everything else in the subject is done.
+ *
+ * Due flashcards used to come first, on the argument that spacing has a
+ * deadline. It is a good argument about cards and a bad one about a session:
+ * it meant the app opened with "review nine cards" most mornings, and a
+ * student who did as they were told spent their time on definitions instead of
+ * problems. The deck is still there, still scheduled, and it is now something
+ * offered rather than the instruction.
  */
 export function nextAction(
   subjectName: string | null,
   topics: TopicPlan[],
   recommended: RecommendedTask | null = null,
+  t: Dictionary,
 ): NextAction {
+  const copy = t.nextAction
+  /*
+   * Section names are translated, the same way they are everywhere else the
+   * student sees one. The card was reading "Прочитать конспект: Algebra" — the
+   * sentence in Russian and the section in English, because the name reaching
+   * here is the one the database stores.
+   */
+  const named = (name: string) => t.topics[name] ?? name
+  const subject = t.subjects[subjectName ?? ''] ?? subjectName
+
   if (!subjectName) {
     return {
       kind: 'choose-subject',
-      label: 'Choose what you are training for',
-      detail: 'A competition, or just a subject and a date.',
-      why: 'Everything here is ordered around one target. Without one there is no next step to name.',
+      ...copy.chooseSubject,
       topicName: null,
       subjectName: null,
       href: '/learn',
-      cta: 'Set your target',
     }
   }
 
@@ -95,50 +106,34 @@ export function nextAction(
   if (withContent.length === 0) {
     return {
       kind: 'empty-subject',
-      label: `Nothing has been written for ${subjectName} yet`,
-      detail: 'No notes, no questions, no problems in this subject.',
-      why: 'Rather than filling the screen with material from a subject you are not training for.',
+      label: copy.emptySubject.label(subject ?? ""),
+      detail: copy.emptySubject.detail,
+      why: copy.emptySubject.why,
       topicName: null,
       subjectName,
       href: '/learn?all=1',
-      cta: 'Look at the other subjects',
+      cta: copy.emptySubject.cta,
     }
   }
 
-  // 1. Anything due today, oldest topic first.
-  const due = withContent.find((topic) => topic.input.cards.due > 0)
-  if (due) {
-    const count = due.input.cards.due
-    return {
-      kind: 'recall',
-      label: `Review ${count} card${count === 1 ? '' : 's'} in ${due.name}`,
-      detail: `${count} due now · about ${Math.max(1, Math.round(count * 0.4))} min`,
-      why: 'Cards are due today. Spacing only works if the date is met — later is a different, weaker exercise.',
-      topicName: due.name,
-      subjectName,
-      href: `/learn/${due.slug}/cards`,
-      cta: 'Start reviewing',
-    }
-  }
-
-  // 2. Finish what was started.
+  // 1. Finish what was started.
   const halfRead = withContent.find(
     (topic) => topic.input.lesson?.opened && !topic.input.lesson.completed,
   )
   if (halfRead) {
     return {
       kind: 'study',
-      label: `Finish the notes on ${halfRead.name}`,
+      label: copy.halfRead.label(named(halfRead.name)),
       detail: stageOf(halfRead, 'study').detail,
-      why: 'You opened this and did not finish it. Half-read is the worst place to leave a topic.',
+      why: copy.halfRead.why,
       topicName: halfRead.name,
       subjectName,
       href: `/learn/${halfRead.slug}/lesson`,
-      cta: 'Pick it up',
+      cta: copy.halfRead.cta,
     }
   }
 
-  // 3. The current topic, taken in order.
+  // 2. The current topic, taken in order.
   const current = withContent.find((topic) =>
     topic.stages.some(
       (stage) => stage.key !== 'sit' && stage.state !== 'empty' && stage.state !== 'done',
@@ -153,13 +148,13 @@ export function nextAction(
     if (stage.key === 'study') {
       return {
         kind: 'study',
-        label: `Read the notes on ${current.name}`,
+        label: copy.study.label(named(current.name)),
         detail: stage.detail,
-        why: 'First step in a topic you have not started. Everything after it assumes this.',
+        why: copy.study.why,
         topicName: current.name,
         subjectName,
         href: `/learn/${current.slug}/lesson`,
-        cta: 'Start reading',
+        cta: copy.study.cta,
       }
     }
 
@@ -167,26 +162,13 @@ export function nextAction(
       const left = current.input.quiz.total - current.input.quiz.correct
       return {
         kind: 'check',
-        label: `Check yourself on ${current.name}`,
-        detail: `${left} question${left === 1 ? '' : 's'} still to get right · a few minutes`,
-        why: 'You have read it. Answering from memory is what turns reading into something you can use.',
+        label: copy.check.label(named(current.name)),
+        detail: copy.check.detail(left),
+        why: copy.check.why,
         topicName: current.name,
         subjectName,
         href: `/learn/${current.slug}/quiz`,
-        cta: 'Start the quiz',
-      }
-    }
-
-    if (stage.key === 'recall') {
-      return {
-        kind: 'recall',
-        label: `Learn the cards for ${current.name}`,
-        detail: stage.detail,
-        why: 'Nothing is due yet, so this is the first pass — the facts you will need without looking them up.',
-        topicName: current.name,
-        subjectName,
-        href: `/learn/${current.slug}/cards`,
-        cta: 'Open the deck',
+        cta: copy.check.cta,
       }
     }
 
@@ -198,53 +180,55 @@ export function nextAction(
     if (recommended && recommended.topic === current.name) {
       return {
         kind: 'apply',
-        label: `Solve: ${recommended.title}`,
-        detail: `${current.name} · ${recommended.difficulty}★${
-          recommended.estimatedMinutes ? ` · about ${recommended.estimatedMinutes} min` : ''
-        }`,
-        why: 'The topic is learned. This is the step that finds out whether it holds up under a real problem.',
+        label: copy.applyNamed.label(recommended.title),
+        detail: copy.applyNamed.detail(
+          named(current.name),
+          recommended.difficulty,
+          recommended.estimatedMinutes,
+        ),
+        why: copy.apply.why,
         topicName: current.name,
         subjectName,
         href: `/tasks/${recommended.id}`,
-        cta: 'Open the problem',
+        cta: copy.applyNamed.cta,
       }
     }
 
     return {
       kind: 'apply',
-      label: `Solve a problem in ${current.name}`,
-      detail: `${left} left in this topic · full derivation, graded on the method`,
-      why: 'The topic is learned. This is the step that finds out whether it holds up under a real problem.',
+      label: copy.apply.label(named(current.name)),
+      detail: copy.apply.detail(left),
+      why: copy.apply.why,
       topicName: current.name,
       subjectName,
       href: `/tasks?topic=${encodeURIComponent(current.name)}`,
-      cta: 'Pick a problem',
+      cta: copy.apply.cta,
     }
   }
 
-  // 4. Everything in the subject is done.
+  // 3. Everything in the subject is done.
   const paper = withContent.find((topic) => stageOf(topic, 'sit').state === 'ready')
   if (paper) {
     return {
       kind: 'sit',
-      label: `Sit a ${subjectName} paper`,
-      detail: 'Timed, no hints, no coach.',
-      why: 'Every topic here is behind you. A timed paper is the only thing left that measures the difference.',
+      label: copy.sit.label(subject ?? ""),
+      detail: copy.sit.detail,
+      why: copy.sit.why,
       topicName: null,
       subjectName,
       href: '/mock',
-      cta: 'Start a paper',
+      cta: copy.sit.cta,
     }
   }
 
   return {
     kind: 'done',
-    label: `You are through everything in ${subjectName}`,
-    detail: 'Notes read, questions answered, cards known, problems solved.',
-    why: 'Nothing here is unfinished. More material is what this needs now, not more effort from you.',
+    label: copy.done.label(subject ?? ""),
+    detail: copy.done.detail,
+    why: copy.done.why,
     topicName: null,
     subjectName,
     href: '/learn?all=1',
-    cta: 'Look at another subject',
+    cta: copy.done.cta,
   }
 }

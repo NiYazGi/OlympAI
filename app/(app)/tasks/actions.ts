@@ -7,9 +7,11 @@ import { createClient } from '@/lib/supabase/server'
 import { hasSupabaseSecretKey } from '@/lib/supabase/secret-env'
 import { checkAttemptRateLimit } from '@/lib/rate-limit'
 import { gradeAttempt, type Grade } from '@/lib/sulu/grade'
+import { transcribeSolutionPhoto } from '@/lib/sulu/transcribe'
 import { attemptXp } from '@/lib/xp'
-import type { Verdict } from '@/lib/sulu/types'
+import type { Protocol } from '@/lib/protocol'
 import { SuluError } from '@/lib/sulu/provider'
+import { getLocale } from '@/lib/i18n'
 
 const MIN_ANSWER_LENGTH = 20
 const MAX_ANSWER_LENGTH = 8_000
@@ -17,10 +19,9 @@ const MAX_ANSWER_LENGTH = 8_000
 export type AttemptResult =
   | {
       ok: true
-      verdict: Verdict
-      score: number
-      feedback: string
-      nextHint: string | null
+      /** The saved attempt, so its protocol has an address of its own. */
+      attemptId: string
+      protocol: Protocol
       /** XP this attempt earned, so the reward lands with the verdict. */
       xpEarned: number
       /** True when the task was already solved, which caps the reward. */
@@ -71,7 +72,7 @@ export async function submitTaskAttempt(
   const admin = createAdminClient()
   const { data: task, error: taskError } = await admin
     .from('tasks')
-    .select('id, title, problem, difficulty, given, find_prompt, official_solution, hints')
+    .select('id, title, problem, difficulty, given, find_prompt, official_solution, hints, diagram_url')
     .eq('id', taskId)
     .maybeSingle()
   if (taskError || !task) {
@@ -89,6 +90,8 @@ export async function submitTaskAttempt(
         officialSolution: task.official_solution,
         difficulty: task.difficulty,
         hints: task.hints ?? [],
+        diagramUrl: task.diagram_url,
+        language: await getLocale(),
       },
       trimmedAnswer,
     )
@@ -130,19 +133,28 @@ export async function submitTaskAttempt(
   // The grade is written with the service role, because `authenticated` has no
   // insert on task_attempts: a row the browser can write is a row the browser
   // can score. user_id comes from the verified session above, never from input.
-  const { error: insertError } = await admin.from('task_attempts').insert({
-    task_id: task.id,
-    user_id: user.id,
-    answer: trimmedAnswer,
-    is_correct: grade.verdict === 'correct',
-    score: grade.score,
-    feedback: grade.feedback,
-    // Marks attempts where the answer-secrecy guard had to cut something, so a
-    // drifting prompt shows up in a query instead of going unnoticed.
-    graded_by: grade.redacted ? 'model:redacted' : 'model',
-    model: grade.model,
-  })
-  if (insertError) {
+  const { data: saved, error: insertError } = await admin
+    .from('task_attempts')
+    .insert({
+      task_id: task.id,
+      user_id: user.id,
+      answer: trimmedAnswer,
+      is_correct: grade.verdict === 'correct',
+      score: grade.score,
+      feedback: grade.feedback,
+      // Marks attempts where the answer-secrecy guard had to cut something, so a
+      // drifting prompt shows up in a query instead of going unnoticed.
+      graded_by: grade.redacted ? 'model:redacted' : 'model',
+      model: grade.model,
+      points: grade.points,
+      summary: grade.summary,
+      marks: grade.marks,
+      criteria: grade.criteria,
+      break_point: grade.breakPoint,
+    })
+    .select('id')
+    .single()
+  if (insertError || !saved) {
     return { ok: false, error: 'Your attempt could not be saved. Please try again.' }
   }
 
@@ -154,12 +166,58 @@ export async function submitTaskAttempt(
 
   return {
     ok: true,
-    verdict: grade.verdict,
-    score: grade.score,
-    feedback: grade.feedback,
-    nextHint: grade.nextHint,
+    attemptId: saved.id,
+    protocol: {
+      verdict: grade.verdict,
+      points: grade.points,
+      pointsDerived: false,
+      score: grade.score,
+      summary: grade.summary,
+      feedback: grade.feedback,
+      nextHint: grade.nextHint,
+      marks: grade.marks,
+      criteria: grade.criteria,
+      breakPoint: grade.breakPoint,
+      answer: trimmedAnswer,
+    },
     xpEarned,
     repeat: alreadySolved,
     firstSolve: grade.verdict === 'correct' && !alreadySolved,
+  }
+}
+
+/** A photo is downscaled in the browser first; anything near this is not one. */
+const MAX_PHOTO_CHARS = 3_000_000
+const PHOTO_PREFIX = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/
+
+export type PhotoResult =
+  | { ok: true; text: string }
+  | { ok: false; reason: 'session' | 'invalid' | 'unreadable' | 'failed' }
+
+/**
+ * Reads a photographed notebook page into the lines of a solution.
+ *
+ * Nothing is stored and nothing is graded here: the text goes back to the
+ * editor, the student checks it against the page, and grading is the same
+ * submitTaskAttempt as a typed solution. A misread line is then the student's
+ * to fix before the jury sees it, not a mark against them.
+ */
+export async function readSolutionPhoto(taskId: string, image: string): Promise<PhotoResult> {
+  const user = await getVerifiedUser()
+  if (!user) return { ok: false, reason: 'session' }
+  if (typeof image !== 'string' || image.length > MAX_PHOTO_CHARS || !PHOTO_PREFIX.test(image)) {
+    return { ok: false, reason: 'invalid' }
+  }
+
+  const supabase = await createClient()
+  const { data: task } = await supabase.from('tasks').select('problem').eq('id', taskId).maybeSingle()
+  if (!task) return { ok: false, reason: 'invalid' }
+
+  try {
+    const result = await transcribeSolutionPhoto(image, task.problem, await getLocale())
+    return result.readable ? { ok: true, text: result.text } : { ok: false, reason: 'unreadable' }
+  } catch (error) {
+    console.error('readSolutionPhoto', error instanceof SuluError ? error.message : error)
+    return { ok: false, reason: 'failed' }
   }
 }

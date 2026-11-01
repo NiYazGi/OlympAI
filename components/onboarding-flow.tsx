@@ -23,65 +23,24 @@ import {
   type Answers,
 } from '@/components/onboarding-storage'
 import { Button } from '@/components/ui/button'
+import { useT } from '@/components/i18n-provider'
+import type { Dictionary } from '@/lib/i18n/dictionaries'
 import { cn } from '@/lib/utils'
 
-type Step = {
-  key: ProfileField
-  eyebrow: string
-  title: string
-  description: string
-  /** Two columns once the list is long enough to scroll on a laptop. */
-  wide?: boolean
-}
+/**
+ * The order of the questions, and which of them needs two columns. The wording
+ * lives in the dictionary: a step is a field and a layout hint, not a string.
+ */
+type Step = { key: ProfileField; wide?: boolean }
 
 const steps: Step[] = [
-  {
-    key: 'grade',
-    eyebrow: 'Quick setup',
-    title: 'What grade are you in?',
-    description: 'This sets an appropriate starting point.',
-  },
-  {
-    key: 'primary_subject',
-    eyebrow: 'Your focus',
-    title: 'Choose your primary subject',
-    description: 'You can practise the others any time — this only decides where we start.',
-    wide: true,
-  },
-  {
-    key: 'level',
-    eyebrow: 'Starting point',
-    title: 'How does practice feel right now?',
-    description: 'It sets the difficulty of your first tasks. Nothing is locked in.',
-  },
-  {
-    key: 'goal',
-    eyebrow: 'Your goal',
-    title: 'What are you working toward?',
-    description: 'Choose the outcome that matters most right now.',
-  },
-  {
-    key: 'target_competition_type',
-    eyebrow: 'Optional',
-    title: 'Preparing for a particular kind of competition?',
-    description: 'Skip this if you are not sure yet — it only shapes the style of practice.',
-  },
-  {
-    key: 'training_intensity',
-    eyebrow: 'Your rhythm',
-    title: 'How often would you like to train?',
-    description: 'Start sustainably. Your weekly plan is built from this, and you can change it.',
-  },
+  { key: 'grade' },
+  { key: 'primary_subject', wide: true },
+  { key: 'level' },
+  { key: 'goal' },
+  { key: 'target_competition_type' },
+  { key: 'training_intensity' },
 ]
-
-const SUMMARY_LABELS: Record<ProfileField, string> = {
-  grade: 'Grade',
-  primary_subject: 'Primary subject',
-  level: 'Current level',
-  goal: 'Goal',
-  target_competition_type: 'Competition type',
-  training_intensity: 'Training rhythm',
-}
 
 /** Long enough to see the tick land, short enough not to feel like a wait. */
 const ADVANCE_DELAY_MS = 260
@@ -93,7 +52,7 @@ function firstUnanswered(answers: Answers) {
   return index === -1 ? REVIEW : index
 }
 
-export function OnboardingFlow() {
+export function OnboardingFlow({ next }: { next?: string }) {
   const raw = useSyncExternalStore(subscribe, readSnapshot, serverSnapshot)
   const answers = useMemo(() => parseAnswers(raw), [raw])
 
@@ -112,6 +71,7 @@ export function OnboardingFlow() {
 
   const [error, setError] = useState('')
   const [pending, startTransition] = useTransition()
+  const t = useT()
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
 
@@ -147,12 +107,13 @@ export function OnboardingFlow() {
     for (const [field, value] of Object.entries(answers)) {
       if (value) formData.set(field, value)
     }
+    if (next) formData.set('next', next)
     startTransition(async () => {
       const result = await completeOnboarding(formData)
       if (result.ok) clearAnswers()
-      else setError(result.error ?? 'Unable to save your setup.')
+      else setError(result.error ?? t.onboarding.saveFailed)
     })
-  }, [answers])
+  }, [answers, next, t])
 
   /** Selecting answers the question and moves on: one action instead of two. */
   const select = useCallback(
@@ -216,14 +177,14 @@ export function OnboardingFlow() {
   const progress = isReview ? 100 : Math.round((step / steps.length) * 100)
 
   return (
-    <main className="min-h-dvh bg-background px-5 py-6 sm:px-8 sm:py-8">
+    <main className="min-h-dvh px-5 py-6 sm:px-8 sm:py-8">
       <div className="mx-auto flex min-h-[calc(100dvh-3rem)] max-w-xl flex-col">
         <div className="flex items-center justify-between">
           <Link href="/" className="text-lg font-semibold">
             Olymp<span className="text-primary">AI</span>
           </Link>
           <span className="text-sm text-muted-foreground">
-            {isReview ? 'Review' : `${step + 1} of ${steps.length}`}
+            {isReview ? t.onboarding.review : t.onboarding.stepOf(step + 1, steps.length)}
           </span>
         </div>
 
@@ -233,28 +194,32 @@ export function OnboardingFlow() {
           aria-valuenow={progress}
           aria-valuemin={0}
           aria-valuemax={100}
-          aria-label="Setup progress"
+          aria-label={t.onboarding.progressAria}
         >
           <div
-            className="h-full bg-primary transition-[width] duration-300 ease-out"
+            className="meter-fill h-full bg-primary"
             style={{ width: `${Math.max(progress, 4)}%` }}
           />
         </div>
 
         <div className="my-auto py-8 sm:py-12">
           {isReview ? (
-            <ReviewStep answers={answers} answeredCount={answeredCount} onEdit={goTo} />
+            <ReviewStep answers={answers} answeredCount={answeredCount} onEdit={goTo} t={t} />
           ) : (
             <>
-              <p className="text-sm font-medium text-primary">{current!.eyebrow}</p>
+              <p className="text-caption font-semibold text-primary">
+                {t.onboarding.steps[current!.key]!.eyebrow}
+              </p>
               <h1
                 ref={headingRef}
                 tabIndex={-1}
-                className="mt-3 text-3xl font-semibold tracking-tight outline-none sm:text-4xl"
+                className="font-display mt-3 text-2xl leading-[1.2] font-bold tracking-[-0.03em] outline-none sm:text-3xl"
               >
-                {current!.title}
+                {t.onboarding.steps[current!.key]!.title}
               </h1>
-              <p className="mt-3 text-muted-foreground">{current!.description}</p>
+              <p className="mt-3 text-muted-foreground">
+                {t.onboarding.steps[current!.key]!.description}
+              </p>
 
               <div className={cn('mt-7 grid gap-3', current!.wide && 'sm:grid-cols-2')}>
                 {options.map((option, index) => {
@@ -282,16 +247,20 @@ export function OnboardingFlow() {
                       >
                         {active ? <Check className="size-3" /> : index + 1}
                       </span>
-                      <span className="font-medium">{option}</span>
+                      <span className="font-medium">
+                        {t.subjects[option] ?? t.options[option] ?? option}
+                      </span>
                     </button>
                   )
                 })}
               </div>
             </>
           )}
-
           {error ? (
-            <p role="alert" className="mt-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+            <p
+              role="alert"
+              className="mt-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive"
+            >
               {error}
             </p>
           ) : null}
@@ -303,32 +272,27 @@ export function OnboardingFlow() {
               onClick={() => goTo(Math.max(0, step - 1))}
               disabled={step === 0 || pending}
             >
-              <ArrowLeft className="size-4" /> Back
+              <ArrowLeft className="size-4" /> {t.onboarding.back}
             </Button>
 
             {isReview ? (
               <Button className="min-h-11 flex-1" onClick={submit} disabled={pending}>
-                {pending ? 'Saving…' : 'Start training'} <ArrowRight className="size-4" />
+                {pending ? `${t.common.saving}…` : t.onboarding.startTraining}{' '}
+                <ArrowRight className="size-4" />
               </Button>
             ) : isOptional(current!.key) && !choice ? (
               <Button variant="ghost" className="min-h-11 flex-1" onClick={skip}>
-                Skip this question <ArrowRight className="size-4" />
+                {t.onboarding.skipQuestion} <ArrowRight className="size-4" />
               </Button>
             ) : (
-              <Button
-                className="min-h-11 flex-1"
-                onClick={() => goTo(step + 1)}
-                disabled={!choice}
-              >
-                Continue <ArrowRight className="size-4" />
+              <Button className="min-h-11 flex-1" onClick={() => goTo(step + 1)} disabled={!choice}>
+                {t.onboarding.continue} <ArrowRight className="size-4" />
               </Button>
             )}
           </div>
 
           <p className="mt-4 text-center text-xs text-muted-foreground">
-            {isReview
-              ? 'Press Enter to finish'
-              : 'Press 1–9 to choose · Enter to continue · Backspace to go back'}
+            {isReview ? t.onboarding.enterToFinish : t.onboarding.keyHints}
           </p>
         </div>
       </div>
@@ -340,20 +304,21 @@ function ReviewStep({
   answers,
   answeredCount,
   onEdit,
+  t,
 }: {
   answers: Answers
   answeredCount: number
   onEdit: (index: number) => void
+  t: Dictionary
 }) {
   return (
     <>
-      <p className="text-sm font-medium text-primary">Almost there</p>
-      <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-        Does this look right?
+      <p className="text-caption font-semibold text-primary">{t.onboarding.almostThere}</p>
+      <h1 className="font-display mt-3 text-2xl leading-[1.2] font-bold tracking-[-0.03em] sm:text-3xl">
+        {t.onboarding.looksRight}
       </h1>
       <p className="mt-3 text-muted-foreground">
-        {answeredCount} of {steps.length} answered. Change anything you like — none of it is
-        permanent.
+        {t.onboarding.answeredOf(answeredCount, steps.length)}
       </p>
 
       <dl className="mt-7 divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
@@ -362,8 +327,8 @@ function ReviewStep({
           return (
             <div key={entry.key} className="flex items-center gap-3 p-4">
               <div className="min-w-0 flex-1">
-                <dt className="text-xs uppercase tracking-wide text-muted-foreground">
-                  {SUMMARY_LABELS[entry.key]}
+                <dt className="text-caption font-semibold text-muted-foreground">
+                  {t.onboarding.labels[entry.key]}
                 </dt>
                 <dd
                   className={cn(
@@ -371,7 +336,7 @@ function ReviewStep({
                     !value && 'font-normal italic text-muted-foreground',
                   )}
                 >
-                  {value ?? 'Skipped'}
+                  {value ? (t.subjects[value] ?? t.options[value] ?? value) : t.onboarding.skipped}
                 </dd>
               </div>
               <button
@@ -380,7 +345,7 @@ function ReviewStep({
                 className="flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-primary transition-colors hover:bg-accent"
               >
                 <Pencil className="size-3.5" />
-                Change
+                {t.onboarding.change}
               </button>
             </div>
           )

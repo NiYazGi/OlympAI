@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Brain, BookOpen, ClipboardCheck, Layers } from 'lucide-react'
 import type { TopicShortcut as Shortcut } from '@/lib/supabase/study'
+import { getT } from '@/lib/i18n'
 import { cardClass, cn } from '@/lib/utils'
 
 /**
@@ -10,13 +11,14 @@ import { cardClass, cn } from '@/lib/utils'
  * it is the route back to the material, which is a different kind of help from
  * the one the grader and the coach provide.
  */
-export function TopicShortcutPanel({ shortcut }: { shortcut: Shortcut }) {
+export async function TopicShortcutPanel({ shortcut }: { shortcut: Shortcut }) {
+  const t = await getT()
   const links = [
     shortcut.lessonTitle
       ? {
           href: `/learn/${shortcut.slug}/lesson`,
           icon: BookOpen,
-          label: 'Read the notes',
+          label: t.shortcut.readNotes,
           detail: shortcut.lessonTitle,
         }
       : null,
@@ -24,22 +26,22 @@ export function TopicShortcutPanel({ shortcut }: { shortcut: Shortcut }) {
       ? {
           href: `/learn/${shortcut.slug}/quiz`,
           icon: ClipboardCheck,
-          label: 'Check yourself',
+          label: t.shortcut.checkYourself,
           detail:
             shortcut.quizLeft > 0
-              ? `${shortcut.quizLeft} of ${shortcut.quizTotal} still to get right`
-              : `All ${shortcut.quizTotal} answered`,
+              ? t.shortcut.quizLeft(shortcut.quizLeft, shortcut.quizTotal)
+              : t.shortcut.quizAll(shortcut.quizTotal),
         }
       : null,
     shortcut.cardsTotal > 0
       ? {
           href: `/learn/${shortcut.slug}/cards`,
           icon: Brain,
-          label: 'Cards',
+          label: t.shortcut.cards,
           detail:
             shortcut.cardsDue > 0
-              ? `${shortcut.cardsDue} due now`
-              : `${shortcut.cardsTotal} in the deck, none due`,
+              ? t.shortcut.cardsDue(shortcut.cardsDue)
+              : t.shortcut.cardsNoneDue(shortcut.cardsTotal),
         }
       : null,
   ].filter((item) => item !== null)
@@ -51,7 +53,7 @@ export function TopicShortcutPanel({ shortcut }: { shortcut: Shortcut }) {
       <div className="flex items-center gap-2">
         <Layers className="size-4 text-primary" />
         <h2 className="text-sm font-semibold">
-          The last step of{' '}
+          {t.shortcut.lastStepOf}{' '}
           <Link
             href={`/learn/${shortcut.slug}`}
             prefetch

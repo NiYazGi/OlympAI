@@ -20,9 +20,11 @@ export function PageHeader({
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-balance">{title}</h1>
+        <h1 className="font-display text-page font-bold tracking-[-0.01em] text-balance">
+          {title}
+        </h1>
         {description ? (
-          <p className="text-sm text-pretty text-muted-foreground">{description}</p>
+          <p className="text-ui text-pretty text-muted-foreground">{description}</p>
         ) : null}
         {note}
       </div>

@@ -21,21 +21,102 @@ export type ReferenceTask = {
   source_url: string | null
   licence: string
   attribution: string | null
+  /** Which stage the problem was written for. Null until classified. */
+  level: string | null
+  /** The sitting it came from, when it came from a real one. Migration 47. */
+  paper: string | null
 }
 
 export type ReferenceSubject = { id: string; name: string; slug: string }
-export type ReferenceTopic = { id: string; subject_id: string; name: string; slug: string }
+export type ReferenceTopic = {
+  id: string
+  subject_id: string
+  name: string
+  slug: string
+  /** Syllabus order within the subject. See migration 44. */
+  position: number
+}
 
 export type Reference = {
   tasks: ReferenceTask[]
   subjectById: Record<string, string>
   topicById: Record<string, string>
+  /** Syllabus order, by topic id. See migration 44. */
+  topicPositionById: Record<string, number>
   /** The rows themselves, for callers that need a slug rather than a name. */
   subjects: ReferenceSubject[]
   topics: ReferenceTopic[]
 }
 
-const EMPTY: Reference = { tasks: [], subjectById: {}, topicById: {}, subjects: [], topics: [] }
+const EMPTY: Reference = {
+  tasks: [],
+  subjectById: {},
+  topicById: {},
+  topicPositionById: {},
+  subjects: [],
+  topics: [],
+}
+
+/**
+ * Written once, used by both loaders. `official_solution` is not in it: that
+ * column is the one thing not for the student's eyes, and a cache shared
+ * across users is the last place it belongs. The grader reads it separately,
+ * per attempt, on the server.
+ *
+ * The second sort key is there because paging needs a total order — two
+ * problems of the same difficulty could otherwise swap places between pages
+ * and one of them would be fetched twice while the other was missed.
+ */
+const TASK_COLUMNS =
+  'id, subject_id, topic_id, title, problem, difficulty, hints, source, estimated_minutes, given, find_prompt, diagram_url, source_url, licence, attribution, level, paper'
+
+/**
+ * Unwraps a PostgREST response, turning a failed query into a throw.
+ *
+ * supabase-js does not throw on a query error: it hands back `{ data: null,
+ * error }`, and `data ?? []` quietly becomes an empty catalogue. Cached, that
+ * is a screen saying the student has no subject and a picker with nothing in
+ * it, for as long as the entry lives — and a migration causes exactly this,
+ * because PostgREST reloads its schema cache on DDL and rejects a request or
+ * two while it does.
+ *
+ * Throwing instead means `unstable_cache` stores nothing, so the next request
+ * tries again rather than being served an empty library, and the catch in
+ * getReference is finally the thing it says it is: the one place that can tell
+ * a broken query from an empty one.
+ */
+function rows<T>(what: string, result: { data: T[] | null; error: { message: string } | null }): T[] {
+  if (result.error) throw new Error(`${what}: ${result.error.message}`)
+  return result.data ?? []
+}
+
+/**
+ * PostgREST stops at a thousand rows.
+ *
+ * Not an error, not a warning — a full response that happens to be short, and
+ * `data.length` is the only thing that says so. The catalogue passed a
+ * thousand problems in September and nobody noticed: the database held 1779
+ * and the app had 1000, so 779 problems were missing from the bank, missing
+ * from every route through a subject, unreachable by URL, and invisible to the
+ * mock composer. The counts that said otherwise were SQL counts.
+ *
+ * So every table that can grow past a thousand rows is read a page at a time
+ * until a page comes back short. A page that is exactly full is followed by
+ * one more request that returns nothing, which is the price of not guessing.
+ */
+const PAGE = 1000
+
+async function allRows<T>(
+  what: string,
+  page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+): Promise<T[]> {
+  const out: T[] = []
+  for (let from = 0; ; from += PAGE) {
+    const batch = rows(what, await page(from, from + PAGE - 1))
+    out.push(...batch)
+    if (batch.length < PAGE) return out
+  }
+}
 
 /**
  * Subjects, topics and the task catalogue are the same rows for everyone: the
@@ -54,29 +135,29 @@ const EMPTY: Reference = { tasks: [], subjectById: {}, topicById: {}, subjects: 
 const loadReference = unstable_cache(
   async (): Promise<Reference> => {
     const admin = createAdminClient()
-    const [{ data: tasks }, { data: subjects }, { data: topics }] = await Promise.all([
-      admin
-        .from('tasks')
-        .select(
-          'id, subject_id, topic_id, title, problem, difficulty, hints, source, estimated_minutes, given, find_prompt, diagram_url, source_url, licence, attribution',
-        )
-        .order('difficulty', { ascending: true }),
-      admin.from('subjects').select('id, name, slug'),
-      admin.from('topics').select('id, subject_id, name, slug'),
+    const [taskRows, subjectRows, topicRows] = await Promise.all([
+      allRows<ReferenceTask>('tasks', (from, to) =>
+        admin
+          .from('tasks')
+          .select(TASK_COLUMNS)
+          .order('difficulty', { ascending: true })
+          .order('id', { ascending: true })
+          .range(from, to),
+      ),
+      admin.from('subjects').select('id, name, slug').eq('active', true),
+      admin.from('topics').select('id, subject_id, name, slug, position').order('position'),
     ])
 
-    return {
-      tasks: (tasks ?? []) as ReferenceTask[],
-      subjectById: Object.fromEntries((subjects ?? []).map((row) => [row.id, row.name])),
-      topicById: Object.fromEntries((topics ?? []).map((row) => [row.id, row.name])),
-      subjects: (subjects ?? []) as ReferenceSubject[],
-      topics: (topics ?? []) as ReferenceTopic[],
-    }
+    return shape(
+      taskRows,
+      rows('subjects', subjectRows) as ReferenceSubject[],
+      rows('topics', topicRows) as ReferenceTopic[],
+    )
   },
   // The suffix is the manual bust. Nothing in the app writes this content —
   // it arrives by migration, which Next cannot know about — so bumping the key
   // is how you invalidate it everywhere at once.
-  ['olympai-reference-content-v2'],
+  ['olympai-reference-content-v5'],
   // An hour was too long for content that only changes when someone publishes
   // it. A stale entry survives both a server restart and deleting .next/cache,
   // so an hour of "where is my new task" is an hour with no way out of it. A
@@ -92,23 +173,54 @@ const loadReference = unstable_cache(
  */
 async function loadReferenceAsUser(): Promise<Reference> {
   const supabase = await createClient()
-  const [{ data: tasks }, { data: subjects }, { data: topics }] = await Promise.all([
-    supabase
-      .from('tasks')
-      .select(
-        'id, subject_id, topic_id, title, problem, difficulty, hints, source, estimated_minutes, given, find_prompt, diagram_url, source_url, licence, attribution',
-      )
-      .order('difficulty', { ascending: true }),
-    supabase.from('subjects').select('id, name, slug'),
-    supabase.from('topics').select('id, subject_id, name, slug'),
+  const [taskRows, subjectRows, topicRows] = await Promise.all([
+    allRows<ReferenceTask>('tasks', (from, to) =>
+      supabase
+        .from('tasks')
+        .select(TASK_COLUMNS)
+        .order('difficulty', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, to),
+    ),
+    supabase.from('subjects').select('id, name, slug').eq('active', true),
+    supabase.from('topics').select('id, subject_id, name, slug, position').order('position'),
   ])
 
+  return shape(
+    taskRows,
+    rows('subjects', subjectRows) as ReferenceSubject[],
+    rows('topics', topicRows) as ReferenceTopic[],
+  )
+}
+
+/**
+ * The two loaders differ only in which client they use.
+ *
+ * A hidden subject is filtered out of `subjects`, and its topics and problems
+ * have to go with it — otherwise a task whose subject nobody can see still
+ * turns up in the catalogue, filed under "General". Filtering here rather than
+ * at each caller means one place decides what exists, which is what this cache
+ * was for.
+ */
+function shape(
+  tasks: ReferenceTask[],
+  subjects: ReferenceSubject[],
+  topics: ReferenceTopic[],
+): Reference {
+  const visible = new Set(subjects.map((row) => row.id))
+  const liveTopics = topics.filter((row) => visible.has(row.subject_id))
+  const liveTopicIds = new Set(liveTopics.map((row) => row.id))
+  const liveTasks = tasks.filter(
+    (row) => visible.has(row.subject_id) && liveTopicIds.has(row.topic_id),
+  )
+
   return {
-    tasks: (tasks ?? []) as ReferenceTask[],
-    subjectById: Object.fromEntries((subjects ?? []).map((row) => [row.id, row.name])),
-    topicById: Object.fromEntries((topics ?? []).map((row) => [row.id, row.name])),
-    subjects: (subjects ?? []) as ReferenceSubject[],
-    topics: (topics ?? []) as ReferenceTopic[],
+    tasks: liveTasks,
+    subjectById: Object.fromEntries(subjects.map((row) => [row.id, row.name])),
+    topicById: Object.fromEntries(liveTopics.map((row) => [row.id, row.name])),
+    topicPositionById: Object.fromEntries(liveTopics.map((row) => [row.id, row.position])),
+    subjects,
+    topics: liveTopics,
   }
 }
 
@@ -209,41 +321,57 @@ const STUDY_COLUMNS = {
 const loadStudyReference = unstable_cache(
   async (): Promise<StudyReference> => {
     const admin = createAdminClient()
-    const [{ data: lessons }, { data: blocks }, { data: questions }, { data: cards }] =
-      await Promise.all([
-        admin.from('lessons').select(STUDY_COLUMNS.lessons).order('position'),
-        admin.from('lesson_blocks').select(STUDY_COLUMNS.blocks).order('position'),
-        admin.from('quiz_questions').select(STUDY_COLUMNS.questions).order('position'),
-        admin.from('flashcards').select(STUDY_COLUMNS.cards).is('user_id', null).order('position'),
-      ])
+    const [lessons, blocks, questions, cards] = await Promise.all([
+      allRows<ReferenceLesson>('lessons', (from, to) =>
+        admin.from('lessons').select(STUDY_COLUMNS.lessons).order('position').order('id').range(from, to),
+      ),
+      allRows<ReferenceLessonBlock>('lesson_blocks', (from, to) =>
+        admin.from('lesson_blocks').select(STUDY_COLUMNS.blocks).order('position').order('id').range(from, to),
+      ),
+      allRows<ReferenceQuizQuestion>('quiz_questions', (from, to) =>
+        admin.from('quiz_questions').select(STUDY_COLUMNS.questions).order('position').order('id').range(from, to),
+      ),
+      allRows<ReferenceFlashcard>('flashcards', (from, to) =>
+        admin
+          .from('flashcards')
+          .select(STUDY_COLUMNS.cards)
+          .is('user_id', null)
+          .order('position')
+          .order('id')
+          .range(from, to),
+      ),
+    ])
 
-    return {
-      lessons: (lessons ?? []) as ReferenceLesson[],
-      blocks: (blocks ?? []) as ReferenceLessonBlock[],
-      questions: (questions ?? []) as ReferenceQuizQuestion[],
-      cards: (cards ?? []) as ReferenceFlashcard[],
-    }
+    return { lessons, blocks, questions, cards }
   },
-  ['olympai-study-content-v2'],
+  ['olympai-study-content-v3'],
   { revalidate: 60, tags: ['study-content'] },
 )
 
 async function loadStudyReferenceAsUser(): Promise<StudyReference> {
   const supabase = await createClient()
-  const [{ data: lessons }, { data: blocks }, { data: questions }, { data: cards }] =
-    await Promise.all([
-      supabase.from('lessons').select(STUDY_COLUMNS.lessons).order('position'),
-      supabase.from('lesson_blocks').select(STUDY_COLUMNS.blocks).order('position'),
-      supabase.from('quiz_questions').select(STUDY_COLUMNS.questions).order('position'),
-      supabase.from('flashcards').select(STUDY_COLUMNS.cards).is('user_id', null).order('position'),
-    ])
+  const [lessons, blocks, questions, cards] = await Promise.all([
+    allRows<ReferenceLesson>('lessons', (from, to) =>
+      supabase.from('lessons').select(STUDY_COLUMNS.lessons).order('position').order('id').range(from, to),
+    ),
+    allRows<ReferenceLessonBlock>('lesson_blocks', (from, to) =>
+      supabase.from('lesson_blocks').select(STUDY_COLUMNS.blocks).order('position').order('id').range(from, to),
+    ),
+    allRows<ReferenceQuizQuestion>('quiz_questions', (from, to) =>
+      supabase.from('quiz_questions').select(STUDY_COLUMNS.questions).order('position').order('id').range(from, to),
+    ),
+    allRows<ReferenceFlashcard>('flashcards', (from, to) =>
+      supabase
+        .from('flashcards')
+        .select(STUDY_COLUMNS.cards)
+        .is('user_id', null)
+        .order('position')
+        .order('id')
+        .range(from, to),
+    ),
+  ])
 
-  return {
-    lessons: (lessons ?? []) as ReferenceLesson[],
-    blocks: (blocks ?? []) as ReferenceLessonBlock[],
-    questions: (questions ?? []) as ReferenceQuizQuestion[],
-    cards: (cards ?? []) as ReferenceFlashcard[],
-  }
+  return { lessons, blocks, questions, cards }
 }
 
 export async function getStudyReference(): Promise<StudyReference> {

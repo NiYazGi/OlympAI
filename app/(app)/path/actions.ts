@@ -11,10 +11,14 @@ const MAX_GOAL = 500
 /** A target further out than this is a wish, not a plan. */
 const MAX_HORIZON_DAYS = 730
 
+/** Longer than this is a paragraph, and the field is meant to hold a name. */
+const MAX_UNIVERSITY = 120
+
 function revalidateGoalViews() {
   revalidatePath('/path')
   revalidatePath('/dashboard')
   revalidatePath('/olympiads')
+  revalidatePath('/method')
 }
 
 /**
@@ -116,6 +120,34 @@ export async function setDailyGoal(goal: number): Promise<GoalResult> {
 
   const supabase = await createClient()
   const { error } = await supabase.from('profiles').update({ daily_xp_goal: goal }).eq('id', userId)
+  if (error) return { ok: false, error: 'That did not save. Please try again.' }
+
+  revalidateGoalViews()
+  return { ok: true }
+}
+
+/**
+ * What the olympiad is for.
+ *
+ * Never validated against a list. The end of this is somebody's own sentence
+ * about their own life — a university, a faculty, a scholarship, a city — and
+ * a picker would turn it into a field we would then have to keep accurate for
+ * every country a student might come from. Empty clears it.
+ */
+export async function setTargetUniversity(formData: FormData): Promise<GoalResult> {
+  const userId = await getSessionUserId()
+  if (!userId) return { ok: false, error: 'Your session has expired. Please log in again.' }
+
+  const value = String(formData.get('target_university') ?? '').trim()
+  if (value.length > MAX_UNIVERSITY) {
+    return { ok: false, error: 'Keep it under a line.' }
+  }
+
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('profiles')
+    .update({ target_university: value || null })
+    .eq('id', userId)
   if (error) return { ok: false, error: 'That did not save. Please try again.' }
 
   revalidateGoalViews()

@@ -28,7 +28,10 @@ export function WeekRhythm({
   const week =
     analytics.recentActivity.length > 0
       ? analytics.recentActivity
-      : Array.from({ length: 7 }, (_, index) => ({ day: ['M', 'T', 'W', 'T', 'F', 'S', 'S'][index]!, problems: 0 }))
+      : Array.from({ length: 7 }, (_, index) => ({
+          day: ['M', 'T', 'W', 'T', 'F', 'S', 'S'][index]!,
+          problems: 0,
+        }))
 
   return (
     <section className={cn(cardClass, 'p-5')}>

@@ -3,8 +3,11 @@ import 'server-only'
 import { cache } from 'react'
 import { getSessionUserId } from '@/lib/supabase/auth'
 import { getReference } from '@/lib/supabase/reference'
+import { getFlame } from '@/lib/supabase/visits'
 import { createClient } from '@/lib/supabase/server'
 import { hasSupabaseEnv } from '@/lib/supabase/env'
+import { pointsFromScore, protocolFromRow, verdictOf, type Protocol } from '@/lib/protocol'
+import type { Verdict } from '@/lib/sulu/types'
 import {
   levelFromXp,
   quizXp,
@@ -139,6 +142,9 @@ export const getTaskCatalogue = cache(async (): Promise<CatalogueTask[]> => {
       title: task.title,
       subject: reference.subjectById[task.subject_id] ?? 'General',
       topic: reference.topicById[task.topic_id] ?? 'General practice',
+      topicPosition: reference.topicPositionById[task.topic_id] ?? 99,
+      level: task.level,
+      paper: task.paper,
       difficulty: task.difficulty,
       estimatedMinutes: task.estimated_minutes,
       source: task.source,
@@ -167,6 +173,9 @@ export const getTaskDetail = cache(async (slug: string): Promise<TaskDetail | nu
     title: task.title,
     subject: reference.subjectById[task.subject_id] ?? 'General',
     topic: reference.topicById[task.topic_id] ?? 'General practice',
+    topicPosition: reference.topicPositionById[task.topic_id] ?? 99,
+    level: task.level,
+    paper: task.paper,
     difficulty: task.difficulty,
     estimatedMinutes: task.estimated_minutes,
     source: task.source,
@@ -184,6 +193,79 @@ export const getTaskDetail = cache(async (slug: string): Promise<TaskDetail | nu
   }
 })
 
+export type AttemptSummary = {
+  id: string
+  createdAt: string
+  verdict: Verdict
+  points: number
+  pointsDerived: boolean
+}
+
+/** This user's attempts at one task, newest first: the list beside the editor. */
+export const getTaskAttemptHistory = cache(async (taskId: string): Promise<AttemptSummary[]> => {
+  if (!hasSupabaseEnv()) return []
+  const userId = await getSessionUserId()
+  if (!userId) return []
+
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('task_attempts')
+    .select('id, created_at, is_correct, score, points')
+    .eq('user_id', userId)
+    .eq('task_id', taskId)
+    .order('created_at', { ascending: false })
+    .limit(10)
+  return (data ?? []).map((row) => {
+    const verdict = verdictOf(row)
+    return {
+      id: row.id,
+      createdAt: row.created_at,
+      verdict,
+      points: row.points ?? pointsFromScore(verdict, row.score),
+      pointsDerived: row.points === null,
+    }
+  })
+})
+
+export type AttemptDetail = {
+  id: string
+  taskId: string
+  userId: string
+  createdAt: string
+  protocol: Protocol
+}
+
+/**
+ * One attempt with its protocol.
+ *
+ * Read with the caller's own client, so RLS decides who may see it: the
+ * student who wrote it, or a teacher of theirs. Nothing here checks either,
+ * because the policy already does and a second check could only disagree.
+ */
+export const getAttemptDetail = cache(async (attemptId: string): Promise<AttemptDetail | null> => {
+  if (!hasSupabaseEnv()) return null
+  // A malformed id is a missing attempt, not a database error.
+  if (!/^[0-9a-f-]{36}$/i.test(attemptId)) return null
+
+  const supabase = await createClient()
+  const { data: row } = await supabase
+    .from('task_attempts')
+    .select(
+      'id, task_id, user_id, created_at, answer, is_correct, score, feedback, points, summary, marks, criteria, break_point',
+    )
+    .eq('id', attemptId)
+    .maybeSingle()
+  if (!row) return null
+
+  return {
+    id: row.id,
+    taskId: row.task_id,
+    userId: row.user_id,
+    createdAt: row.created_at,
+    protocol: protocolFromRow(row),
+  }
+})
+
 /** Lectures and readings attached to a task, or to the topic it belongs to. */
 export const getTaskResources = cache(async (taskId: string) => {
   if (!hasSupabaseEnv()) return []
@@ -196,6 +278,34 @@ export const getTaskResources = cache(async (taskId: string) => {
     .from('resources')
     .select('id, kind, title, url, description, licence, attribution, task_id, position')
     .or(`task_id.eq.${taskId},topic_id.eq.${task.topic_id}`)
+    .order('position', { ascending: true })
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    kind: row.kind as 'video' | 'reading' | 'reference',
+    title: row.title,
+    url: row.url,
+    description: row.description,
+    licence: row.licence as import('@/lib/licence').Licence,
+    attribution: row.attribution,
+  }))
+})
+
+/**
+ * Readings attached to a topic.
+ *
+ * The ladder is four rungs of this project's own material; this is where the
+ * rest of the subject lives — the open textbooks and references someone can
+ * actually go and read. Only sources whose own licence allows it are listed,
+ * which is why some subjects have none.
+ */
+export const getTopicReading = cache(async (topicId: string) => {
+  if (!hasSupabaseEnv()) return []
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('resources')
+    .select('id, kind, title, url, description, licence, attribution, position')
+    .eq('topic_id', topicId)
     .order('position', { ascending: true })
 
   return (data ?? []).map((row) => ({
@@ -232,6 +342,7 @@ export const getCompetitionOptions = cache(async (): Promise<CompetitionOption[]
     supabase
       .from('competitions')
       .select('id, name, level, subject_id, registration_url')
+      .eq('active', true)
       .order('name', { ascending: true }),
     getReference(),
   ])
@@ -292,11 +403,12 @@ export const getGoal = cache(async (): Promise<Goal> => {
 export const getProgressAnalytics = cache(async (): Promise<ProgressAnalytics> => {
   if (!hasSupabaseEnv()) return emptyAnalytics
 
-  const [attemptsList, reference, profile, quizAnswers] = await Promise.all([
+  const [attemptsList, reference, profile, quizAnswers, flame] = await Promise.all([
     getAttempts(),
     getReference(),
     getCurrentProfile(),
     getQuizAnswers(),
+    getFlame(),
   ])
   const goal = profile?.daily_xp_goal ?? 50
 
@@ -306,6 +418,7 @@ export const getProgressAnalytics = cache(async (): Promise<ProgressAnalytics> =
   if (attemptsList.length === 0 && quizAnswers.length === 0) {
     return {
       ...emptyAnalytics,
+      activeStreak: flame.current,
       currentLevel: profile?.level ?? null,
       xp: { ...emptyAnalytics.xp, goal },
     }
@@ -365,14 +478,6 @@ export const getProgressAnalytics = cache(async (): Promise<ProgressAnalytics> =
     if (!dayCounts.has(day)) dayCounts.set(day, 0)
   }
 
-  // A streak should survive "today, not yet": start at yesterday when there is
-  // no activity today, instead of reporting zero all morning.
-  let streak = 0
-  let offset = dayCounts.has(utcDay(dayOffset(0))) ? 0 : 1
-  while (dayCounts.has(utcDay(dayOffset(offset)))) {
-    streak += 1
-    offset += 1
-  }
 
   const recentActivity = Array.from({ length: 7 }, (_, index) => {
     const day = dayOffset(6 - index)
@@ -409,8 +514,17 @@ export const getProgressAnalytics = cache(async (): Promise<ProgressAnalytics> =
     hasData: true,
     totalAttempts: attemptsList.length,
     correctAnswers,
-    accuracy: Math.round((correctAnswers / attemptsList.length) * 100),
-    activeStreak: streak,
+    // Zero attempts reaches here whenever a student has answered quiz
+    // questions and not yet submitted a derivation — a whole first week, for
+    // most people. Dividing by it produced NaN, and NaN travels: it reached
+    // the readiness ring as "NaN%" and /me as "NaN% accuracy". Callers that
+    // mean "we do not know yet" test totalAttempts rather than hasData, which
+    // is true as soon as there is activity of any kind.
+    accuracy: attemptsList.length > 0 ? Math.round((correctAnswers / attemptsList.length) * 100) : 0,
+    // The flame: days in a row the app was opened (lib/supabase/visits.ts).
+    // It used to be days with an attempt, which a beginner reading their
+    // first lessons could not keep alive; one streak, counted one way.
+    activeStreak: flame.current,
     longestCorrectRun,
     currentLevel: profile?.level ?? null,
     recentActivity,
@@ -471,6 +585,7 @@ export type MockPaper = {
     problem: string
     given: string[]
     findPrompt: string | null
+    diagramUrl: string | null
     difficulty: number
     /** Present only after submission. */
     answer: string | null
@@ -559,6 +674,7 @@ export const getMockPaper = cache(async (id: string): Promise<MockPaper | null> 
           problem: task.problem,
           given: task.given ?? [],
           findPrompt: task.find_prompt,
+          diagramUrl: task.diagram_url,
           difficulty: task.difficulty,
           answer: attempt?.answer ?? null,
           score: attempt?.score ?? null,

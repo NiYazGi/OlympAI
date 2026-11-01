@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { Check, Target } from 'lucide-react'
 import { setTargetSubject } from '@/app/(app)/path/actions'
+import { useT } from '@/components/i18n-provider'
 import { Button } from '@/components/ui/button'
 import { cardClass, cn } from '@/lib/utils'
 
@@ -15,6 +16,7 @@ export function TargetPicker({
   current: string | null
   compact?: boolean
 }) {
+  const t = useT()
   const [error, setError] = useState('')
   const [pending, startTransition] = useTransition()
   const [open, setOpen] = useState(!compact)
@@ -22,33 +24,45 @@ export function TargetPicker({
   function choose(id: string) {
     setError('')
     startTransition(async () => {
-      const result = await setTargetSubject(id)
-      if (result.ok) setOpen(false)
-      else setError(result.error ?? 'That did not save.')
+      try {
+        const result = await setTargetSubject(id)
+        if (result.ok) setOpen(false)
+        else setError(result.error ?? t.common.notSaved)
+      } catch {
+        setError(t.common.offline)
+      }
     })
   }
 
   if (compact && !open) {
     return (
       <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
-        Change subject
+        {t.learn.changeSubject}
       </Button>
     )
   }
 
   return (
-    <section className={cn(compact ? 'w-full' : `${cardClass} p-6`)}>
+    <section className={cn(compact ? 'disclose w-full' : `${cardClass} p-6`)}>
       {!compact ? (
         <>
           <div className="flex size-11 items-center justify-center rounded-xl bg-accent text-primary">
             <Target className="size-5" />
           </div>
-          <h2 className="mt-4 text-lg font-semibold">Choose what you are training for</h2>
-          <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
-            Pick a subject and the path lays itself out: topics in order of difficulty, each one
-            unlocking the next.
-          </p>
+          <h2 className="mt-4 text-lg font-semibold">{t.learn.chooseTitle}</h2>
+          <p className="mt-1.5 text-sm leading-6 text-muted-foreground">{t.learn.chooseBody}</p>
         </>
+      ) : null}
+
+      {/* A picker with nothing in it is the shape this page takes when the
+          catalogue failed to load, and it reads as "you have no subject" —
+          which is a different thing and not the student's fault. Both
+          readings are named here, because from the browser they are
+          indistinguishable. */}
+      {subjects.length === 0 ? (
+        <p className={cn('text-sm text-muted-foreground', compact ? 'mt-0' : 'mt-5')}>
+          {t.learn.noSubjects}
+        </p>
       ) : null}
 
       <div className={cn('grid gap-2 sm:grid-cols-2', compact ? 'mt-0' : 'mt-5')}>
@@ -78,11 +92,11 @@ export function TargetPicker({
                 {active ? <Check className="size-3" /> : null}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium">{subject.name}</span>
+                <span className="block truncate text-sm font-medium">
+                  {t.subjects[subject.name] ?? subject.name}
+                </span>
                 <span className="block text-xs text-muted-foreground">
-                  {empty
-                    ? 'no tasks yet'
-                    : `${subject.taskCount} task${subject.taskCount === 1 ? '' : 's'}`}
+                  {empty ? t.learn.noTasksYet : t.learn.tasksCount(subject.taskCount)}
                 </span>
               </span>
             </button>
@@ -91,7 +105,7 @@ export function TargetPicker({
       </div>
 
       {error ? (
-        <p role="alert" className="mt-3 text-sm text-destructive">
+        <p role="alert" className="disclose mt-3 text-sm text-destructive">
           {error}
         </p>
       ) : null}

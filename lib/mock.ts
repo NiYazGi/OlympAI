@@ -68,6 +68,57 @@ export function composeMock(tasks: CatalogueTask[]): MockBlueprint | null {
   }
 }
 
+/**
+ * A paper as it was actually sat.
+ *
+ * `composeMock` above builds a plausible paper out of the library: five
+ * problems across the difficulty range, which is a decent imitation and is
+ * still an imitation. These are the real thing — the four problems and four
+ * hours of an oblast round, in the order they were printed — and for a student
+ * preparing for that round there is no substitute for sitting it.
+ *
+ * Papers of fewer than three problems are left out: the experimental rounds
+ * are one task each, and they are not written work.
+ */
+export type RealPaper = {
+  paper: string
+  title: string
+  taskIds: string[]
+  difficulties: number[]
+  durationMinutes: number
+  /** How many of its problems this student has already solved. */
+  solved: number
+}
+
+/** Four hours, when the paper's own problems carry no estimate. */
+const DEFAULT_PAPER_MINUTES = 240
+
+export function realPapers(tasks: CatalogueTask[]): RealPaper[] {
+  const byPaper = new Map<string, CatalogueTask[]>()
+  for (const task of tasks) {
+    if (!task.paper) continue
+    byPaper.set(task.paper, [...(byPaper.get(task.paper) ?? []), task])
+  }
+
+  return [...byPaper]
+    .filter(([, list]) => list.length >= MIN_TASKS)
+    .map(([paper, list]) => {
+      const ordered = [...list].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
+      const minutes = ordered.reduce((sum, task) => sum + (task.estimatedMinutes ?? 0), 0)
+      return {
+        paper,
+        // The problems are titled "<stage> <year>, <grade> класс, <tour> тур —
+        // задача N"; everything before the dash names the sitting.
+        title: (ordered[0]?.title ?? paper).split(' — ')[0]!,
+        taskIds: ordered.map((task) => task.id),
+        difficulties: ordered.map((task) => task.difficulty),
+        durationMinutes: minutes > 0 ? minutes : DEFAULT_PAPER_MINUTES,
+        solved: ordered.filter((task) => task.solved).length,
+      }
+    })
+    .sort((a, b) => b.paper.localeCompare(a.paper))
+}
+
 export type MockOutcome = {
   scorePercent: number
   level: string

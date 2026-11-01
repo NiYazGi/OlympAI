@@ -2,75 +2,56 @@
 
 import { ViewTransition, type ReactNode } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import {
-  BookOpen,
-  ClipboardCheck,
-  GraduationCap,
-  LayoutDashboard,
-  Settings,
-  Sparkles,
-  Trophy,
-} from 'lucide-react'
+import { useT } from '@/components/i18n-provider'
 import { cn } from '@/lib/utils'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-
-const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/learn', label: 'Learn', icon: GraduationCap },
-  { href: '/tasks', label: 'Problems', icon: BookOpen },
-  { href: '/mock', label: 'Mock tests', icon: ClipboardCheck },
-  { href: '/sulu-ai', label: 'Sulu AI', icon: Sparkles },
-  { href: '/olympiads', label: 'Olympiads', icon: Trophy },
-]
 
 /**
- * A floating icon rail.
+ * The rail: a board-green column with every section written out.
  *
- * Labels are gone, so every target carries a tooltip: an icon-only rail that
- * cannot be read is a puzzle, not a navigation. The account sits at the top as
- * an avatar, which doubles as the link to /me — the same place the labelled
- * entry used to point.
+ * It replaces a floating capsule of bare icons, which needed a tooltip on every
+ * target to be read at all. Labels cost 170px of width and give back a
+ * navigation that can be scanned. Inside the rail the colour tokens are
+ * re-pointed at the board (see `.rail-scope` in globals.css), so the controls
+ * at the bottom keep their own markup and still read on green.
  */
-export function AppSidebar({ identity }: { identity: ReactNode }) {
-  const pathname = usePathname()
-  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`)
+export function AppSidebar({
+  identity,
+  nav,
+  controls,
+}: {
+  identity: ReactNode
+  nav: ReactNode
+  controls: ReactNode
+}) {
+  const t = useT()
 
   return (
-    <div className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] shrink-0 items-center p-4 md:flex">
-      {/* Sized to its contents and centred, so it reads as a capsule floating
-          over the page rather than a column bolted to the edge. Lighter than
-          the background, not darker, for the same reason. */}
-      <nav
-        aria-label="Main"
-        className="flex w-[4.5rem] flex-col items-center gap-2 rounded-full border border-border/70 bg-muted py-5 shadow-xl shadow-black/25"
+    <div className="rail-scope sticky top-0 hidden h-dvh w-60 shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex">
+      <Link
+        href="/dashboard"
+        prefetch
+        className="mx-3 mt-5 mb-5 block px-3 font-display text-[1.4375rem] leading-7 font-extrabold tracking-[-0.01em]"
       >
-        {identity}
+        OlympAI
+      </Link>
 
-        <div className="mt-5 flex flex-col items-center gap-2">
-          {navItems.map((item) => (
-            <RailLink
-              key={item.href}
-              href={item.href}
-              label={item.label}
-              active={isActive(item.href)}
-            >
-              <item.icon className="size-5" />
-            </RailLink>
-          ))}
-        </div>
-
-        <div className="mt-5 flex flex-col items-center gap-2">
-          <RailLink href="/settings" label="Settings" active={isActive('/settings')}>
-            <Settings className="size-5" />
-          </RailLink>
-        </div>
+      {/* The destinations depend on which kind of account this is, which
+          means a database read, which the shell deliberately does not wait
+          for. So the rail is handed its links from a Suspense boundary and
+          paints the frame first. */}
+      <nav aria-label={t.nav.main} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-3">
+        {nav}
       </nav>
+
+      <div className="flex flex-col gap-2 border-t border-sidebar-border px-3 pt-3 pb-4">
+        {identity}
+        <div className="flex items-center gap-0.5 px-1">{controls}</div>
+      </div>
     </div>
   )
 }
 
-function RailLink({
+export function RailLink({
   href,
   label,
   active,
@@ -82,39 +63,28 @@ function RailLink({
   children: ReactNode
 }) {
   return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <Link
-            href={href}
-            prefetch
-            aria-label={label}
-            aria-current={active ? 'page' : undefined}
-            className={cn(
-              'relative flex size-11 items-center justify-center rounded-full transition-colors duration-200',
-              active
-                ? 'text-foreground'
-                : 'text-muted-foreground hover:bg-foreground/10 hover:text-foreground',
-            )}
-          >
-            {/* One ring for the whole rail, not a border per link. Because the
-                element carries the same view-transition name wherever it lands,
-                the browser animates it from the item you left to the item you
-                opened — the indicator travels instead of blinking out here and
-                reappearing there. */}
-            {active ? (
-              <ViewTransition name="rail-active" share="morph" default="none">
-                <span
-                  aria-hidden
-                  className="absolute inset-0 rounded-full ring-2 ring-foreground/70"
-                />
-              </ViewTransition>
-            ) : null}
-            <span className="relative">{children}</span>
-          </Link>
-        }
-      />
-      <TooltipContent side="right">{label}</TooltipContent>
-    </Tooltip>
+    <Link
+      href={href}
+      prefetch
+      aria-current={active ? 'page' : undefined}
+      data-tour={`nav:${href}`}
+      className={cn(
+        'relative flex min-h-10 items-center gap-3 rounded-sm px-3 font-display text-base leading-5 transition-colors duration-150',
+        active
+          ? 'bg-sidebar-accent font-bold text-sidebar-foreground'
+          : 'font-semibold text-sidebar-foreground/90 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground',
+      )}
+    >
+      {/* One marker for the whole rail. It carries the same view-transition
+          name wherever it lands, so the browser moves it from the item you
+          left to the item you opened instead of blinking it out and in. */}
+      {active ? (
+        <ViewTransition name="rail-active" share="morph" default="none">
+          <span aria-hidden className="absolute inset-y-0 left-0 w-1 bg-sidebar-primary" />
+        </ViewTransition>
+      ) : null}
+      {children}
+      {label}
+    </Link>
   )
 }

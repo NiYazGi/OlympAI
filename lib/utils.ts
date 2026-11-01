@@ -6,9 +6,32 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// Shared surface style for custom cards, matching the shadcn Card ring look.
+// A region of the plane: white, a 1px rule round it, and corners so slight
+// they read as square. Shared with the shadcn Card so the two cannot drift.
 export const cardClass =
-  'rounded-xl bg-card ring-1 ring-foreground/10'
+  'rounded-sm bg-card ring-1 ring-border'
+
+/**
+ * For a card that opens something: under the pointer its edge brightens and it
+ * picks up a shadow, so it reads as a thing to click before anyone reads it.
+ * The catalogues had three different hover treatments, and a tile that only
+ * changed its background looked the same as one that did nothing.
+ *
+ * Nothing moves. A card that lifts towards the cursor can also step out from
+ * under it, and then the hover flickers on and off as the pointer crosses a
+ * list.
+ */
+export const liftClass =
+  'transition-colors duration-200 ease-out hover:bg-muted/60 hover:ring-foreground/40'
+
+/**
+ * The small print that names a panel or a figure, in the words' own case.
+ *
+ * It used to be mono, upper case and spaced out, which is the label every
+ * generated dashboard wears; and the mono face is for figures here, not words.
+ * Weight and colour separate it from the text it names.
+ */
+export const labelClass = 'text-caption font-semibold text-muted-foreground'
 
 /** Up to two uppercase initials for an avatar fallback. */
 export function initials(fullName: string | null | undefined) {

@@ -1,17 +1,28 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, useTransition } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  useTransition,
+} from 'react'
 import { useRouter } from 'next/navigation'
-import { AlarmClock, Loader2, Send } from 'lucide-react'
+import { AlarmClock, Loader2, Save, Send } from 'lucide-react'
 import { submitMock } from '@/app/(app)/mock/actions'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { DifficultyStars } from '@/components/difficulty-stars'
 import { createDraftStore } from '@/lib/session-draft'
+import { useT } from '@/components/i18n-provider'
+import { MathParagraphs } from '@/components/math-text'
 import { cardClass, cn } from '@/lib/utils'
 import type { MockPaper } from '@/lib/supabase/queries'
 
 const MIN_ANSWER_LENGTH = 20
+/** When the clock turns amber. Long enough to finish a question, not to start one. */
+const WARNING_SECONDS = 5 * 60
 
 type Answers = Record<string, string>
 
@@ -31,8 +42,12 @@ function formatClock(seconds: number) {
  * measures the help, not the student. The clock never blocks submission — it
  * runs out and the work still gets graded, because a hard cut-off loses honest
  * effort to a slow connection.
+ *
+ * Submitting is the one irreversible thing in the app, so it asks first, and
+ * the question it asks is the one that matters: how many answers are blank.
  */
 export function ExamRunner({ paper }: { paper: MockPaper }) {
+  const t = useT()
   const router = useRouter()
   const drafts = useMemo(
     () => createDraftStore<Answers>(`olympai:mock:${paper.id}`, () => ({})),
@@ -41,6 +56,7 @@ export function ExamRunner({ paper }: { paper: MockPaper }) {
   const raw = useSyncExternalStore(drafts.subscribe, drafts.read, drafts.serverRead)
   const answers = useMemo(() => drafts.parse(raw), [drafts, raw])
   const [remaining, setRemaining] = useState<number | null>(null)
+  const [confirming, setConfirming] = useState(false)
   const [error, setError] = useState('')
   const [pending, startTransition] = useTransition()
 
@@ -61,44 +77,79 @@ export function ExamRunner({ paper }: { paper: MockPaper }) {
     [answers, drafts],
   )
 
-  const answered = paper.questions.filter(
-    (question) => (answers[question.id] ?? '').trim().length >= MIN_ANSWER_LENGTH,
-  ).length
+  const isAnswered = (id: string) => (answers[id] ?? '').trim().length >= MIN_ANSWER_LENGTH
+  const answered = paper.questions.filter((question) => isAnswered(question.id)).length
+  const blank = paper.questions.length - answered
 
   function submit() {
     setError('')
     startTransition(async () => {
-      const result = await submitMock(paper.id, answers)
-      if (result.ok) {
-        drafts.clear()
-        router.refresh()
-      } else {
-        setError(result.error ?? 'The paper could not be submitted.')
+      try {
+        const result = await submitMock(paper.id, answers)
+        if (result.ok) {
+          drafts.clear()
+          router.refresh()
+        } else {
+          setConfirming(false)
+          setError(result.error ?? t.exam.notSubmitted)
+        }
+      } catch {
+        setConfirming(false)
+        setError(t.common.offline)
       }
     })
   }
 
   const overtime = remaining !== null && remaining <= 0
+  const nearlyOut = remaining !== null && remaining > 0 && remaining <= WARNING_SECONDS
 
   return (
     <div className="space-y-5">
       <div
         className={cn(
           cardClass,
-          'sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 p-4 backdrop-blur',
-          overtime && 'ring-amber-500/40',
+          'sticky top-14 z-10 md:top-0 flex flex-wrap items-center justify-between gap-3 p-4 backdrop-blur',
+          (overtime || nearlyOut) && 'ring-warning/40',
         )}
       >
-        <div className="flex items-center gap-2">
-          <AlarmClock className={cn('size-4', overtime ? 'text-amber-500' : 'text-primary')} />
-          <span className="font-semibold tabular-nums">
-            {remaining === null ? '—' : overtime ? 'Time is up' : formatClock(remaining)}
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+          <span className="flex items-center gap-2">
+            <AlarmClock
+              className={cn('size-4', overtime || nearlyOut ? 'text-warning' : 'text-primary')}
+            />
+            <span
+              className={cn(
+                'font-semibold tabular-nums',
+                (overtime || nearlyOut) && 'text-warning',
+              )}
+            >
+              {remaining === null ? '—' : overtime ? t.exam.timeUp : formatClock(remaining)}
+            </span>
           </span>
-          <span className="text-sm text-muted-foreground">
-            · {answered} of {paper.questions.length} answered
+
+          {/* One dot per question, filled once there is an answer in it. The
+              paper is long enough to lose your place in, and scrolling to find
+              out what is still blank is not part of the exam. */}
+          <span className="flex items-center gap-1.5">
+            {paper.questions.map((question, index) => (
+              <a
+                key={question.id}
+                href={`#question-${question.id}`}
+                aria-label={t.exam.questionAria(index + 1, isAnswered(question.id))}
+                className={cn(
+                  'flex size-6 items-center justify-center rounded-md text-xs font-medium tabular-nums transition-colors',
+                  isAnswered(question.id)
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground ring-1 ring-foreground/15 hover:bg-muted',
+                )}
+              >
+                {index + 1}
+              </a>
+            ))}
           </span>
         </div>
-        <Button onClick={submit} disabled={pending || answered === 0}>
+
+        <Button onClick={() => setConfirming(true)} disabled={pending || answered === 0}>
           {pending ? (
             <>
               <Loader2 className="size-4 animate-spin" /> Grading {answered} answer
@@ -106,36 +157,94 @@ export function ExamRunner({ paper }: { paper: MockPaper }) {
             </>
           ) : (
             <>
-              <Send className="size-4" /> Submit paper
+              <Send className="size-4" /> {t.exam.submitPaper}
             </>
           )}
         </Button>
       </div>
 
+      {confirming && !pending ? (
+        <div className={cn(cardClass, 'disclose space-y-3 p-4 ring-primary/30')} role="alertdialog">
+          <p className="font-medium">
+            {blank === 0 ? t.exam.submitAll(paper.questions.length) : t.exam.stillBlank(blank)}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {t.exam.irreversible}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={submit}>
+              <Send className="size-4" /> {t.exam.submitN(answered)}
+            </Button>
+            <Button variant="outline" onClick={() => setConfirming(false)}>
+              {t.exam.keepWorking}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {pending ? (
+        <div className={cn(cardClass, 'disclose flex items-start gap-3 p-4')}>
+          <Loader2 className="mt-0.5 size-4 shrink-0 animate-spin text-primary" />
+          <div>
+            <p className="text-sm font-medium">Grading your paper</p>
+            <p className="text-sm text-muted-foreground">
+              Each answer is read against its reference solution, one after another, so this takes
+              longer than a single problem. Leave the page open.
+            </p>
+          </div>
+        </div>
+      ) : null}
+
       {overtime ? (
-        <p className="rounded-lg bg-amber-500/10 p-3 text-sm text-amber-500">
-          The clock has run out. You can still submit — anything written after time is recorded
-          the same way.
+        <p className="rounded-lg bg-warning/10 p-3 text-sm text-warning">
+          The clock has run out. You can still submit — anything written after time is recorded the
+          same way.
         </p>
       ) : null}
 
       {error ? (
-        <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+        <p
+          role="alert"
+          className="disclose rounded-lg bg-destructive/10 p-3 text-sm text-destructive"
+        >
           {error}
         </p>
       ) : null}
 
       <ol className="space-y-5">
         {paper.questions.map((question, index) => (
-          <li key={question.id} className={cn(cardClass, 'p-5 sm:p-6')}>
+          <li
+            key={question.id}
+            id={`question-${question.id}`}
+            className={cn(cardClass, 'scroll-mt-12 p-5 sm:p-6')}
+          >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="font-semibold">
-                Question {index + 1}. {question.title}
+                {t.exam.questionHeading(index + 1, question.title)}
               </h2>
               <DifficultyStars level={question.difficulty} />
             </div>
 
-            <p className="mt-3 leading-relaxed">{question.problem}</p>
+            <div className="mt-3 space-y-3">
+              <MathParagraphs
+                text={question.problem}
+                className="font-reading max-w-[68ch] text-reading"
+                figureAlt={t.tasks.diagramAlt(question.title)}
+              />
+              {/* The paper is the problem as printed, figure included: a
+                  circuit question without its circuit cannot be sat. */}
+              {question.diagramUrl ? (
+                <figure className="overflow-hidden rounded-lg bg-white p-2 ring-1 ring-foreground/10">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={question.diagramUrl}
+                    alt={t.tasks.diagramAlt(question.title)}
+                    loading="lazy"
+                    className="mx-auto h-auto max-h-[28rem] max-w-full"
+                  />
+                </figure>
+              ) : null}
+            </div>
 
             {question.given.length ? (
               <ul className="mt-3 space-y-1.5">
@@ -157,22 +266,29 @@ export function ExamRunner({ paper }: { paper: MockPaper }) {
             <Textarea
               value={answers[question.id] ?? ''}
               onChange={(event) => update(question.id, event.target.value)}
-              placeholder="Your full derivation…"
+              placeholder={t.exam.placeholder}
               className="mt-4 min-h-40 resize-y font-mono text-base leading-relaxed"
             />
           </li>
         ))}
       </ol>
 
-      <div className="flex justify-end">
-        <Button size="lg" onClick={submit} disabled={pending || answered === 0}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {/* Said once, at the bottom, where someone about to close the tab is
+            looking. It is the truth: the answers are in this tab's storage
+            until the paper is submitted. */}
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Save className="size-3" />
+          {t.exam.keptLocally}
+        </p>
+        <Button size="lg" onClick={() => setConfirming(true)} disabled={pending || answered === 0}>
           {pending ? (
             <>
-              <Loader2 className="size-4 animate-spin" /> Grading…
+              <Loader2 className="size-4 animate-spin" /> {t.exam.grading}
             </>
           ) : (
             <>
-              <Send className="size-4" /> Submit paper
+              <Send className="size-4" /> {t.exam.submitPaper}
             </>
           )}
         </Button>

@@ -1,46 +1,17 @@
 'use client'
 
-import { useCallback, useSyncExternalStore } from 'react'
 import { Check, Moon, Sun } from 'lucide-react'
+import { useT } from '@/components/i18n-provider'
+import { originOf, useTheme } from '@/lib/theme'
 import { cn } from '@/lib/utils'
 
-const KEY = 'olympai:theme'
-const EVENT = 'olympai:theme-change'
-
-function subscribe(onChange: () => void) {
-  window.addEventListener(EVENT, onChange)
-  window.addEventListener('storage', onChange)
-  return () => {
-    window.removeEventListener(EVENT, onChange)
-    window.removeEventListener('storage', onChange)
-  }
-}
-
-/** Reads the class the inline script already applied, so the two never disagree. */
-function readTheme(): 'dark' | 'light' {
-  return document.documentElement.classList.contains('light') ? 'light' : 'dark'
-}
-
-const OPTIONS = [
-  { value: 'dark' as const, label: 'Dark', icon: Moon, note: 'The default' },
-  { value: 'light' as const, label: 'Light', icon: Sun, note: null },
-]
-
 export function Appearance() {
-  // Dark on the server: it is the default, so this matches the markup.
-  const theme = useSyncExternalStore(subscribe, readTheme, () => 'dark' as const)
-
-  const choose = useCallback((next: 'dark' | 'light') => {
-    const root = document.documentElement
-    root.classList.toggle('light', next === 'light')
-    root.classList.toggle('dark', next === 'dark')
-    try {
-      localStorage.setItem(KEY, next)
-    } catch {
-      // Private browsing: the choice holds for this page only.
-    }
-    window.dispatchEvent(new Event(EVENT))
-  }, [])
+  const [theme, choose] = useTheme()
+  const t = useT()
+  const OPTIONS = [
+    { value: 'dark' as const, label: t.settings.dark, icon: Moon, note: t.settings.theDefault },
+    { value: 'light' as const, label: t.settings.light, icon: Sun, note: null },
+  ]
 
   return (
     <div className="grid gap-2 sm:grid-cols-2">
@@ -51,7 +22,7 @@ export function Appearance() {
             key={option.value}
             type="button"
             aria-pressed={active}
-            onClick={() => choose(option.value)}
+            onClick={(event) => choose(option.value, originOf(event.currentTarget))}
             className={cn(
               'flex items-center gap-3 rounded-xl border p-3 text-left transition-colors',
               active

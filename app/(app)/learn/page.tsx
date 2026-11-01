@@ -21,7 +21,9 @@ import {
 } from '@/lib/supabase/queries'
 import { buildPath } from '@/lib/path'
 import { planForGoal, readiness } from '@/lib/goal'
-import { cardClass, cn, riseDelay } from '@/lib/utils'
+import { getStudentTrack } from '@/lib/supabase/track'
+import { getT } from '@/lib/i18n'
+import { cardClass, cn, liftClass, riseDelay } from '@/lib/utils'
 
 export const metadata = { title: 'Learn' }
 export const dynamic = 'force-dynamic'
@@ -31,18 +33,15 @@ export default async function LearnPage({
 }: {
   searchParams: Promise<{ all?: string }>
 }) {
-  const { all } = await searchParams
+  const [{ all }, t] = await Promise.all([searchParams, getT()])
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-5 p-4 sm:gap-6 sm:p-8">
-      <PageHeader
-        title="Learn"
-        description="Your target, and the route to it: read it, check you followed it, remember it, then solve with it."
-      />
+      <PageHeader title={t.learn.title} description={t.learn.description} />
       <Reveal
         fallback={
           <>
-            <PendingRegion label="Working out what to do next" />
+            <PendingRegion label={t.learn.loading} />
             <BlockSkeleton className={`${cardClass} h-40`} />
           </>
         }
@@ -54,7 +53,7 @@ export default async function LearnPage({
 }
 
 async function Plan({ showAll }: { showAll: boolean }) {
-  const [action, surface, goal, competitions, subjects, analytics, tasks, profile] =
+  const [action, surface, goal, competitions, subjects, analytics, tasks, profile, t] =
     await Promise.all([
       getNextAction(),
       getStudyOverview(showAll),
@@ -64,7 +63,9 @@ async function Plan({ showAll }: { showAll: boolean }) {
       getProgressAnalytics(),
       getTaskCatalogue(),
       getCurrentProfile(),
+      getT(),
     ])
+  const track = await getStudentTrack()
 
   // Choosing the target is the first step, not a separate page. Until it is
   // answered there is nothing to order the topics by, so the form is the whole
@@ -85,17 +86,17 @@ async function Plan({ showAll }: { showAll: boolean }) {
     return (
       <>
         <p className="text-sm text-muted-foreground">
-          {goal.competition.name} covers more than one subject — choose the one you are training in.
+          {t.learn.multiSubject(goal.competition.name)}
         </p>
         <TargetPicker subjects={subjects} current={goal.subjectId} />
       </>
     )
   }
 
-  const path = buildPath(tasks, goal.subjectName)
+  const path = buildPath(tasks, goal.subjectName, track.track)
   const attemptsLastWeek = analytics.recentActivity.reduce((sum, day) => sum + day.problems, 0)
-  const plan = planForGoal(path, goal.targetDate, attemptsLastWeek)
-  const ready = readiness(path, analytics.hasData ? analytics.accuracy : null)
+  const plan = planForGoal(path, goal.targetDate, attemptsLastWeek, profile?.training_intensity ?? null)
+  const ready = readiness(path, analytics.totalAttempts > 0 ? analytics.accuracy : null)
 
   return (
     <>
@@ -122,16 +123,16 @@ async function Plan({ showAll }: { showAll: boolean }) {
         {surface.subjects.length === 0 ? (
           <EmptyState
             icon={GraduationCap}
-            title="No topics yet"
-            body="Subjects and topics arrive with the reference content. Once they do, every one of them gets the same five steps."
-            action={{ href: '/tasks', label: 'Browse problems' }}
+            title={t.learn.emptyTitle}
+            body={t.learn.emptyBody}
+            action={{ href: '/tasks', label: t.learn.emptyAction }}
           />
         ) : (
           surface.subjects.map((subject) => (
             <section key={subject.name} className="space-y-3">
               {surface.subjects.length > 1 ? (
                 <div className="flex items-baseline justify-between gap-3 pt-2">
-                  <h2 className="font-semibold">{subject.name}</h2>
+                  <h2 className="font-semibold">{t.subjects[subject.name] ?? subject.name}</h2>
                   <span className="text-sm tabular-nums text-muted-foreground">
                     {subject.percent}%
                   </span>
@@ -144,7 +145,7 @@ async function Plan({ showAll }: { showAll: boolean }) {
                     <Link
                       href={`/learn/${topic.slug}`}
                       prefetch
-                      className={cn(cardClass, 'block p-4 transition-colors hover:bg-muted/50 sm:p-5')}
+                      className={cn(cardClass, liftClass, 'block p-4 sm:p-5')}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <h3 className="font-medium">
@@ -155,7 +156,7 @@ async function Plan({ showAll }: { showAll: boolean }) {
                             share="morph"
                             default="none"
                           >
-                            <span>{topic.name}</span>
+                            <span>{t.topics[topic.name] ?? topic.name}</span>
                           </ViewTransition>
                         </h3>
                         <span className="shrink-0 text-sm font-semibold tabular-nums text-primary">
@@ -165,8 +166,21 @@ async function Plan({ showAll }: { showAll: boolean }) {
 
                       <p className="mt-1 text-sm text-muted-foreground">
                         {topic.next
-                          ? `Next: ${topic.next.label} — ${topic.next.detail}`
-                          : 'Nothing left to do here.'}
+                          ? t.learn.nextIs(topic.next.label, topic.next.detail)
+                          : t.learn.nothingLeft}
+                      </p>
+
+                      {/* What is actually in the topic. A card that only says
+                          what to do next gives no way to tell a topic with a
+                          lesson and twelve problems from one with a stub. */}
+                      <p className="mt-2 text-caption text-muted-foreground">
+                        {[
+                          topic.input.lesson ? t.common.blocks(topic.input.lesson.blocks) : null,
+                          topic.input.quiz.total ? t.common.questions(topic.input.quiz.total) : null,
+                          topic.input.tasks.total ? t.common.problems(topic.input.tasks.total) : null,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ') || t.learn.nothingWritten}
                       </p>
 
                       <div className="mt-3 flex gap-1">

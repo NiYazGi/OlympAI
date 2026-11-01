@@ -1,0 +1,38 @@
+# What never reaches a deployment.
+#
+# This file replaces .gitignore for the upload, so everything that must stay
+# off the build has to be named here — starting with the env files. A local
+# .env.local uploaded with the source would both ship secrets into the build
+# and override the variables configured on the project.
+.env
+.env.*
+!.env.example
+
+# Notes with keys in them. .gitignore has the same rules; here they are
+# narrowed to document extensions, because lib/supabase/secret-env.ts is a
+# source file the build needs and `*secret*` would have taken it out.
+*.rtf
+*key*.txt
+*secret*.txt
+*secret*.json
+credentials*
+
+.git/
+.next/
+node_modules/
+*.tsbuildinfo
+.DS_Store
+
+# 144 MB of PDFs: the input to the importers in .tools/, already turned into
+# rows in the database. Nothing at runtime reads them.
+/Олимпиады_по_*/
+
+# Scripts that run against the database from a laptop, not from the server.
+#
+# Anchored with a leading slash, every one of them. Without it these patterns
+# match at any depth, the way .gitignore does: a bare `supabase/` also took out
+# lib/supabase/, and the build failed on a missing @/lib/supabase/admin.
+/.tools/
+/scripts/
+/supabase/
+/docs/

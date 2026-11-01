@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
-import { ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cardClass, cn } from '@/lib/utils'
 
@@ -12,38 +11,29 @@ import { cardClass, cn } from '@/lib/utils'
  * supabase/migrations", which is an instruction for whoever runs the server.
  */
 export function EmptyState({
-  icon: Icon,
   title,
   body,
   action,
   className,
 }: {
-  icon: React.ComponentType<{ className?: string }>
+  /** Kept for the callers; an empty screen shows no picture, only what to do. */
+  icon?: React.ComponentType<{ className?: string }>
   title: string
   body: ReactNode
   action?: { href: string; label: string }
   className?: string
 }) {
   return (
-    <section
-      className={cn(
-        cardClass,
-        'flex flex-col items-center px-6 py-12 text-center sm:py-16',
-        className,
-      )}
-    >
-      <div className="flex size-12 items-center justify-center rounded-2xl bg-accent text-primary">
-        <Icon className="size-6" />
-      </div>
-      <h2 className="mt-5 text-lg font-semibold">{title}</h2>
-      <p className="mt-2 max-w-md text-sm leading-6 text-pretty text-muted-foreground">{body}</p>
+    <section className={cn(cardClass, 'flex flex-col items-start px-6 py-8 sm:px-8 sm:py-10', className)}>
+      <h2 className="font-display text-block font-semibold text-balance">{title}</h2>
+      <p className="mt-2 max-w-[60ch] text-ui text-pretty text-muted-foreground">{body}</p>
       {action ? (
         <Button
-          className="mt-6"
+          className="mt-5"
           nativeButton={false}
           render={
             <Link href={action.href} prefetch>
-              {action.label} <ArrowRight className="size-4" />
+              {action.label}
             </Link>
           }
         />

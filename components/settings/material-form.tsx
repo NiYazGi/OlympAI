@@ -7,7 +7,7 @@ import { YouTubeEmbed } from '@/components/resources/youtube-embed'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { LICENCES, youTubeId, type Licence } from '@/lib/licence'
+import { LICENCES, licenceInfo, youTubeId, type Licence } from '@/lib/licence'
 import { cardClass, cn } from '@/lib/utils'
 
 type Option = { id: string; label: string; group: string }
@@ -50,19 +50,26 @@ export function MaterialForm({
   const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null)
   const [pending, startTransition] = useTransition()
 
-  const info = LICENCES[licence]
+  const info = licenceInfo(licence)
   const videoId = kind === 'video' ? youTubeId(url) : null
 
   function submit(formData: FormData) {
     setNotice(null)
     startTransition(async () => {
-      const result = await addMaterial(formData)
-      if (result.ok) {
-        setNotice({ tone: 'ok', text: result.message ?? 'Added.' })
-        setUrl('')
-        setTitle('')
-      } else {
-        setNotice({ tone: 'error', text: result.error ?? 'That did not save.' })
+      try {
+        const result = await addMaterial(formData)
+        if (result.ok) {
+          setNotice({ tone: 'ok', text: result.message ?? 'Added.' })
+          setUrl('')
+          setTitle('')
+        } else {
+          setNotice({ tone: 'error', text: result.error ?? 'That did not save.' })
+        }
+      } catch {
+        setNotice({
+          tone: 'error',
+          text: 'That did not save. Check your connection and try again.',
+        })
       }
     })
   }
@@ -71,7 +78,7 @@ export function MaterialForm({
     <div className="space-y-6">
       <form action={submit} className={cn(cardClass, 'space-y-5 p-5 sm:p-6')}>
         <fieldset>
-          <legend className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <legend className="text-caption font-semibold text-muted-foreground">
             Kind
           </legend>
           <div className="mt-3 grid gap-2 sm:grid-cols-3">
@@ -104,7 +111,7 @@ export function MaterialForm({
         </fieldset>
 
         <label className="block">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <span className="text-caption font-semibold text-muted-foreground">
             Link
           </span>
           <Input
@@ -116,7 +123,7 @@ export function MaterialForm({
             className="mt-2"
           />
           {kind === 'video' && url && !videoId ? (
-            <span className="mt-1.5 block text-xs text-amber-500">
+            <span className="mt-1.5 block text-xs text-warning">
               Not a YouTube link. Add it as a reference instead, or paste a YouTube URL.
             </span>
           ) : null}
@@ -124,7 +131,7 @@ export function MaterialForm({
 
         {videoId ? (
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <p className="mb-2 text-caption font-semibold text-muted-foreground">
               Preview
             </p>
             {/* The same component students see, so what is checked is what ships. */}
@@ -133,7 +140,7 @@ export function MaterialForm({
         ) : null}
 
         <label className="block">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <span className="text-caption font-semibold text-muted-foreground">
             Title
           </span>
           <Input
@@ -148,7 +155,7 @@ export function MaterialForm({
         </label>
 
         <label className="block">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <span className="text-caption font-semibold text-muted-foreground">
             Description <span className="font-normal normal-case">(optional)</span>
           </span>
           <Textarea
@@ -161,7 +168,7 @@ export function MaterialForm({
         </label>
 
         <fieldset>
-          <legend className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <legend className="text-caption font-semibold text-muted-foreground">
             Attach to
           </legend>
           <div className="mt-3 flex gap-2">
@@ -201,7 +208,7 @@ export function MaterialForm({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <span className="text-caption font-semibold text-muted-foreground">
               Licence
             </span>
             <select
@@ -220,7 +227,7 @@ export function MaterialForm({
           </label>
 
           <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <span className="text-caption font-semibold text-muted-foreground">
               Credit{' '}
               {info.requiresAttribution ? (
                 <span className="text-primary">· required</span>
@@ -245,7 +252,7 @@ export function MaterialForm({
               'rounded-lg p-3 text-sm',
               notice.tone === 'error'
                 ? 'bg-destructive/10 text-destructive'
-                : 'bg-emerald-500/10 text-emerald-500',
+                : 'bg-success/10 text-success',
             )}
           >
             {notice.text}
@@ -288,7 +295,7 @@ function ExistingRow({ resource }: { resource: ExistingResource }) {
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-medium">{resource.title}</span>
         <span className="block truncate text-xs text-muted-foreground">
-          {resource.attachedTo} · {LICENCES[resource.licence].label}
+          {resource.attachedTo} · {licenceInfo(resource.licence).label}
         </span>
         {error ? <span className="block text-xs text-destructive">{error}</span> : null}
       </span>
@@ -298,8 +305,12 @@ function ExistingRow({ resource }: { resource: ExistingResource }) {
         disabled={pending}
         onClick={() =>
           startTransition(async () => {
-            const result = await removeMaterial(resource.id)
-            if (!result.ok) setError(result.error ?? 'Could not remove.')
+            try {
+              const result = await removeMaterial(resource.id)
+              if (!result.ok) setError(result.error ?? 'Could not remove.')
+            } catch {
+              setError('Could not remove. Check your connection and try again.')
+            }
           })
         }
         className="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
