@@ -59,6 +59,8 @@ export type StudentRow = {
 }
 
 export type ClassDetail = ClassSummary & {
+  /** The subject's id, for the sections a class's own problem can go under. */
+  subjectId: string | null
   students: StudentRow[]
   /** Where the class as a whole is weakest. Worst first. */
   weakTopics: TopicScore[]
@@ -159,6 +161,7 @@ export const getClassDetail = cache(async (classId: string): Promise<ClassDetail
   const base: ClassDetail = {
     id: row.id,
     name: row.name,
+    subjectId: row.subject_id,
     subjectName,
     joinCode: row.join_code,
     createdAt: row.created_at,

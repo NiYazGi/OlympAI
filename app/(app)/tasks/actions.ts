@@ -72,11 +72,18 @@ export async function submitTaskAttempt(
   const admin = createAdminClient()
   const { data: task, error: taskError } = await admin
     .from('tasks')
-    .select('id, title, problem, difficulty, given, find_prompt, official_solution, hints, diagram_url')
+    .select('id, title, problem, difficulty, given, find_prompt, official_solution, hints, diagram_url, class_id')
     .eq('id', taskId)
     .maybeSingle()
   if (taskError || !task) {
     return { ok: false, error: 'This task is unavailable. Please return to the task library.' }
+  }
+  // A class's own problem is read above with the service role, which sees
+  // every class. Whether this student may submit to it is the row policy's
+  // call, so the row is read once more as them.
+  if (task.class_id) {
+    const { data: visible } = await supabase.from('tasks').select('id').eq('id', taskId).maybeSingle()
+    if (!visible) return { ok: false, error: 'This task is unavailable. Please return to the task library.' }
   }
 
   let grade: Grade

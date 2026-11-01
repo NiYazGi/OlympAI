@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { ArrowLeft, ArrowRight, Link2, ListOrdered, TrendingDown, Users } from 'lucide-react'
+import { ClassMaterialsPanel } from '@/components/class/class-materials'
 import { DeleteClass } from '@/components/class/delete-class'
 import { TrackEditor } from '@/components/class/track-editor'
 import { InvitePanel } from '@/components/class/invite-panel'
@@ -14,6 +15,7 @@ import { WEAK_BELOW, lastSeen } from '@/lib/class-copy'
 import { DEFAULT_TARGET } from '@/lib/path'
 import { getClassTrack } from '@/lib/supabase/track'
 import { getClassDetail } from '@/lib/supabase/classes'
+import { getClassMaterials, getClassTopics } from '@/lib/supabase/class-materials'
 import { getCurrentProfile } from '@/lib/supabase/queries'
 import { getT } from '@/lib/i18n'
 import type { Dictionary } from '@/lib/i18n/dictionaries'
@@ -63,8 +65,14 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
 }
 
 async function Roster({ id }: { id: string }) {
-  const [detail, track, t] = await Promise.all([getClassDetail(id), getClassTrack(id), getT()])
+  const [detail, track, materials, t] = await Promise.all([
+    getClassDetail(id),
+    getClassTrack(id),
+    getClassMaterials(id),
+    getT(),
+  ])
   if (!detail) notFound()
+  const topics = await getClassTopics(detail.subjectId)
 
   const subject = detail.subjectName
     ? (t.subjects[detail.subjectName] ?? detail.subjectName)
@@ -111,6 +119,14 @@ async function Roster({ id }: { id: string }) {
         </h2>
         <div className="mt-4">
           <TrackEditor classId={detail.id} rows={track} defaultTarget={DEFAULT_TARGET} />
+        </div>
+      </section>
+
+      <section className={cn(cardClass, 'p-5 sm:p-6')}>
+        <h2 className="font-display text-block font-semibold">{t.classMaterials.title}</h2>
+        <p className="mt-1 max-w-[60ch] text-ui text-muted-foreground">{t.classMaterials.note}</p>
+        <div className="mt-5">
+          <ClassMaterialsPanel classId={detail.id} materials={materials} topics={topics} editable />
         </div>
       </section>
 

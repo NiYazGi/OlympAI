@@ -140,6 +140,8 @@ const loadReference = unstable_cache(
         admin
           .from('tasks')
           .select(TASK_COLUMNS)
+          // A class's own problems are for that class, never the shared list.
+          .is('class_id', null)
           .order('difficulty', { ascending: true })
           .order('id', { ascending: true })
           .range(from, to),
@@ -178,6 +180,8 @@ async function loadReferenceAsUser(): Promise<Reference> {
       supabase
         .from('tasks')
         .select(TASK_COLUMNS)
+        // A class's own problems are for that class, never the shared list.
+        .is('class_id', null)
         .order('difficulty', { ascending: true })
         .order('id', { ascending: true })
         .range(from, to),

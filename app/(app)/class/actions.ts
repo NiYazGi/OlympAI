@@ -146,6 +146,14 @@ export async function deleteClass(formData: FormData): Promise<ClassResult> {
   const classId = String(formData.get('class_id') ?? '')
   if (!classId) return { ok: false, error: 'Which class?' }
 
+  // The class's files are objects in storage, which a row cascade cannot
+  // reach; they are cleared first so a deleted class leaves nothing behind.
+  if (hasSupabaseSecretKey()) {
+    const storage = createAdminClient().storage.from('class-files')
+    const { data: objects } = await storage.list(classId, { limit: 1000 })
+    if (objects?.length) await storage.remove(objects.map((object) => `${classId}/${object.name}`))
+  }
+
   const { error } = await who.supabase.from('classes').delete().eq('id', classId)
   if (error) return { ok: false, error: 'The class could not be deleted.' }
 
@@ -368,4 +376,217 @@ export async function findTrackTasks(
     return { ok: false, tasks: [], error: 'That section is not in this class.' }
   }
   return { ok: true, tasks: await searchTopicTasks(topicId, query.slice(0, 120)) }
+}
+
+// ------------------------------------------------------- class material ---
+// A teacher's own problems and files (migration 55). The class is checked to
+// be this teacher's on every call; rows in `tasks` and objects in the bucket
+// are then written with the service role, which no browser holds.
+
+const FILE_BUCKET = 'class-files'
+const MAX_FILE_BYTES = 20 * 1024 * 1024
+/** What a class hands out: papers, scans, slides, notes. */
+const FILE_TYPES = new Set([
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'text/plain',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+])
+
+type Owner =
+  | { error: string }
+  | { id: string; supabase: Awaited<ReturnType<typeof createClient>>; subjectId: string | null }
+
+async function ownClass(classId: string): Promise<Owner> {
+  const who = await teacher()
+  if (who.error !== undefined) return { error: who.error }
+  const { data } = await who.supabase
+    .from('classes')
+    .select('id, subject_id')
+    .eq('id', classId)
+    .eq('teacher_id', who.id)
+    .maybeSingle()
+  if (!data) return { error: 'That is not one of your classes.' }
+  if (!hasSupabaseSecretKey()) return { error: 'Storage is not configured on this server.' }
+  return { ...who, subjectId: data.subject_id as string | null }
+}
+
+export async function createClassTask(formData: FormData): Promise<ClassResult> {
+  const classId = String(formData.get('class_id') ?? '')
+  const who = await ownClass(classId)
+  if ('error' in who) return { ok: false, error: who.error }
+
+  const title = String(formData.get('title') ?? '').trim().slice(0, 160)
+  const problem = String(formData.get('problem') ?? '').trim()
+  const solution = String(formData.get('solution') ?? '').trim()
+  const topicId = String(formData.get('topic_id') ?? '')
+  const difficulty = Math.min(5, Math.max(1, Number(formData.get('difficulty')) || 3))
+  if (title.length < 3) return { ok: false, error: 'Give the problem a title.' }
+  if (problem.length < 10) return { ok: false, error: 'Write out the statement of the problem.' }
+  if (problem.length > 8000 || solution.length > 8000) {
+    return { ok: false, error: 'Keep the statement and the solution under 8,000 characters each.' }
+  }
+
+  const reference = await getReference()
+  const topic = reference.topics.find((row) => row.id === topicId)
+  if (!topic || (who.subjectId && topic.subject_id !== who.subjectId)) {
+    return { ok: false, error: 'Choose a section for the problem.' }
+  }
+
+  const { data: profile } = await who.supabase
+    .from('profiles')
+    .select('full_name')
+    .eq('id', who.id)
+    .maybeSingle()
+
+  const { error } = await createAdminClient()
+    .from('tasks')
+    .insert({
+      id: `class-${crypto.randomUUID().replaceAll('-', '').slice(0, 16)}`,
+      class_id: classId,
+      created_by: who.id,
+      subject_id: topic.subject_id,
+      topic_id: topic.id,
+      title,
+      problem,
+      // Kept from the students like every reference solution (migration 22);
+      // the grader reads it to mark against.
+      official_solution: solution || null,
+      difficulty,
+      licence: 'original',
+      attribution: profile?.full_name ? `Задача учителя: ${profile.full_name}` : 'Задача учителя',
+    })
+  if (error) return { ok: false, error: 'The problem could not be saved.' }
+
+  revalidatePath(`/class/${classId}`)
+  revalidatePath('/class')
+  return { ok: true, classId }
+}
+
+export async function deleteClassTask(formData: FormData): Promise<ClassResult> {
+  const classId = String(formData.get('class_id') ?? '')
+  const taskId = String(formData.get('task_id') ?? '')
+  const who = await ownClass(classId)
+  if ('error' in who) return { ok: false, error: who.error }
+
+  // Attempts at it go with it (task_attempts cascades): the problem is the
+  // teacher's, and so is the decision to withdraw it.
+  const { error } = await createAdminClient()
+    .from('tasks')
+    .delete()
+    .eq('id', taskId)
+    .eq('class_id', classId)
+  if (error) return { ok: false, error: 'The problem could not be removed.' }
+
+  revalidatePath(`/class/${classId}`)
+  revalidatePath('/class')
+  return { ok: true, classId }
+}
+
+/**
+ * Step one of a file upload: a one-time URL the browser sends the bytes to
+ * directly, so a 20MB scan never passes through a server action.
+ */
+export async function prepareClassFile(
+  classId: string,
+  name: string,
+  size: number,
+  mime: string,
+): Promise<{ ok: true; url: string; path: string } | { ok: false; error: string }> {
+  const who = await ownClass(classId)
+  if ('error' in who) return { ok: false, error: who.error }
+  if (!FILE_TYPES.has(mime)) {
+    return { ok: false, error: 'Upload a PDF, an image, a Word or PowerPoint file, or plain text.' }
+  }
+  if (!(size > 0 && size <= MAX_FILE_BYTES)) return { ok: false, error: 'Files can be up to 20 MB.' }
+
+  const safe = name.normalize('NFKC').replace(/[^\p{L}\p{N}._-]+/gu, '-').slice(-80) || 'file'
+  const path = `${classId}/${crypto.randomUUID().slice(0, 8)}-${safe}`
+  const { data, error } = await createAdminClient().storage.from(FILE_BUCKET).createSignedUploadUrl(path)
+  if (error || !data) return { ok: false, error: 'The upload could not be started.' }
+  return { ok: true, url: data.signedUrl, path }
+}
+
+/** Step two: once the bytes are in, the file joins the class's list. */
+export async function recordClassFile(
+  classId: string,
+  path: string,
+  name: string,
+  size: number,
+  mime: string,
+): Promise<ClassResult> {
+  const who = await ownClass(classId)
+  if ('error' in who) return { ok: false, error: who.error }
+  if (!path.startsWith(`${classId}/`) || path.includes('..')) return { ok: false, error: 'Which file?' }
+
+  const fileName = path.slice(classId.length + 1)
+  const { data: listed } = await createAdminClient()
+    .storage.from(FILE_BUCKET)
+    .list(classId, { search: fileName, limit: 1 })
+  if (!listed?.some((object) => object.name === fileName)) {
+    return { ok: false, error: 'The file did not arrive. Try the upload again.' }
+  }
+
+  const { error } = await who.supabase.from('class_files').insert({
+    class_id: classId,
+    path,
+    name: name.trim().slice(0, 200) || fileName,
+    size,
+    mime,
+    uploaded_by: who.id,
+  })
+  if (error) return { ok: false, error: 'The file could not be added to the class.' }
+
+  revalidatePath(`/class/${classId}`)
+  revalidatePath('/class')
+  return { ok: true, classId }
+}
+
+export async function deleteClassFile(formData: FormData): Promise<ClassResult> {
+  const classId = String(formData.get('class_id') ?? '')
+  const fileId = String(formData.get('file_id') ?? '')
+  const who = await ownClass(classId)
+  if ('error' in who) return { ok: false, error: who.error }
+
+  const { data: file } = await who.supabase
+    .from('class_files')
+    .select('path')
+    .eq('id', fileId)
+    .eq('class_id', classId)
+    .maybeSingle()
+  if (!file) return { ok: false, error: 'Which file?' }
+
+  await createAdminClient().storage.from(FILE_BUCKET).remove([file.path])
+  const { error } = await who.supabase.from('class_files').delete().eq('id', fileId)
+  if (error) return { ok: false, error: 'The file could not be removed.' }
+
+  revalidatePath(`/class/${classId}`)
+  revalidatePath('/class')
+  return { ok: true, classId }
+}
+
+/**
+ * A short-lived download link. Reading the row as the user is the check —
+ * the policy lets the class's teacher and students see it and nobody else —
+ * and only then is a link signed with the service role.
+ */
+export async function classFileLink(fileId: string): Promise<{ ok: true; url: string } | { ok: false }> {
+  const user = await getVerifiedUser()
+  if (!user || !hasSupabaseSecretKey()) return { ok: false }
+  const supabase = await createClient()
+  const { data: file } = await supabase
+    .from('class_files')
+    .select('path, name')
+    .eq('id', fileId)
+    .maybeSingle()
+  if (!file) return { ok: false }
+  const { data } = await createAdminClient()
+    .storage.from(FILE_BUCKET)
+    .createSignedUrl(file.path, 600, { download: file.name })
+  return data ? { ok: true, url: data.signedUrl } : { ok: false }
 }

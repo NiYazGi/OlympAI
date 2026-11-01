@@ -25,9 +25,9 @@ export type Database = {
         Relationships: []
       }
       tasks: {
-        Row: { id: string; subject_id: string; topic_id: string; title: string; problem: string; difficulty: number; official_solution: string | null; hints: string[]; source: string | null; estimated_minutes: number | null; given: string[]; find_prompt: string | null; diagram_url: string | null; source_url: string | null; licence: string; attribution: string | null; level: string | null; derived_from: string | null; paper: string | null; created_at: string }
-        Insert: { id: string; subject_id: string; topic_id: string; title: string; problem: string; difficulty: number; official_solution?: string | null; hints?: string[]; source?: string | null; estimated_minutes?: number | null; given?: string[]; find_prompt?: string | null; diagram_url?: string | null; source_url?: string | null; licence?: string; attribution?: string | null; level?: string | null; derived_from?: string | null; paper?: string | null; created_at?: string }
-        Update: { subject_id?: string; topic_id?: string; title?: string; problem?: string; difficulty?: number; official_solution?: string | null; hints?: string[]; source?: string | null; estimated_minutes?: number | null; given?: string[]; find_prompt?: string | null; diagram_url?: string | null; source_url?: string | null; licence?: string; attribution?: string | null; level?: string | null; derived_from?: string | null; paper?: string | null }
+        Row: { id: string; subject_id: string; topic_id: string; title: string; problem: string; difficulty: number; official_solution: string | null; hints: string[]; source: string | null; estimated_minutes: number | null; given: string[]; find_prompt: string | null; diagram_url: string | null; source_url: string | null; licence: string; attribution: string | null; level: string | null; derived_from: string | null; paper: string | null; class_id: string | null; created_by: string | null; created_at: string }
+        Insert: { id: string; subject_id: string; topic_id: string; title: string; problem: string; difficulty: number; official_solution?: string | null; hints?: string[]; source?: string | null; estimated_minutes?: number | null; given?: string[]; find_prompt?: string | null; diagram_url?: string | null; source_url?: string | null; licence?: string; attribution?: string | null; level?: string | null; derived_from?: string | null; paper?: string | null; class_id?: string | null; created_by?: string | null; created_at?: string }
+        Update: { subject_id?: string; topic_id?: string; title?: string; problem?: string; difficulty?: number; official_solution?: string | null; hints?: string[]; source?: string | null; estimated_minutes?: number | null; given?: string[]; find_prompt?: string | null; diagram_url?: string | null; source_url?: string | null; licence?: string; attribution?: string | null; level?: string | null; derived_from?: string | null; paper?: string | null; class_id?: string | null }
         Relationships: []
       }
       lessons: {
@@ -183,6 +183,14 @@ export type Database = {
         Row: { user_id: string; day: string; created_at: string }
         Insert: { user_id: string; day: string; created_at?: string }
         Update: { day?: string }
+        Relationships: []
+      }
+      class_files: {
+        // A class's handouts. The bytes are in the private `class-files`
+        // bucket; this row is what decides who may get a signed link.
+        Row: { id: string; class_id: string; path: string; name: string; size: number; mime: string; uploaded_by: string | null; created_at: string }
+        Insert: { id?: string; class_id: string; path: string; name: string; size: number; mime: string; uploaded_by?: string | null; created_at?: string }
+        Update: { name?: string }
         Relationships: []
       }
       class_track_tasks: {

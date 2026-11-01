@@ -8,6 +8,8 @@ import { PageHeader } from '@/components/page-header'
 import { Reveal } from '@/components/reveal'
 import { BlockSkeleton, ListSkeleton, PendingRegion } from '@/components/skeletons'
 import { getMemberships, getTeacherClasses } from '@/lib/supabase/classes'
+import { getClassMaterials } from '@/lib/supabase/class-materials'
+import { ClassMaterialsPanel } from '@/components/class/class-materials'
 import { getCurrentProfile } from '@/lib/supabase/queries'
 import { getReference } from '@/lib/supabase/reference'
 import { getT } from '@/lib/i18n'
@@ -143,6 +145,10 @@ async function StudentClasses() {
         </ul>
       )}
 
+      {memberships.map((row) => (
+        <ClassMaterialsSection key={row.id} classId={row.id} name={row.name} />
+      ))}
+
       <section className={cn(cardClass, 'p-5 sm:p-6')}>
         <h2 className={labelClass}>{t.classes.joinTitle}</h2>
         <p className="mt-2 mb-4 text-sm text-muted-foreground">{t.classes.joinNote}</p>
@@ -151,5 +157,21 @@ async function StudentClasses() {
 
       <p className="text-sm leading-6 text-pretty text-muted-foreground">{t.classes.privacyNote}</p>
     </>
+  )
+}
+
+/** What the teacher of one class has added: their problems and their files. */
+async function ClassMaterialsSection({ classId, name }: { classId: string; name: string }) {
+  const [materials, t] = await Promise.all([getClassMaterials(classId), getT()])
+  return (
+    <section className={cn(cardClass, 'p-5 sm:p-6')}>
+      <h2 className="font-display text-block font-semibold">{t.classMaterials.title}</h2>
+      <p className="mt-1 text-ui text-muted-foreground">
+        {name}. {t.classMaterials.studentNote}
+      </p>
+      <div className="mt-5">
+        <ClassMaterialsPanel classId={classId} materials={materials} editable={false} />
+      </div>
+    </section>
   )
 }

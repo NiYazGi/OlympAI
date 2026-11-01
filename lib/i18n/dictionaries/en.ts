@@ -1152,6 +1152,38 @@ export const en = {
    * problems solved, accuracy, sections, when they were last here — and there
    * is no rank and no total: a class is not a table of who is winning.
    */
+  classMaterials: {
+    title: 'Class material',
+    note: 'Your own problems and files. Only this class sees them; a problem here is graded line by line like any other.',
+    studentNote: 'Problems and files from your teacher.',
+    problems: 'Problems',
+    files: 'Files',
+    noProblems: 'No problems of your own yet.',
+    noFiles: 'No files yet.',
+    studentEmpty: 'Your teacher has not added anything yet.',
+    addProblem: 'Add a problem',
+    titleLabel: 'Title',
+    titlePlaceholder: 'For example: Friday homework, problem 2',
+    topicLabel: 'Section',
+    problemLabel: 'Statement',
+    problemHint: 'Formulas between dollar signs: $v_0 = \\sqrt{2gh}$.',
+    solutionLabel: 'Reference solution (optional)',
+    solutionHint: 'Students never see it; the grader marks against it.',
+    difficultyLabel: 'Difficulty',
+    save: 'Save problem',
+    saving: 'Saving…',
+    cancel: 'Cancel',
+    remove: 'Remove',
+    upload: 'Upload a file',
+    uploading: 'Uploading…',
+    uploadHint: 'PDF, images, Word, PowerPoint or text, up to 20 MB.',
+    uploadFailed: 'The file could not be uploaded. Try again.',
+    download: 'Download',
+    linkFailed: 'The file could not be opened. Try again.',
+    confirmRemoveProblem: 'Remove this problem? Attempts at it are removed too.',
+    confirmRemoveFile: 'Remove this file?',
+  },
+
   classes: {
     title: 'Classes',
     description: 'Your classes, and how each student is getting on.',

@@ -164,7 +164,10 @@ export const getTaskDetail = cache(async (slug: string): Promise<TaskDetail | nu
   if (!hasSupabaseEnv()) return null
   const [reference, attempts] = await Promise.all([getReference(), getAttempts()])
 
-  const task = reference.tasks.find((entry) => entry.id === slug)
+  // A class's own problem is not in the shared catalogue; it is read as this
+  // user, so the row policy decides whether they are in the class.
+  const task =
+    reference.tasks.find((entry) => entry.id === slug) ?? (await getClassTask(slug))
   if (!task) return null
 
   const history = attempts.filter((attempt) => attempt.task_id === slug)
@@ -192,6 +195,20 @@ export const getTaskDetail = cache(async (slug: string): Promise<TaskDetail | nu
     attribution: task.attribution,
   }
 })
+
+async function getClassTask(id: string) {
+  if (!id.startsWith('class-')) return null
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('tasks')
+    .select(
+      'id, subject_id, topic_id, title, problem, difficulty, hints, source, estimated_minutes, given, find_prompt, diagram_url, source_url, licence, attribution',
+    )
+    .eq('id', id)
+    .not('class_id', 'is', null)
+    .maybeSingle()
+  return data ? { ...data, level: null, paper: null } : null
+}
 
 export type AttemptSummary = {
   id: string
