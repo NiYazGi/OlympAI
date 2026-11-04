@@ -6,16 +6,26 @@ import { getReference } from '@/lib/supabase/reference'
 import { createClient } from '@/lib/supabase/server'
 import { getLocale } from '@/lib/i18n/server'
 
-import type { Competition } from '@/lib/types'
+import type { Competition, CompetitionSource } from '@/lib/types'
+import type { Json } from '@/lib/supabase/database.types'
 
 export type { Competition } from '@/lib/types'
 
-/**
- * The Olympiads page used to render four invented competitions with invented
- * dates and an invented readiness percentage, plus a Register button wired to
- * nothing. It now reads the competitions table, which ships empty on purpose:
- * an empty page is correct, a page of plausible fictional dates is not.
- */
+/** Read only labelled HTTPS sources, including for older, unsourced entries. */
+function readSources(value: Json): CompetitionSource[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return []
+    const { title, url } = entry
+    if (typeof title !== 'string' || typeof url !== 'string' || !title.trim()) return []
+    try {
+      if (new URL(url).protocol !== 'https:') return []
+    } catch {
+      return []
+    }
+    return [{ title, url }]
+  })
+}
 /**
  * An olympiad stays listed until it is over: until its last day when it has
  * one, its first day when it does not. It used to vanish the morning it
@@ -48,18 +58,21 @@ const loadCompetitions = cache(async (includePast: boolean): Promise<Competition
       .order('name', { ascending: true }),
     getReference(),
     supabase.from('competition_registrations').select('competition_id').eq('user_id', userId),
-    // The write-up in the reader's language. One with no row for this locale
-    // renders its facts and no prose, which is the honest state.
+    // Prefer the requested translation; researched Russian text remains
+    // available when English or Kazakh has not yet been supplied.
     supabase
       .from('competition_details')
-      .select('competition_id, summary, format, route, eligibility')
-      .eq('locale', locale),
+      .select('competition_id, locale, summary, format, route, eligibility')
+      .in('locale', locale === 'ru' ? ['ru'] : [locale, 'ru']),
   ])
   const listed = (competitions ?? []).filter((row) => includePast || stillOn(row, today))
   if (!listed.length) return []
 
   const registered = new Set((registrations ?? []).map((row) => row.competition_id))
-  const detailOf = new Map((details ?? []).map((row) => [row.competition_id, row]))
+  const detailOf = new Map<string, NonNullable<typeof details>[number]>()
+  for (const row of details ?? []) {
+    if (!detailOf.has(row.competition_id) || row.locale === locale) detailOf.set(row.competition_id, row)
+  }
 
   // Readiness is accuracy in the competition's subject, computed from real
   // attempts. Null when there is nothing to compute it from, so the page can
@@ -100,6 +113,9 @@ const loadCompetitions = cache(async (includePast: boolean): Promise<Competition
       founded: competition.founded,
       officialUrl: competition.official_url,
       papersUrl: competition.papers_url,
+      sources: readSources(competition.sources),
+      reviewedOn: competition.reviewed_on,
+      detailsLocale: detail?.locale ?? null,
       summary: detail?.summary ?? null,
       format: detail?.format ?? null,
       route: detail?.route ?? null,

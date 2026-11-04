@@ -33,12 +33,12 @@ export async function SuluWorkspace({
   const locale = await getLocale()
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-8.5rem)] max-w-7xl gap-6 p-3 sm:p-8 md:h-dvh">
+    <div className="mx-auto flex h-[calc(100dvh-8.5rem)] max-w-7xl gap-6 p-3 sm:p-8 md:h-[calc(100dvh-5rem)]">
       <aside className="hidden w-64 shrink-0 flex-col rounded-2xl bg-card p-3 shadow-key lg:flex">
         <Link
           href="/sulu-ai"
           className={cn(
-            'flex items-center justify-center gap-2 rounded-lg bg-mist px-3 py-2 text-[13px] font-medium text-primary-foreground shadow-button transition-colors hover:bg-white',
+            'flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-[13px] font-medium text-primary-foreground shadow-button transition-colors hover:bg-primary/90',
           )}
         >
           <MessageSquarePlus className="size-4" /> {t('New conversation')}
@@ -60,8 +60,8 @@ export async function SuluWorkspace({
                 className={cn(
                   'block w-full rounded-xl px-3 py-3 text-left transition-colors',
                   session.id === activeSessionId
-                    ? 'bg-white/[0.07] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]'
-                    : 'hover:bg-white/[0.04]',
+                    ? 'bg-foreground/[0.07] text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]'
+                    : 'hover:bg-foreground/[0.04]',
                 )}
               >
                 <p className="truncate text-sm font-medium">{session.title}</p>
@@ -75,14 +75,14 @@ export async function SuluWorkspace({
       </aside>
 
       <section className="flex min-w-0 flex-1 flex-col">
-        <header className="mb-3 flex flex-wrap items-center gap-3 border-b border-white/[0.06] pb-4 sm:mb-5 sm:pb-5">
+        <header className="mb-3 flex flex-wrap items-center gap-3 border-b border-foreground/[0.06] pb-4 sm:mb-5 sm:pb-5">
           <div className="relative flex size-11 items-center justify-center rounded-full bg-card shadow-key">
             <span aria-hidden className="breathe absolute inset-0 rounded-full bg-coral/25 blur-lg" />
             <SuluGlyph className="relative size-6" />
           </div>
           <div className="min-w-0">
             <h1 className="flex items-center gap-2 text-lg font-medium">
-              {t('Sulu')} <span className="rounded-md bg-coral px-1.5 py-0.5 text-[10px] font-semibold text-void">{t('AI')}</span>
+              {t('Sulu')} <span className="rounded-md bg-coral px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">{t('AI')}</span>
             </h1>
             <p className="text-sm text-muted-foreground">{t('Your olympiad reasoning partner')}</p>
           </div>
@@ -119,7 +119,7 @@ export async function SuluWorkspace({
         {task ? (
           <Link
             href={`/tasks/${task.id}`}
-            className="mb-3 flex items-center gap-2 rounded-lg bg-white/[0.04] px-3 py-2 text-sm shadow-key transition-colors hover:bg-white/[0.07]"
+            className="mb-3 flex items-center gap-2 rounded-lg bg-foreground/[0.04] px-3 py-2 text-sm shadow-key transition-colors hover:bg-foreground/[0.07]"
           >
             <ArrowLeft className="size-3.5 shrink-0 text-muted-foreground" />
             <span className="text-muted-foreground">{t('About the task')}</span>

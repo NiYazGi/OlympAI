@@ -26,7 +26,7 @@ export function AttemptControls({ id, score }: { id: string; score: number }) {
           onChange={(event) => setValue(event.target.value.replace(/[^0-9]/g, '').slice(0, 3))}
           inputMode="numeric"
           aria-label={t('Score')}
-          className="h-7 w-12 rounded-md bg-white/[0.05] px-2 text-right font-mono text-xs text-white outline-none focus:ring-2 focus:ring-white/10"
+          className="h-7 w-12 rounded-md bg-foreground/[0.05] px-2 text-right font-mono text-xs text-foreground outline-none focus:ring-2 focus:ring-foreground/10"
         />
         <button
           type="button"
@@ -38,7 +38,7 @@ export function AttemptControls({ id, score }: { id: string; score: number }) {
             })
           }
           aria-label={t('Save score')}
-          className="rounded-md p-1.5 text-smoke transition-colors hover:bg-white/[0.06] hover:text-white disabled:opacity-30"
+          className="rounded-md p-1.5 text-smoke transition-colors hover:bg-foreground/[0.06] hover:text-foreground disabled:opacity-30"
         >
           {pending ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
         </button>

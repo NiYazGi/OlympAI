@@ -70,9 +70,9 @@ export default async function AdminClassesPage() {
               <details key={row.id} className={cn(cardClass, 'group overflow-hidden')}>
                 <summary className="flex cursor-pointer list-none items-center gap-4 px-5 py-4">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-white">{row.name}</p>
+                    <p className="truncate text-sm font-medium text-foreground">{row.name}</p>
                     <p className="mt-1 truncate text-xs text-ash">
-                      <Link href={`/admin/users/${row.teacher_id}`} className="hover:text-white">
+                      <Link href={`/admin/users/${row.teacher_id}`} className="hover:text-foreground">
                         {row.teacher || row.teacher_email}
                       </Link>
                       {row.subject ? ` · ${t(row.subject)}` : ''} · {shortDate(row.created_at, locale)}
@@ -82,12 +82,12 @@ export default async function AdminClassesPage() {
                     {row.join_code} · {t('{n} students', { n: row.members })} · {t('{n} problems', { n: row.tasks })} · {t('{n} files', { n: row.files })}
                   </span>
                 </summary>
-                <div className="border-t border-white/[0.06] px-5 py-4">
+                <div className="border-t border-foreground/[0.06] px-5 py-4">
                   {roster.length ? (
-                    <ul className="divide-y divide-white/[0.04]">
+                    <ul className="divide-y divide-foreground/[0.04]">
                       {roster.map((member) => (
                         <li key={member.student_id} className="flex items-center gap-3 py-2.5">
-                          <Link href={`/admin/users/${member.student_id}`} className="min-w-0 flex-1 truncate text-sm text-white hover:underline">
+                          <Link href={`/admin/users/${member.student_id}`} className="min-w-0 flex-1 truncate text-sm text-foreground hover:underline">
                             {member.name || member.email}
                           </Link>
                           <span className="shrink-0 font-mono text-[11px] text-smoke">

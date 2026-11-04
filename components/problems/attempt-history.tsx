@@ -39,9 +39,9 @@ export function AttemptHistory({
       <ul className="mt-3 space-y-2">
         {attempts.map((attempt, index) => (
           <li key={attempt.id}>
-            <details className="group rounded-lg bg-white/[0.03] ring-1 ring-foreground/10" open={index === 0}>
+            <details className="group rounded-lg bg-foreground/[0.03] ring-1 ring-foreground/10" open={index === 0}>
               <summary className="flex cursor-pointer list-none items-center gap-3 px-3 py-2.5 text-sm">
-                <span className="w-4 shrink-0 text-center font-mono text-white" aria-hidden>
+                <span className="w-4 shrink-0 text-center font-mono text-foreground" aria-hidden>
                   {SIGN[attempt.verdict]}
                 </span>
                 <span
@@ -92,7 +92,7 @@ export function AttemptHistory({
         <div className="mt-4 space-y-2">
           <h3 className="text-xs font-medium text-muted-foreground">{t('Your reports')}</h3>
           {reports.map((report) => (
-            <div key={report.id} className="rounded-lg bg-white/[0.03] p-3 text-sm ring-1 ring-foreground/10">
+            <div key={report.id} className="rounded-lg bg-foreground/[0.03] p-3 text-sm ring-1 ring-foreground/10">
               <p className="text-xs text-muted-foreground">
                 {report.kind === 'grading' ? t('Check') : t('Statement')} ·{' '}
                 {report.status === 'open'

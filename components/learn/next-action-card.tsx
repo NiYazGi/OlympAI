@@ -53,7 +53,7 @@ export async function NextActionCard({
         <div
           className={cn(
             'flex size-11 shrink-0 items-center justify-center rounded-full',
-            hero ? 'bg-coral text-void' : 'bg-graphite text-mist',
+            hero ? 'bg-coral text-primary-foreground' : 'bg-graphite text-mist',
           )}
         >
           <Icon className="size-5" />
@@ -63,26 +63,26 @@ export async function NextActionCard({
           <p
             className={cn(
               'eyebrow',
-              hero && 'text-[#ffb3b3]',
+              hero && 'text-destructive',
             )}
           >
             {t('Do this now')}
           </p>
           <h2
             className={cn(
-              'mt-2 leading-tight text-balance text-white',
+              'mt-2 leading-tight text-balance text-foreground',
               hero ? 'text-[28px] font-normal' : 'text-lg font-medium',
             )}
           >
             {action.label}
           </h2>
-          <p className={cn('mt-1 text-sm', hero ? 'text-white/70' : 'text-muted-foreground')}>
+          <p className={cn('mt-1 text-sm', hero ? 'text-foreground/70' : 'text-muted-foreground')}>
             {action.detail}
           </p>
           <p
             className={cn(
               'mt-3 border-l-2 pl-3 text-sm leading-6 text-pretty',
-              hero ? 'border-coral/40 text-white/70' : 'border-white/10 text-muted-foreground',
+              hero ? 'border-coral/40 text-foreground/70' : 'border-foreground/10 text-muted-foreground',
             )}
           >
             {action.why}

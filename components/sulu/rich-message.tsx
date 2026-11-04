@@ -55,11 +55,11 @@ function inline(text: string, keyPrefix: string): ReactNode[] {
     if (match.index > last) out.push(text.slice(last, match.index))
     out.push(
       match[1] !== undefined ? (
-        <strong key={`${keyPrefix}-${match.index}`} className="font-semibold text-white">
+        <strong key={`${keyPrefix}-${match.index}`} className="font-semibold text-foreground">
           {match[1]}
         </strong>
       ) : (
-        <code key={`${keyPrefix}-${match.index}`} className="rounded bg-white/[0.06] px-1 font-mono text-[0.92em]">
+        <code key={`${keyPrefix}-${match.index}`} className="rounded bg-foreground/[0.06] px-1 font-mono text-[0.92em]">
           {match[2]}
         </code>
       ),
@@ -115,7 +115,7 @@ function Blocks({ text, katex }: { text: string; katex: Katex | null }) {
                 {j > 0 ? <br /> : null}
                 {/* Headings are not part of the coach's register; show them as bold lines. */}
                 {/^#{1,6}\s/.test(line) ? (
-                  <strong className="font-semibold text-white">
+                  <strong className="font-semibold text-foreground">
                     <Line text={line.replace(/^#{1,6}\s+/, '')} katex={katex} />
                   </strong>
                 ) : (

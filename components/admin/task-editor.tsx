@@ -215,7 +215,7 @@ export function TaskEditor({
       </div>
 
       <div className={cn(cardClass, 'p-5 sm:p-6 lg:sticky lg:top-20')}>
-        <div className="flex gap-1 rounded-lg bg-white/[0.03] p-1">
+        <div className="flex gap-1 rounded-lg bg-foreground/[0.03] p-1">
           {(['problem', 'solution'] as const).map((value) => (
             <button
               key={value}
@@ -223,14 +223,14 @@ export function TaskEditor({
               onClick={() => setPreview(value)}
               className={cn(
                 'flex-1 rounded-md px-3 py-1.5 text-[13px] transition-colors',
-                preview === value ? 'bg-white/[0.08] text-white' : 'text-ash hover:text-white',
+                preview === value ? 'bg-foreground/[0.08] text-foreground' : 'text-ash hover:text-foreground',
               )}
             >
               {value === 'problem' ? t('Statement preview') : t('Solution preview')}
             </button>
           ))}
         </div>
-        <div className="mt-4 max-h-[70vh] overflow-y-auto text-[15px] text-white">
+        <div className="mt-4 max-h-[70vh] overflow-y-auto text-[15px] text-foreground">
           {(preview === 'problem' ? problem : solution).trim() ? (
             <MathText text={preview === 'problem' ? problem : solution} />
           ) : (

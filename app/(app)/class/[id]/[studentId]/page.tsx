@@ -151,7 +151,7 @@ async function Student({ classId, studentId }: { classId: string; studentId: str
                   <Link
                     href={`/tasks/${attempt.taskId}`}
                     prefetch={false}
-                    className={cn(cardClass, 'transition-colors hover:bg-white/[0.04]', 'flex items-center gap-3 p-3.5')}
+                    className={cn(cardClass, 'transition-colors hover:bg-foreground/[0.04]', 'flex items-center gap-3 p-3.5')}
                   >
                     <span
                       className={cn(

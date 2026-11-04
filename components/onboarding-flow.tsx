@@ -242,7 +242,7 @@ export function OnboardingFlow({ next }: { next?: string }) {
         </div>
 
         <div
-          className="mt-6 h-1 overflow-hidden rounded-full bg-white/[0.08]"
+          className="mt-6 h-1 overflow-hidden rounded-full bg-foreground/[0.08]"
           role="progressbar"
           aria-valuenow={progress}
           aria-valuemin={0}
@@ -250,7 +250,7 @@ export function OnboardingFlow({ next }: { next?: string }) {
           aria-label={t('Setup progress')}
         >
           <div
-            className="h-full rounded-full bg-mist transition-[width] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            className="h-full rounded-full bg-primary transition-[width] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
             style={{ width: `${Math.max(progress, 4)}%` }}
           />
         </div>
@@ -265,7 +265,7 @@ export function OnboardingFlow({ next }: { next?: string }) {
               <h1
                 ref={headingRef}
                 tabIndex={-1}
-                className="mt-4 text-[32px] leading-[1.15] font-normal text-white outline-none sm:text-[40px]"
+                className="mt-4 text-[32px] leading-[1.15] font-normal text-foreground outline-none sm:text-[40px]"
               >
                 {t(current!.title)}
               </h1>
@@ -283,21 +283,21 @@ export function OnboardingFlow({ next }: { next?: string }) {
                       className={cn(
                         'spotlight rise flex min-h-14 items-center gap-3 rounded-xl bg-card p-4 text-left transition-all duration-200',
                         active
-                          ? 'bg-white/[0.07] shadow-key-strong'
-                          : 'shadow-key hover:bg-white/[0.04]',
+                          ? 'bg-foreground/[0.07] shadow-key-strong'
+                          : 'shadow-key hover:bg-foreground/[0.04]',
                       )}
                     >
                       <span
                         className={cn(
                           'kbd shrink-0 tabular-nums',
                           active
-                            ? 'bg-mist text-[#1b1c1e]'
+                            ? 'bg-primary text-primary-foreground'
                             : '',
                         )}
                       >
                         {active ? <Check className="size-3" /> : index + 1}
                       </span>
-                      <span className="font-medium text-white">{t(option)}</span>
+                      <span className="font-medium text-foreground">{t(option)}</span>
                     </button>
                   )
                 })}
@@ -307,7 +307,7 @@ export function OnboardingFlow({ next }: { next?: string }) {
           )}
 
           {error ? (
-            <p role="alert" className="mt-4 rounded-lg bg-ember/60 p-3 text-sm text-[#ffb3b3] shadow-key">
+            <p role="alert" className="mt-4 rounded-lg bg-ember/60 p-3 text-sm text-destructive shadow-key">
               {error}
             </p>
           ) : null}
@@ -366,14 +366,14 @@ function ReviewStep({
   return (
     <>
       <p className="eyebrow">{t('Almost there')}</p>
-      <h1 className="mt-4 text-[32px] leading-[1.15] font-normal text-white sm:text-[40px]">
+      <h1 className="mt-4 text-[32px] leading-[1.15] font-normal text-foreground sm:text-[40px]">
         {t('Does this look right?')}
       </h1>
       <p className="mt-3 text-ash">
         {answeredCount} {t('of')} {steps.length} {t('answered. Change anything you like — none of it is permanent.')}
       </p>
 
-      <dl className="mt-7 divide-y divide-white/[0.06] overflow-hidden rounded-2xl bg-card shadow-key">
+      <dl className="mt-7 divide-y divide-foreground/[0.06] overflow-hidden rounded-2xl bg-card shadow-key">
         {steps.map((entry, index) => {
           const value = answers[entry.key]
           return (
@@ -384,7 +384,7 @@ function ReviewStep({
                 </dt>
                 <dd
                   className={cn(
-                    'mt-1.5 truncate font-medium text-white',
+                    'mt-1.5 truncate font-medium text-foreground',
                     !value && 'font-normal italic text-muted-foreground',
                   )}
                 >
@@ -394,7 +394,7 @@ function ReviewStep({
               <button
                 type="button"
                 onClick={() => onEdit(index)}
-                className="flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-ash transition-colors hover:bg-white/[0.06] hover:text-white"
+                className="flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-ash transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
               >
                 <Pencil className="size-3.5" />
                 {t('Change')}

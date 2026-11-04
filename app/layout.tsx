@@ -30,18 +30,17 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  colorScheme: 'dark',
-  themeColor: '#040506',
+  colorScheme: 'light',
+  themeColor: '#f7f8fb',
 }
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const locale = await getLocale()
 
   return (
-    // Dark only: the design has no light theme.
     <html
       lang={locale}
-      className={`${inter.variable} ${geistMono.variable} dark bg-background`}
+      className={`${inter.variable} ${geistMono.variable} bg-background`}
       suppressHydrationWarning
     >
       <head>

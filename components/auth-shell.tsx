@@ -30,7 +30,7 @@ export function AuthShell({ children, title, eyebrow }: { children: React.ReactN
           <LanguageSwitcher />
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-[13px] text-ash transition-colors hover:text-white"
+            className="inline-flex items-center gap-1.5 text-[13px] text-ash transition-colors hover:text-foreground"
           >
             <ArrowLeft className="size-3.5" /> {t('Back home')}
           </Link>
@@ -45,7 +45,7 @@ export function AuthShell({ children, title, eyebrow }: { children: React.ReactN
               <BrandGlyph className="relative size-7" />
             </span>
             <p className="eyebrow">{eyebrow}</p>
-            <h1 className="mt-3 text-2xl font-normal text-white" style={delay(80)}>
+            <h1 className="mt-3 text-2xl font-normal text-foreground" style={delay(80)}>
               {title}
             </h1>
           </div>

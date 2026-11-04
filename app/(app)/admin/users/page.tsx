@@ -73,7 +73,7 @@ export default async function AdminUsersPage({
       >
         <a
           href={`/api/admin/export?what=users`}
-          className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-white/[0.03] px-3 text-sm text-white shadow-key hover:bg-white/[0.07]"
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-foreground/[0.03] px-3 text-sm text-foreground shadow-key hover:bg-foreground/[0.07]"
         >
           <Download className="size-4" /> {t('Export CSV')}
         </a>
@@ -100,7 +100,7 @@ export default async function AdminUsersPage({
               href={query({ sort: value === 'newest' ? undefined : value })}
               className={cn(
                 'shrink-0 rounded-lg px-3 py-1.5 text-[13px] transition-colors',
-                sort === value ? 'bg-white/[0.08] text-white' : 'text-ash hover:text-white',
+                sort === value ? 'bg-foreground/[0.08] text-foreground' : 'text-ash hover:text-foreground',
               )}
             >
               {t(option.label)}
@@ -118,7 +118,7 @@ export default async function AdminUsersPage({
               href={query({ filter: value === 'all' ? undefined : value })}
               className={cn(
                 'rounded-lg px-2.5 py-1.5 text-xs transition-colors',
-                filter === value ? 'bg-mist text-primary-foreground' : 'bg-white/[0.04] text-ash hover:text-white',
+                filter === value ? 'bg-primary text-primary-foreground' : 'bg-foreground/[0.04] text-ash hover:text-foreground',
               )}
             >
               {t(option.label)} <span className="tabular-nums opacity-70">{count}</span>
@@ -132,7 +132,7 @@ export default async function AdminUsersPage({
           <div className="overflow-x-auto">
             <table className="w-full min-w-[860px] text-left text-sm">
               <thead>
-                <tr className="border-b border-white/[0.06]">
+                <tr className="border-b border-foreground/[0.06]">
                   {['Account', 'Role', 'Attempts', 'Joined', 'Last visit', 'Admin'].map((head) => (
                     <th key={head} className="eyebrow px-5 py-3 font-normal">
                       {t(head)}
@@ -140,16 +140,16 @@ export default async function AdminUsersPage({
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/[0.04]">
+              <tbody className="divide-y divide-foreground/[0.04]">
                 {shown.map((row) => (
-                  <tr key={row.id} className="transition-colors hover:bg-white/[0.02]">
+                  <tr key={row.id} className="transition-colors hover:bg-foreground/[0.02]">
                     <td className="px-5 py-3">
                       <Link href={`/admin/users/${row.id}`} prefetch className="flex items-center gap-3">
                         <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-graphite text-[11px] font-medium text-mist">
                           {initials(row.full_name || row.username || row.email)}
                         </span>
                         <div className="min-w-0">
-                          <p className="truncate text-white hover:underline">
+                          <p className="truncate text-foreground hover:underline">
                             {displayName(row, t)}
                             {row.id === me ? <span className="ml-2 text-xs text-smoke">{t('you')}</span> : null}
                           </p>
@@ -166,7 +166,7 @@ export default async function AdminUsersPage({
                         {!row.onboarding_completed_at ? <Badge tone="muted">{t('not onboarded')}</Badge> : null}
                       </span>
                     </td>
-                    <td className="px-5 py-3 font-mono text-[13px] text-white tabular-nums">
+                    <td className="px-5 py-3 font-mono text-[13px] text-foreground tabular-nums">
                       {row.attempts}
                       {row.avg_score !== null ? <span className="ml-1.5 text-smoke">· {row.avg_score}</span> : null}
                     </td>
@@ -191,7 +191,7 @@ export default async function AdminUsersPage({
       {pages > 1 ? (
         <nav className="flex items-center justify-center gap-2 text-sm" aria-label={t('Pages')}>
           {page > 1 ? (
-            <Link href={query({ page: String(page - 1) })} className="rounded-lg px-3 py-1.5 text-ash hover:text-white">
+            <Link href={query({ page: String(page - 1) })} className="rounded-lg px-3 py-1.5 text-ash hover:text-foreground">
               ← {t('Previous')}
             </Link>
           ) : null}
@@ -199,7 +199,7 @@ export default async function AdminUsersPage({
             {page} / {pages}
           </span>
           {page < pages ? (
-            <Link href={query({ page: String(page + 1) })} className="rounded-lg px-3 py-1.5 text-ash hover:text-white">
+            <Link href={query({ page: String(page + 1) })} className="rounded-lg px-3 py-1.5 text-ash hover:text-foreground">
               {t('Next')} →
             </Link>
           ) : null}
@@ -216,7 +216,7 @@ function Badge({ tone, children }: { tone: 'coral' | 'warning' | 'muted'; childr
         'rounded-md px-1.5 py-0.5 text-[11px]',
         tone === 'coral' && 'bg-coral/10 text-coral',
         tone === 'warning' && 'bg-warning/10 text-warning',
-        tone === 'muted' && 'bg-white/[0.05] text-smoke',
+        tone === 'muted' && 'bg-foreground/[0.05] text-smoke',
       )}
     >
       {children}

@@ -39,62 +39,95 @@
   --color-foreground: var(--foreground);
   --color-background: var(--background);
 
-  /* The Raycast-style palette, available as utilities (bg-ink, text-ash…). */
-  --color-void: #040506;
-  /* Ink is the card layer: one step above the page, not a hair above it.
-     Four near-blacks one shade apart read as one colour, and cards vanished. */
-  --color-ink: #0c0d0f;
-  --color-obsidian: #15161a;
-  --color-graphite: #1b1c1e;
-  --color-slate-edge: #2f3031;
-  --color-hairline: #363739;
-  /* Was #6a6b6c, which fails contrast on #040506 and made every caption
-     read as small print. */
-  --color-smoke: #8a8b8c;
-  --color-ash: #9c9c9d;
-  --color-mist: #e6e6e6;
-  --color-iron: #454647;
-  --color-coral: #ff6363;
-  --color-ember: #452324;
-  --color-sky: #63a1ff;
-  --color-cobalt: #143ca3;
-  --color-deep-space: #02193b;
-  --color-info: #56c2ff;
-  --color-success: #59d499;
-  --color-warning: #f5bf4f;
+  /* Legacy palette names resolve to semantic light-theme tokens. */
+  --color-void: var(--background);
+  --color-ink: var(--card);
+  --color-obsidian: var(--muted);
+  --color-graphite: var(--secondary);
+  --color-slate-edge: var(--border);
+  --color-hairline: var(--border);
+  --color-smoke: var(--muted-foreground);
+  --color-ash: var(--muted-foreground);
+  --color-mist: var(--foreground);
+  --color-iron: var(--border-strong);
+  --color-coral: var(--brand);
+  --color-ember: var(--brand-soft);
+  --color-sky: var(--info);
+  --color-cobalt: var(--cobalt);
+  --color-deep-space: var(--blue-soft);
+  --color-info: var(--info);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
 
   --radius-sm: 6px;
   --radius-md: 8px;
-  --radius-lg: 8px;
+  --radius-lg: 10px;
   --radius-xl: 12px;
   --radius-2xl: 16px;
   --radius-3xl: 20px;
   --radius-4xl: 9999px;
 
-  /* The keyboard-key stack: an inset top highlight, a hairline ring and an
-     inset bottom shade. Elevation comes from this, never from a drop shadow. */
-  --shadow-key:
-    rgba(255, 255, 255, 0.05) 0px 1px 0px 0px inset, rgba(255, 255, 255, 0.08) 0px 0px 0px 1px,
-    rgba(0, 0, 0, 0.2) 0px -1px 0px 0px inset;
-  --shadow-key-strong:
-    rgba(255, 255, 255, 0.07) 0px 1px 0px 0px inset, rgba(255, 255, 255, 0.16) 0px 0px 0px 1px,
-    rgba(0, 0, 0, 0.2) 0px -1px 0px 0px inset;
-  --shadow-button: rgba(0, 0, 0, 0.03) 0px 7px 3px 0px, rgba(0, 0, 0, 0.25) 0px 4px 4px 0px;
-  --shadow-window:
-    rgba(255, 255, 255, 0.1) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.4) 0px 30px 50px 0px,
-    rgba(3, 15, 129, 0.09) 0px 4px 24px 0px, rgba(255, 255, 255, 0.06) 0px 0px 0px 1px inset;
-  --shadow-pop:
-    rgba(0, 0, 0, 0.4) 0px 4px 40px 8px, rgba(0, 0, 0, 0.8) 0px 0px 0px 0.5px,
-    rgba(255, 255, 255, 0.12) 0px 0.5px 0px 0px inset;
+  --shadow-key: var(--surface-shadow);
+  --shadow-key-strong: var(--surface-shadow-strong);
+  --shadow-button: var(--button-shadow);
+  --shadow-window: var(--window-shadow);
+  --shadow-pop: var(--popover-shadow);
 }
 
-/*
- * One theme. The design is a dark command centre throughout, so there is no
- * light palette to fall back to: :root and .dark carry the same values, which
- * keeps every `dark:` variant in the shadcn primitives pointing at the same
- * colours as their defaults.
- */
-:root,
+/* Light is the default on every route, including login and marketing. */
+:root {
+  color-scheme: light;
+  --background: #f7f8fb;
+  --foreground: #171b27;
+  --card: #ffffff;
+  --card-foreground: #171b27;
+  --popover: #ffffff;
+  --popover-foreground: #171b27;
+  --primary: #d83a30;
+  --primary-foreground: #ffffff;
+  --secondary: #f0f2f6;
+  --secondary-foreground: #252b39;
+  --muted: #f0f2f6;
+  --muted-foreground: #666d7c;
+  --accent: #f0f2f6;
+  --accent-foreground: #171b27;
+  --destructive: #c83232;
+  --border: #e4e7ed;
+  --border-strong: #cdd2dc;
+  --input: #d9dde5;
+  --ring: #d83a30;
+  --brand: #d83a30;
+  --brand-soft: #fff0ee;
+  --info: #2563c7;
+  --cobalt: #244c9c;
+  --blue-soft: #edf3ff;
+  --success: #16794d;
+  --warning: #93600c;
+  --chart-1: #2563c7;
+  --chart-2: #16794d;
+  --chart-3: #7961bd;
+  --chart-4: #b07817;
+  --chart-5: #d83a30;
+  --radius: 0.75rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #171b27;
+  --sidebar-primary: #d83a30;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f3f4f7;
+  --sidebar-accent-foreground: #171b27;
+  --sidebar-border: #e4e7ed;
+  --sidebar-ring: #d83a30;
+  --surface-shadow: 0 0 0 1px #e4e7ed, 0 2px 6px -3px rgb(23 27 39 / 0.06);
+  --surface-shadow-strong: 0 0 0 1px #d9dde5, 0 4px 16px -8px rgb(23 27 39 / 0.12);
+  --button-shadow: 0 2px 4px -1px rgb(23 27 39 / 0.12);
+  --window-shadow: 0 0 0 1px #e4e7ed, 0 24px 60px -24px rgb(23 27 39 / 0.16);
+  --popover-shadow: 0 0 0 1px #e4e7ed, 0 12px 36px -12px rgb(23 27 39 / 0.18);
+  --glass: rgb(255 255 255 / 0.88);
+  --hero-wash: #edf3ff;
+  --hero-coral-opacity: 0.18;
+}
+
+/* Retain the dark palette for explicitly dark surfaces. */
 .dark {
   color-scheme: dark;
   --background: #040506;
@@ -131,6 +164,22 @@
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: rgba(255, 255, 255, 0.08);
   --sidebar-ring: rgba(255, 255, 255, 0.3);
+  --border-strong: #454647;
+  --brand: #ff6363;
+  --brand-soft: #452324;
+  --info: #63a1ff;
+  --cobalt: #143ca3;
+  --blue-soft: #02193b;
+  --success: #59d499;
+  --warning: #f5bf4f;
+  --surface-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 0 0 1px rgb(255 255 255 / 0.08);
+  --surface-shadow-strong: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 0 0 1px rgb(255 255 255 / 0.16);
+  --button-shadow: 0 4px 4px rgb(0 0 0 / 0.25);
+  --window-shadow: 0 30px 50px rgb(0 0 0 / 0.4), inset 0 0 0 1px rgb(255 255 255 / 0.06);
+  --popover-shadow: 0 4px 40px 8px rgb(0 0 0 / 0.4), 0 0 0 1px rgb(255 255 255 / 0.12);
+  --glass: rgb(7 8 10 / 0.8);
+  --hero-wash: #02193b;
+  --hero-coral-opacity: 1;
 }
 
 @layer base {
@@ -156,7 +205,7 @@
 
   ::selection {
     background: rgba(255, 99, 99, 0.28);
-    color: #ffffff;
+    color: var(--foreground);
   }
 
   html,
@@ -170,9 +219,9 @@
     height: 10px;
   }
   ::-webkit-scrollbar-thumb {
-    background: #1b1c1e;
+    background: var(--border-strong);
     border-radius: 9999px;
-    border: 2px solid #040506;
+    border: 2px solid var(--background);
   }
   ::-webkit-scrollbar-track {
     background: transparent;
@@ -198,20 +247,19 @@
 
   .surface-edge {
     background: transparent;
-    border: 1px solid #363739;
-    box-shadow: rgba(255, 255, 255, 0.05) 0px 1px 0px 0px inset;
+    border: 1px solid var(--border);
   }
 
   /* Warm tint for the few surfaces anchored to the brand colour. */
   .surface-ember {
-    background: linear-gradient(180deg, rgba(69, 35, 36, 0.55), rgba(69, 35, 36, 0.2));
+    background: var(--brand-soft);
     box-shadow:
       rgba(255, 99, 99, 0.12) 0px 1px 0px 0px inset,
       rgba(255, 99, 99, 0.18) 0px 0px 0px 1px;
   }
 
   .glass {
-    background: rgba(7, 8, 10, 0.6);
+    background: var(--glass);
     backdrop-filter: blur(48px) saturate(140%);
     -webkit-backdrop-filter: blur(48px) saturate(140%);
   }
@@ -224,12 +272,12 @@
     line-height: 1;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #9c9c9d;
+    color: var(--muted-foreground);
   }
 
   /* Headline text that fades from white into ash, the way the hero copy does. */
   .text-fade {
-    background: linear-gradient(180deg, #ffffff 30%, rgba(255, 255, 255, 0.55));
+    background: linear-gradient(180deg, var(--foreground) 30%, var(--muted-foreground));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -246,12 +294,9 @@
     border-radius: 6px;
     font-family: var(--font-mono);
     font-size: 11px;
-    color: #e6e6e6;
-    background: linear-gradient(180deg, #1b1c1e, #111214);
-    box-shadow:
-      rgba(0, 0, 0, 0.4) 0px 1.5px 0.5px 1.5px,
-      rgb(0, 0, 0) 0px 0px 0.5px 1px,
-      rgba(255, 255, 255, 0.15) 0px 1px 1px 0px inset;
+    color: var(--foreground);
+    background: var(--muted);
+    box-shadow: var(--surface-shadow);
   }
 }
 /*
@@ -532,8 +577,8 @@
   overflow: hidden;
   pointer-events: none;
   background:
-    radial-gradient(60% 50% at 50% 26%, rgba(4, 63, 150, 0.55), rgba(6, 18, 37, 0.2) 60%, transparent 80%),
-    #040506;
+    radial-gradient(60% 50% at 50% 26%, var(--hero-wash), transparent 80%),
+    var(--background);
 }
 
 .hero-atmosphere::after {
@@ -542,10 +587,11 @@
   position: absolute;
   inset: auto 0 0 0;
   height: 40%;
-  background: linear-gradient(180deg, transparent, #040506);
+  background: linear-gradient(180deg, transparent, var(--background));
 }
 
 .hero-bar {
+  opacity: var(--hero-coral-opacity);
   position: absolute;
   border-radius: 9999px;
   filter: blur(40px);
@@ -632,11 +678,11 @@
 }
 
 .nav-pill[data-scrolled='true'] {
-  background: rgba(7, 8, 10, 0.65);
-  border-color: #363739;
+  background: var(--glass);
+  border-color: var(--border);
   backdrop-filter: blur(48px) saturate(140%);
   -webkit-backdrop-filter: blur(48px) saturate(140%);
-  box-shadow: rgba(0, 0, 0, 0.4) 0px 8px 32px 0px;
+  box-shadow: var(--surface-shadow-strong);
 }
 
 /* Pointer spotlight on cards -------------------------------------------------- */
@@ -733,7 +779,7 @@
 }
 
 .text-shimmer {
-  background: linear-gradient(110deg, #9c9c9d 35%, #ffffff 50%, #9c9c9d 65%);
+  background: linear-gradient(110deg, var(--muted-foreground) 35%, var(--foreground) 50%, var(--muted-foreground) 65%);
   background-size: 200% 100%;
   -webkit-background-clip: text;
   background-clip: text;
@@ -810,7 +856,7 @@
   height: 1.1em;
   margin-left: 1px;
   vertical-align: -0.15em;
-  background: #ffffff;
+  background: var(--foreground);
   animation: caret 1s steps(1) infinite;
 }
 
@@ -858,10 +904,8 @@
   bottom: 0;
   left: 0;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.07);
-  box-shadow:
-    rgba(255, 255, 255, 0.08) 0 1px 0 inset,
-    rgba(255, 255, 255, 0.06) 0 0 0 1px;
+  background: var(--secondary);
+  box-shadow: var(--surface-shadow);
   pointer-events: none;
   transition:
     transform 480ms var(--ease-settle),

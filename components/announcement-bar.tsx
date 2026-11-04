@@ -40,7 +40,7 @@ export function AnnouncementBar({ text, tone }: { text: string; tone: 'info' | '
         'flex items-start gap-3 border-b px-4 py-2.5 text-sm sm:px-5',
         tone === 'warning'
           ? 'border-warning/20 bg-warning/10 text-warning'
-          : 'border-white/[0.06] bg-white/[0.03] text-mist',
+          : 'border-foreground/[0.06] bg-foreground/[0.03] text-mist',
       )}
     >
       <Icon className="mt-0.5 size-4 shrink-0" />

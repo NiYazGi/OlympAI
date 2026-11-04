@@ -109,7 +109,7 @@ export function QuizRunner({ quiz }: { quiz: TopicQuiz }) {
         {misses.length ? (
           <ul className="mx-auto mt-5 max-w-xl space-y-3 text-left">
             {misses.map((miss) => (
-              <li key={miss.id} className="rounded-lg bg-white/[0.03] p-4 text-sm ring-1 ring-foreground/10">
+              <li key={miss.id} className="rounded-lg bg-foreground/[0.03] p-4 text-sm ring-1 ring-foreground/10">
                 <p className="font-medium">{miss.prompt}</p>
                 <p className="mt-2 text-destructive">
                   <X className="mr-1 inline size-3.5" />
@@ -219,7 +219,7 @@ export function QuizRunner({ quiz }: { quiz: TopicQuiz }) {
         </ul>
 
         {error ? (
-          <p role="alert" className="mt-4 rounded-lg bg-ember/60 p-3 text-sm text-[#ffb3b3] shadow-key">
+          <p role="alert" className="mt-4 rounded-lg bg-ember/60 p-3 text-sm text-destructive shadow-key">
             {error}
           </p>
         ) : null}

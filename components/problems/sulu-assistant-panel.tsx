@@ -15,7 +15,7 @@ export async function SuluAssistantPanel({ taskId }: { taskId: string }) {
 
   return (
     <section className={`${cardClass} h-[36rem] overflow-hidden`}>
-      <div className="flex items-center gap-3 border-b border-white/[0.06] px-5 py-4">
+      <div className="flex items-center gap-3 border-b border-foreground/[0.06] px-5 py-4">
         <div className="flex size-8 items-center justify-center rounded-full bg-void shadow-key">
           <SuluGlyph className="size-5" />
         </div>

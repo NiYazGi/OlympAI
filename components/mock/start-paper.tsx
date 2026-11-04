@@ -39,7 +39,7 @@ export function StartPaper({ paper }: { paper: RealPaper }) {
             }
           })
         }}
-        className={cn(cardClass, 'transition-colors hover:bg-white/[0.04]', 'group flex w-full items-center gap-3 p-4 text-left')}
+        className={cn(cardClass, 'transition-colors hover:bg-foreground/[0.04]', 'group flex w-full items-center gap-3 p-4 text-left')}
       >
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-medium">

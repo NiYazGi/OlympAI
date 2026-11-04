@@ -205,7 +205,7 @@ function StudentLine({
   const weakest = student.weakest.find((entry) => entry.accuracy < WEAK_BELOW)
 
   return (
-    <li className={cn(cardClass, 'transition-colors hover:bg-white/[0.04]', 'flex items-center gap-2 pr-3')}>
+    <li className={cn(cardClass, 'transition-colors hover:bg-foreground/[0.04]', 'flex items-center gap-2 pr-3')}>
       <Link
         href={`/class/${classId}/${student.id}`}
         prefetch={false}

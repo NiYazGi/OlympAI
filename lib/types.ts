@@ -109,6 +109,8 @@ export type ChatSessionSummary = {
 
 export type StoredMessage = { id: string; role: 'user' | 'assistant'; content: string }
 
+export type CompetitionSource = { title: string; url: string }
+
 export type Competition = {
   id: string
   slug: string | null
@@ -128,7 +130,10 @@ export type Competition = {
   founded: number | null
   officialUrl: string | null
   papersUrl: string | null
-  /** The write-up, in the reader's language. Null when none has been written. */
+  sources: CompetitionSource[]
+  reviewedOn: string | null
+  /** The selected translation, or the canonical Russian write-up as fallback. */
+  detailsLocale: string | null
   summary: string | null
   format: string | null
   route: string | null

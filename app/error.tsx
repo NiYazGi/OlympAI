@@ -21,7 +21,7 @@ export default function GlobalError({
     <main className="flex min-h-dvh items-center justify-center bg-void p-6 text-center">
       <div className="enter">
         <p className="eyebrow">{t('Something went wrong')}</p>
-        <h1 className="mt-4 text-[32px] font-normal text-white">
+        <h1 className="mt-4 text-[32px] font-normal text-foreground">
           {t('We could not load this page.')}
         </h1>
         <p className="mt-3 text-sm text-muted-foreground">{t('Please try again.')}</p>

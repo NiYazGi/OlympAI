@@ -54,6 +54,7 @@ export function OlympiadBrowser({ competitions }: { competitions: Competition[] 
         competition.summary,
         competition.format,
         competition.eligibility,
+        competition.route,
       ]
         .filter(Boolean)
         .some((field) => (field as string).toLowerCase().includes(needle))
@@ -120,7 +121,7 @@ export function OlympiadBrowser({ competitions }: { competitions: Competition[] 
               <Link
                 href={`/olympiads/${competition.slug ?? competition.id}`}
                 prefetch={false}
-                className={cn(cardClass, 'transition-colors hover:bg-white/[0.04]', 'group block h-full p-5')}
+                className={cn(cardClass, 'transition-colors hover:bg-foreground/[0.04]', 'group block h-full p-5')}
               >
                 <div className="flex items-start gap-3">
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary">

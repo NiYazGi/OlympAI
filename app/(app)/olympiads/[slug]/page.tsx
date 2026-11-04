@@ -6,7 +6,8 @@ import { PageHeader } from '@/components/page-header'
 import { RegistrationButton } from '@/components/competitions/registration-button'
 import { Meter } from '@/components/meter'
 import { getCompetition } from '@/lib/supabase/competitions'
-import { getT } from '@/lib/i18n/server'
+import { getLocale, getT } from '@/lib/i18n/server'
+import { formatDate } from '@/lib/i18n/config'
 import { cardClass, cn } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
@@ -30,7 +31,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
  */
 export default async function OlympiadPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const [competition, t] = await Promise.all([getCompetition(slug), getT()])
+  const [competition, t, locale] = await Promise.all([getCompetition(slug), getT(), getLocale()])
   if (!competition) notFound()
 
   const level = competition.level
@@ -86,6 +87,10 @@ export default async function OlympiadPage({ params }: { params: Promise<{ slug:
         </div>
       </dl>
 
+      {competition.detailsLocale && competition.detailsLocale !== locale ? (
+        <p className="text-xs text-muted-foreground">{t('This write-up is available in Russian.')}</p>
+      ) : null}
+
       {competition.summary ? (
         <Section title={t('What it is')}>{competition.summary}</Section>
       ) : (
@@ -98,6 +103,35 @@ export default async function OlympiadPage({ params }: { params: Promise<{ slug:
         <Section title={t('Who can enter')}>{competition.eligibility}</Section>
       ) : null}
       {competition.route ? <Section title={t('How you get there')}>{competition.route}</Section> : null}
+
+      {competition.sources.length > 0 ? (
+        <section className="space-y-3">
+          <h2 className="eyebrow">{t('Sources and rules')}</h2>
+          {competition.reviewedOn ? (
+            <p className="text-xs leading-5 text-muted-foreground">
+              {t('Sources checked: {date} · Confirm this season’s eligibility and selection with the organiser.', {
+                date: formatDate(new Date(`${competition.reviewedOn}T00:00:00Z`), locale, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }),
+              })}
+            </p>
+          ) : null}
+          <ul className="space-y-2">
+            {competition.sources.map((source) => (
+              <li key={source.url}>
+                <a
+                  href={source.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(cardClass, 'flex items-start gap-3 p-3 text-sm leading-5 transition-colors hover:bg-muted/40')}
+                >
+                  <BookOpen className="mt-0.5 size-4 shrink-0 text-primary" />
+                  <span className="min-w-0 flex-1">{source.title}</span>
+                  <ExternalLink className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {links.length > 0 ? (
         <section className="space-y-3">

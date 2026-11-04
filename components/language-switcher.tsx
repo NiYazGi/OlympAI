@@ -83,8 +83,8 @@ export function LanguageSwitcher({ className, full = false }: { className?: stri
           }
         }}
         className={cn(
-          'inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-medium text-ash transition-colors outline-none hover:bg-white/[0.06] hover:text-white focus-visible:ring-2 focus-visible:ring-white/15',
-          open && 'bg-white/[0.06] text-white',
+          'inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-medium text-ash transition-colors outline-none hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-2 focus-visible:ring-foreground/15',
+          open && 'bg-foreground/[0.06] text-foreground',
           className,
         )}
       >
@@ -108,7 +108,7 @@ export function LanguageSwitcher({ className, full = false }: { className?: stri
             aria-checked={option === locale}
             tabIndex={-1}
             onClick={() => choose(option)}
-            className="flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-sm outline-none hover:bg-white/[0.06] focus-visible:bg-white/[0.08]"
+            className="flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-sm outline-none hover:bg-foreground/[0.06] focus-visible:bg-foreground/[0.08]"
           >
             <span className="flex items-center gap-2.5">
               <span className="w-5 font-mono text-[10px] text-smoke">{LOCALE_SHORT[option]}</span>

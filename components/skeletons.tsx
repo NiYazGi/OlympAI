@@ -60,10 +60,10 @@ export function HeaderSkeleton({
   aside?: ReactNode
 }) {
   return (
-    <div className="flex flex-col gap-3 border-b border-white/[0.06] pb-6 sm:flex-row sm:items-end sm:justify-between">
+    <div className="flex flex-col gap-3 border-b border-foreground/[0.06] pb-6 sm:flex-row sm:items-end sm:justify-between">
       <div className="space-y-2">
         {title ? (
-          <h1 className="text-[28px] leading-[1.15] font-normal text-balance text-white sm:text-[32px]">{title}</h1>
+          <h1 className="text-[28px] leading-[1.15] font-normal text-balance text-foreground sm:text-[32px]">{title}</h1>
         ) : (
           <div className={cn(pulse, 'h-8 max-w-full', titleWidth)} />
         )}

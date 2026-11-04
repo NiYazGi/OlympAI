@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   BookOpen,
+  ChevronRight,
   ClipboardCheck,
   GraduationCap,
   LayoutDashboard,
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useT } from '@/components/i18n-provider'
+import { BrandMark } from '@/components/brand-mark'
 
 export type Role = 'student' | 'teacher'
 
@@ -63,12 +65,7 @@ export function isNavActive(item: { href: string; also?: string[] }, pathname: s
   return [item.href, ...(item.also ?? [])].some((href) => pathname === href || pathname.startsWith(`${href}/`))
 }
 
-/**
- * A floating rail of icons with their names under them. It was icon-only with
- * tooltips, which made a newcomer hover each one to find anything. The account sits at the top as
- * an avatar, which doubles as the link to /me — the same place the labelled
- * entry used to point.
- */
+/** Full-height navigation with visible labels and the account anchored below. */
 export function AppSidebar({
   identity,
   admin,
@@ -86,69 +83,88 @@ export function AppSidebar({
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`)
 
   return (
-    <div className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] shrink-0 items-center p-4 md:flex">
-      {/* Sized to its contents and centred, so it reads as a capsule floating
-          over the page rather than a column bolted to the edge. Lighter than
-          the background, not darker, for the same reason. */}
-      <nav
-        aria-label={t('Main')}
-        className="flex w-[5.5rem] flex-col items-center gap-2 rounded-[22px] bg-ink py-4 shadow-key-strong"
+    <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar md:flex lg:w-64">
+      <Link
+        href={role === 'teacher' ? '/class' : '/dashboard'}
+        aria-label={t('OlympAI dashboard')}
+        className="flex h-24 shrink-0 items-center px-7 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
       >
-        {identity}
+        <BrandMark large />
+      </Link>
 
-        <div className="mt-3 flex flex-col items-center gap-1 border-t border-white/[0.06] pt-3">
+      <nav aria-label={t('Main')} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-5 pt-3">
+        <div className="flex flex-col gap-1.5">
           {navItemsFor(role, inClass).map((item) => (
-            <RailLink
+            <SidebarLink
               key={item.href}
               href={item.href}
               label={t(item.label)}
               active={isNavActive(item, pathname)}
             >
-              <item.icon className="size-[18px]" />
-            </RailLink>
+              <item.icon className="size-5" strokeWidth={1.75} />
+            </SidebarLink>
           ))}
         </div>
 
-        <div className="mt-3 flex flex-col items-center gap-1 border-t border-white/[0.06] pt-3">
+        <div className="mt-auto flex flex-col gap-1.5 pt-8">
           {admin}
-          <RailLink href="/settings" label={t('Settings')} active={isActive('/settings')}>
-            <Settings className="size-[18px]" />
-          </RailLink>
+          <SidebarLink href="/settings" label={t('Settings')} active={isActive('/settings')}>
+            <Settings className="size-5" strokeWidth={1.75} />
+          </SidebarLink>
         </div>
       </nav>
-    </div>
+      <div className="shrink-0 border-t border-sidebar-border px-4 py-5">{identity}</div>
+    </aside>
   )
 }
 
 /** Rendered only for admins, by a server component that checked the flag. */
-export function AdminRailLink() {
+export function AdminSidebarLink() {
   const t = useT()
 
   const pathname = usePathname()
   return (
-    <RailLink
+    <SidebarLink
       href="/admin"
       label={t('Admin')}
       active={pathname === '/admin' || pathname.startsWith('/admin/')}
     >
-      <ShieldCheck className="size-[18px]" />
-    </RailLink>
+      <ShieldCheck className="size-5" strokeWidth={1.75} />
+    </SidebarLink>
   )
 }
 
-function RailLink({
+export function SidebarAccountLink({ name, children }: { name: string; children: ReactNode }) {
+  const t = useT()
+  const pathname = usePathname()
+  return (
+    <SidebarLink
+      href="/me"
+      label={t('My account')}
+      description={name}
+      active={['/me', '/profile', '/progress'].some((href) => isNavActive({ href }, pathname))}
+      account
+    >
+      {children}
+    </SidebarLink>
+  )
+}
+
+function SidebarLink({
   href,
   label,
   active,
   children,
+  description,
+  account = false,
 }: {
   href: string
   label: string
   active: boolean
   children: ReactNode
+  description?: string
+  account?: boolean
 }) {
-  // Labelled, not icon-only: a newcomer should not have to hover each icon to
-  // learn where problems or their history live.
   return (
     <Link
       href={href}
@@ -156,25 +172,25 @@ function RailLink({
       data-tour={`nav:${href}`}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'relative flex w-[4.75rem] flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 transition-colors duration-200',
-        active ? 'text-white' : 'text-smoke hover:bg-white/[0.06] hover:text-white',
+        'group relative flex min-h-12 w-full items-center gap-3 rounded-2xl px-3.5 py-3 outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar',
+        active ? 'text-sidebar-primary-foreground' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground',
+        account && 'gap-3 px-3',
       )}
     >
-      {/* One ring for the whole rail, not a border per link. Because the
-                element carries the same view-transition name wherever it lands,
-                the browser animates it from the item you left to the item you
-                opened — the indicator travels instead of blinking out here and
-                reappearing there. */}
       {active ? (
         <ViewTransition name="rail-active" share="morph" default="none">
           <span
             aria-hidden
-            className="absolute inset-0 rounded-xl bg-white/[0.08] shadow-[rgba(255,255,255,0.08)_0_1px_0_inset,rgba(255,255,255,0.14)_0_0_0_1px]"
+            className="absolute inset-0 rounded-2xl bg-sidebar-primary shadow-[0_3px_10px_-4px_var(--sidebar-primary)]"
           />
         </ViewTransition>
       ) : null}
-      <span className="relative">{children}</span>
-      <span className="relative text-center text-[11px] leading-tight font-medium">{label}</span>
+      <span className="relative flex shrink-0 items-center justify-center" aria-hidden>{children}</span>
+      <span className="relative min-w-0 flex-1 text-left text-[14px] leading-5 font-medium lg:text-[15px]">
+        {label}
+        {description ? <span className={cn('mt-0.5 block truncate text-xs font-normal', active ? 'opacity-80' : 'text-muted-foreground')}>{description}</span> : null}
+      </span>
+      {account ? <ChevronRight className="relative size-4 shrink-0 opacity-60" aria-hidden /> : null}
     </Link>
   )
 }

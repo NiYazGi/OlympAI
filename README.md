@@ -8,6 +8,12 @@ level.
 Next.js 16 (App Router, Turbopack) · React 19 · embedded Postgres (PGlite) with
 RLS and local auth · Tailwind v4 · OpenAI for grading and coaching.
 
+The supported subjects are **Mathematics and Physics**. Migration
+`202611040001_math_physics_only.sql` removes the other subjects and their related
+content and competitions. Profiles that selected a removed subject must choose
+again during onboarding. Earlier migrations remain as the database history.
+Run `node .tools/subjects.mjs` to verify this migration in an in-memory database.
+
 ## Running it
 
 ```bash
@@ -31,7 +37,24 @@ imported by `scripts/import-kz-math.py` into migration `0033`. Each task carries
 a grade range (`grade_min`/`grade_max`, migration `0032`), its source URL, and
 LaTeX that `components/math-text.tsx` typesets on the server. No reference
 solutions exist, so the grader judges reasoning on its own; the licence is
-recorded as unknown until the terms are confirmed. The olympiad list is empty.
+recorded as unknown until the terms are confirmed.
+
+The mathematics olympiad catalogue has 16 researched entries, including IMO, the
+Kazakhstan selection stages and international competitions. Migration
+`202611040002_math_olympiads_catalogue.sql` carries the Russian write-ups, source
+links and review date (2026-11-04). English and Kazakh fall back to the Russian
+write-up until a translation is supplied. Historical evidence and unconfirmed
+current entry requirements are labelled in the text; no event dates are invented.
+Run `node .tools/math-catalogue.mjs` to verify the seed and preservation of
+existing competitions, tracked targets and tasks in an isolated database.
+
+Migration `202611040003_physics_and_imo_catalogue.sql` adds 16 physics entries,
+adds IMO to mathematics, labels generic stage names with their subject and
+sets the requested USAMO catalogue category to International. Its sourced
+description still explains MAA's national-level competition and eligibility.
+Russian competitions from the physics reference, Beyond Olympiad and training
+camps are not seeded. Existing entries and tracked goals are retained.
+Run `node .tools/physics-catalogue.mjs` for the full catalogue migration check.
 
 Physics adds 272 problems from the Kazakhstan national and regional rounds
 (grades 9-11, theory tours, 2010-2025), migration `0035` via
@@ -271,9 +294,8 @@ into `/me` and `/learn`.
   for that path, so the gate silently does nothing.
 - **The catalogue carries no competition dates.** Sittings move every year; the
   student supplies the target date. Adding dates would be inventing them.
-- **Empty means empty.** Several screens ship with nothing in them
-  (`competitions`, `resources`). That is deliberate — placeholder content that
-  reads as real is worse than an empty state.
+- **Empty means empty.** Screens with no recorded content show an empty state
+  rather than plausible placeholder facts. Catalogue entries carry sources.
 - `.env.local` holds four secrets and is gitignored. `SUPABASE_DB_URL` is only
   used by the migration runner.
 
@@ -286,11 +308,8 @@ into `/me` and `/learn`.
   material has not been imported, and there is no ingestion pipeline yet.
   Candidate sources and what each one's licence allows are listed in
   `docs/content-sources.md`.
-- Every topic has study content, and only just: one lesson per topic — 21
-  lessons, 126 quiz questions, 192 flashcards and 9 figures across all seven
-  subjects. Enough to exercise the ladder end to end, not yet a course.
-- Four subjects have two problems each, which is below the three a mock paper
-  needs, so `/mock` cannot offer them at all.
+- Study content is still limited; many sections need more lessons, quizzes
+  and flashcards before the study ladder can serve as a full course.
 - Grading, the mock paper end to end and the coach stream have been exercised
   against the live database and the live model; the screens behind the login
   have not been walked by hand.

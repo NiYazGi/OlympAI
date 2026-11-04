@@ -49,7 +49,7 @@ export default async function LearnPage({
         <Link
           href="/plan"
           prefetch
-          className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-white/[0.03] px-3 text-sm text-foreground shadow-key hover:bg-white/[0.07]"
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-foreground/[0.03] px-3 text-sm text-foreground shadow-key hover:bg-foreground/[0.07]"
         >
           <CalendarRange className="size-4" /> {t('Week-by-week plan')}
         </Link>

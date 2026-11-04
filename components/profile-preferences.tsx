@@ -85,7 +85,7 @@ export function ProfilePreferences({
                       'flex items-center gap-3 rounded-lg border p-3 text-left text-sm transition-colors',
                       active
                         ? 'border-primary/40 bg-accent text-primary'
-                        : 'border-border hover:border-white/20',
+                        : 'border-border hover:border-foreground/20',
                     )}
                   >
                     <span
@@ -106,7 +106,7 @@ export function ProfilePreferences({
       </div>
 
       {status === 'error' ? (
-        <p role="alert" className="mt-4 rounded-lg bg-ember/60 p-3 text-sm text-[#ffb3b3] shadow-key">
+        <p role="alert" className="mt-4 rounded-lg bg-ember/60 p-3 text-sm text-destructive shadow-key">
           {error}
         </p>
       ) : null}

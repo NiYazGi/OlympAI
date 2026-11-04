@@ -96,29 +96,29 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
             {facts.map(([label, value]) => (
               <div key={label} className={cn(cardClass, 'p-4')}>
                 <dt className="eyebrow">{label}</dt>
-                <dd className="mt-2 truncate text-sm text-white">{value}</dd>
+                <dd className="mt-2 truncate text-sm text-foreground">{value}</dd>
               </div>
             ))}
           </dl>
 
           {profile?.goal || profile?.target_university ? (
             <section className={cn(cardClass, 'space-y-1 p-5 text-sm')}>
-              {profile.goal ? <p className="text-ash">{t('Goal')}: <span className="text-white">{t(profile.goal)}</span></p> : null}
-              {profile.target_university ? <p className="text-ash">{t('What it is for')}: <span className="text-white">{profile.target_university}</span></p> : null}
+              {profile.goal ? <p className="text-ash">{t('Goal')}: <span className="text-foreground">{t(profile.goal)}</span></p> : null}
+              {profile.target_university ? <p className="text-ash">{t('What it is for')}: <span className="text-foreground">{profile.target_university}</span></p> : null}
             </section>
           ) : null}
 
           <section className={cn(cardClass, 'overflow-hidden')}>
-            <h2 className="border-b border-white/[0.06] px-5 py-4 text-[15px] font-medium text-white">
+            <h2 className="border-b border-foreground/[0.06] px-5 py-4 text-[15px] font-medium text-foreground">
               {t('Attempts')} <span className="text-smoke">· {t('latest {n}', { n: attempts?.length ?? 0 })}</span>
             </h2>
             {attempts?.length ? (
-              <ul className="divide-y divide-white/[0.04]">
+              <ul className="divide-y divide-foreground/[0.04]">
                 {attempts.map((row) => (
                   <li key={row.id} className="flex items-center gap-3 px-5 py-3">
                     {row.is_correct ? <CheckCircle2 className="size-4 shrink-0 text-success" /> : <XCircle className="size-4 shrink-0 text-coral" />}
                     <div className="min-w-0 flex-1">
-                      <Link href={`/admin/tasks/${row.task_id}`} className="block truncate text-sm text-white hover:underline">
+                      <Link href={`/admin/tasks/${row.task_id}`} className="block truncate text-sm text-foreground hover:underline">
                         {title.get(row.task_id) ?? row.task_id}
                       </Link>
                       <p className="font-mono text-[11px] text-smoke">
@@ -138,7 +138,7 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
 
           <div className="grid gap-4 md:grid-cols-2">
             <section className={cn(cardClass, 'p-5')}>
-              <h2 className="text-[15px] font-medium text-white">{t('Mock papers')}</h2>
+              <h2 className="text-[15px] font-medium text-foreground">{t('Mock papers')}</h2>
               {mocks?.length ? (
                 <ul className="mt-3 space-y-2 text-sm">
                   {mocks.map((row) => (
@@ -146,7 +146,7 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
                       <span className="text-ash">
                         {shortDate(row.started_at, locale)} · {t('{n} {n|problem|problems}', { n: row.task_ids.length })}
                       </span>
-                      <span className="font-mono text-white">
+                      <span className="font-mono text-foreground">
                         {row.submitted_at ? `${row.score_percent ?? 0}%` : t('in progress')}
                       </span>
                     </li>
@@ -158,15 +158,15 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
             </section>
 
             <section className={cn(cardClass, 'p-5')}>
-              <h2 className="text-[15px] font-medium text-white">{t('Classes')}</h2>
+              <h2 className="text-[15px] font-medium text-foreground">{t('Classes')}</h2>
               <ul className="mt-3 space-y-2 text-sm">
                 {(taught ?? []).map((row) => (
-                  <li key={row.id} className="text-white">
+                  <li key={row.id} className="text-foreground">
                     {row.name} <span className="font-mono text-[11px] text-smoke">· {t('teaches')} · {row.join_code}</span>
                   </li>
                 ))}
                 {(joined ?? []).map((row) => (
-                  <li key={row.class_id} className="text-white">
+                  <li key={row.class_id} className="text-foreground">
                     {className.get(row.class_id) ?? '—'} <span className="font-mono text-[11px] text-smoke">· {t('student since')} {shortDate(row.joined_at, locale)}</span>
                   </li>
                 ))}
@@ -177,7 +177,7 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
 
           {reports?.length ? (
             <section className={cn(cardClass, 'p-5')}>
-              <h2 className="text-[15px] font-medium text-white">{t('Reports')}</h2>
+              <h2 className="text-[15px] font-medium text-foreground">{t('Reports')}</h2>
               <ul className="mt-3 space-y-2 text-sm">
                 {reports.map((row) => (
                   <li key={row.id} className="flex justify-between gap-3">

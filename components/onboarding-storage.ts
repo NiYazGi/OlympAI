@@ -1,6 +1,6 @@
 'use client'
 
-import type { ProfileField } from '@/lib/profile-options'
+import { PROFILE_OPTIONS, isAllowed, type ProfileField } from '@/lib/profile-options'
 
 export type Answers = Partial<Record<ProfileField, string>>
 
@@ -45,7 +45,13 @@ export function parseAnswers(raw: string | null): Answers {
   if (!raw) return {}
   try {
     const parsed = JSON.parse(raw) as unknown
-    return parsed && typeof parsed === 'object' ? (parsed as Answers) : {}
+    if (!parsed || typeof parsed !== 'object') return {}
+    // Old tabs may still have a subject that is no longer offered.
+    return Object.fromEntries(
+      Object.entries(parsed).filter(([field, value]) =>
+        Object.hasOwn(PROFILE_OPTIONS, field) && isAllowed(field as ProfileField, value),
+      ),
+    ) as Answers
   } catch {
     return {}
   }

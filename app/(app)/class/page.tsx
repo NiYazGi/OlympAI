@@ -73,7 +73,7 @@ async function TeacherClasses() {
               <Link
                 href={`/class/${row.id}`}
                 prefetch={false}
-                className={cn(cardClass, 'transition-colors hover:bg-white/[0.04]', 'group flex items-center gap-3 p-4')}
+                className={cn(cardClass, 'transition-colors hover:bg-foreground/[0.04]', 'group flex items-center gap-3 p-4')}
               >
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-accent text-primary">
                   <Users className="size-4" />

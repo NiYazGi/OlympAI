@@ -101,7 +101,7 @@ export default async function AdminAttemptsPage({
       >
         <a
           href={`/api/admin/export?what=attempts&days=${days}`}
-          className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-white/[0.03] px-3 text-sm text-white shadow-key hover:bg-white/[0.07]"
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-foreground/[0.03] px-3 text-sm text-foreground shadow-key hover:bg-foreground/[0.07]"
         >
           <Download className="size-4" /> {t('Export CSV')}
         </a>
@@ -129,14 +129,14 @@ export default async function AdminAttemptsPage({
             </option>
           ))}
         </select>
-        <button type="submit" className="h-10 rounded-lg bg-white/[0.06] px-4 text-sm text-white hover:bg-white/[0.1]">
+        <button type="submit" className="h-10 rounded-lg bg-foreground/[0.06] px-4 text-sm text-foreground hover:bg-foreground/[0.1]">
           {t('Apply')}
         </button>
       </form>
 
       <div className={cn(cardClass, 'overflow-hidden')}>
         {rows.length ? (
-          <ul className="divide-y divide-white/[0.04]">
+          <ul className="divide-y divide-foreground/[0.04]">
             {rows.map((row) => (
               <li key={row.id} className="px-5 py-3">
                 <div className="flex items-start gap-3">
@@ -146,11 +146,11 @@ export default async function AdminAttemptsPage({
                     <XCircle className="mt-0.5 size-4 shrink-0 text-coral" />
                   )}
                   <div className="min-w-0 flex-1">
-                    <Link href={`/admin/tasks/${row.task_id}`} className="block truncate text-sm text-white hover:underline">
+                    <Link href={`/admin/tasks/${row.task_id}`} className="block truncate text-sm text-foreground hover:underline">
                       {row.title ?? row.task_id}
                     </Link>
                     <p className="truncate text-xs text-ash">
-                      <Link href={`/admin/users/${row.user_id}`} className="hover:text-white">
+                      <Link href={`/admin/users/${row.user_id}`} className="hover:text-foreground">
                         {row.name || row.email}
                       </Link>
                       <span className="font-mono text-[11px] text-smoke">
@@ -162,8 +162,8 @@ export default async function AdminAttemptsPage({
                     <details className="mt-1.5">
                       <summary className="cursor-pointer text-[11px] text-smoke hover:text-ash">{t('Answer and feedback')}</summary>
                       <div className="mt-2 grid gap-2 text-xs leading-5 md:grid-cols-2">
-                        <p className="rounded-lg bg-white/[0.03] p-3 whitespace-pre-wrap text-mist">{row.answer}</p>
-                        <p className="rounded-lg bg-white/[0.03] p-3 whitespace-pre-wrap text-ash">{row.feedback ?? '—'}</p>
+                        <p className="rounded-lg bg-foreground/[0.03] p-3 whitespace-pre-wrap text-mist">{row.answer}</p>
+                        <p className="rounded-lg bg-foreground/[0.03] p-3 whitespace-pre-wrap text-ash">{row.feedback ?? '—'}</p>
                       </div>
                     </details>
                   </div>

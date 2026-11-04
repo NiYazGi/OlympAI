@@ -66,8 +66,8 @@ export function TargetPicker({
               className={cn(
                 'flex items-center gap-3 rounded-xl border p-3 text-left transition-colors',
                 active
-                  ? 'bg-white/[0.07] shadow-key-strong'
-                  : 'shadow-key hover:bg-white/[0.04]',
+                  ? 'bg-foreground/[0.07] shadow-key-strong'
+                  : 'shadow-key hover:bg-foreground/[0.04]',
                 empty && 'cursor-not-allowed opacity-45 hover:border-border hover:bg-transparent',
               )}
             >

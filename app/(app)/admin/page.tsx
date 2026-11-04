@@ -82,12 +82,12 @@ export default async function AdminOverviewPage() {
           const body = (
             <>
               <p className="eyebrow">{stat.label}</p>
-              <p className={cn('mt-3 text-[30px] leading-none font-normal tabular-nums', stat.alert ? 'text-coral' : 'text-white')}>
+              <p className={cn('mt-3 text-[30px] leading-none font-normal tabular-nums', stat.alert ? 'text-coral' : 'text-foreground')}>
                 {stat.value}
               </p>
               <p className="mt-2 text-xs text-ash">{stat.note}</p>
               {stat.href ? (
-                <ArrowUpRight className="absolute top-4 right-4 size-4 text-smoke transition-colors group-hover:text-white" />
+                <ArrowUpRight className="absolute top-4 right-4 size-4 text-smoke transition-colors group-hover:text-foreground" />
               ) : null}
             </>
           )
@@ -106,7 +106,7 @@ export default async function AdminOverviewPage() {
 
       <section className={cn(cardClass, 'p-5 sm:p-6')}>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-[15px] font-medium text-white">{t('Last 30 days')}</h2>
+          <h2 className="text-[15px] font-medium text-foreground">{t('Last 30 days')}</h2>
           <div className="flex items-center gap-4 text-xs text-ash">
             <span className="flex items-center gap-1.5">
               <span className="size-2 rounded-sm bg-mist" /> {t('Visitors')}
@@ -142,18 +142,18 @@ export default async function AdminOverviewPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <section className={cn(cardClass, 'p-5 sm:p-6')}>
           <div className="flex items-center justify-between">
-            <h2 className="text-[15px] font-medium text-white">{t('Newest accounts')}</h2>
-            <Link href="/admin/users" prefetch className="text-xs text-ash hover:text-white">
+            <h2 className="text-[15px] font-medium text-foreground">{t('Newest accounts')}</h2>
+            <Link href="/admin/users" prefetch className="text-xs text-ash hover:text-foreground">
               {t('All users')}
             </Link>
           </div>
           {recentProfiles?.length ? (
-            <ul className="mt-4 divide-y divide-white/[0.06]">
+            <ul className="mt-4 divide-y divide-foreground/[0.06]">
               {recentProfiles.map((row) => (
                 <li key={row.id}>
                   <Link href={`/admin/users/${row.id}`} prefetch className="flex items-center justify-between gap-3 py-3 hover:opacity-80">
                     <div className="min-w-0">
-                      <p className="truncate text-sm text-white">{displayName(row, t)}</p>
+                      <p className="truncate text-sm text-foreground">{displayName(row, t)}</p>
                       <p className="truncate text-xs text-ash">
                         {row.role === 'teacher' ? t('Teacher') : (row.primary_subject ?? t('No subject yet'))} ·{' '}
                         {row.onboarding_completed_at ? t('onboarded') : t('not onboarded')}
@@ -171,13 +171,13 @@ export default async function AdminOverviewPage() {
 
         <section className={cn(cardClass, 'p-5 sm:p-6')}>
           <div className="flex items-center justify-between">
-            <h2 className="text-[15px] font-medium text-white">{t('Latest graded attempts')}</h2>
-            <Link href="/admin/attempts" prefetch className="text-xs text-ash hover:text-white">
+            <h2 className="text-[15px] font-medium text-foreground">{t('Latest graded attempts')}</h2>
+            <Link href="/admin/attempts" prefetch className="text-xs text-ash hover:text-foreground">
               {t('All attempts')}
             </Link>
           </div>
           {recentAttempts?.length ? (
-            <ul className="mt-4 divide-y divide-white/[0.06]">
+            <ul className="mt-4 divide-y divide-foreground/[0.06]">
               {recentAttempts.map((row) => (
                 <li key={row.id} className="flex items-center gap-3 py-3">
                   {row.is_correct ? (
@@ -186,8 +186,8 @@ export default async function AdminOverviewPage() {
                     <XCircle className="size-4 shrink-0 text-coral" />
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm text-white">{taskTitle.get(row.task_id) ?? t('Deleted task')}</p>
-                    <Link href={`/admin/users/${row.user_id}`} className="truncate text-xs text-ash hover:text-white">
+                    <p className="truncate text-sm text-foreground">{taskTitle.get(row.task_id) ?? t('Deleted task')}</p>
+                    <Link href={`/admin/users/${row.user_id}`} className="truncate text-xs text-ash hover:text-foreground">
                       {userName.get(row.user_id) ?? t('Unknown student')}
                     </Link>
                   </div>
@@ -203,7 +203,7 @@ export default async function AdminOverviewPage() {
             <p className="mt-4 text-sm text-ash">{t('No attempts graded yet.')}</p>
           )}
           {graders.length ? (
-            <p className="mt-4 border-t border-white/[0.06] pt-3 font-mono text-[11px] text-smoke">
+            <p className="mt-4 border-t border-foreground/[0.06] pt-3 font-mono text-[11px] text-smoke">
               {t('Graded by, 30 days:')} {graders.map((row) => `${row.graded_by} ${row.n}`).join(' · ')}
             </p>
           ) : null}
@@ -226,13 +226,13 @@ function TaskList({
 }) {
   return (
     <section className={cn(cardClass, 'p-5 sm:p-6')}>
-      <h2 className="text-[15px] font-medium text-white">{title}</h2>
+      <h2 className="text-[15px] font-medium text-foreground">{title}</h2>
       {rows.length ? (
-        <ul className="mt-4 divide-y divide-white/[0.06]">
+        <ul className="mt-4 divide-y divide-foreground/[0.06]">
           {rows.map((row) => (
             <li key={row.id}>
               <Link href={`/admin/tasks/${row.id}`} prefetch className="flex items-center gap-3 py-2.5 hover:opacity-80">
-                <span className="min-w-0 flex-1 truncate text-sm text-white">{row.title}</span>
+                <span className="min-w-0 flex-1 truncate text-sm text-foreground">{row.title}</span>
                 <span className="shrink-0 font-mono text-[11px] text-smoke">
                   {t('{n} att.', { n: row.attempts })} · {t('avg {n}', { n: row.avg_score })}
                 </span>

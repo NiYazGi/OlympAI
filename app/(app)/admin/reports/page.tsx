@@ -71,7 +71,7 @@ export default async function AdminReportsPage({
               href={`/admin/reports?show=${tab.key}`}
               className={cn(
                 'rounded-md px-3 py-1.5 text-[13px] font-medium',
-                show === tab.key ? 'bg-white/[0.08] text-white' : 'text-ash hover:text-white',
+                show === tab.key ? 'bg-foreground/[0.08] text-foreground' : 'text-ash hover:text-foreground',
               )}
             >
               {tab.label}
@@ -100,7 +100,7 @@ export default async function AdminReportsPage({
                 </div>
                 <p className="text-sm leading-relaxed">{row.message}</p>
                 {tried ? (
-                  <details className="rounded-lg bg-white/[0.03] p-3 text-sm ring-1 ring-foreground/10">
+                  <details className="rounded-lg bg-foreground/[0.03] p-3 text-sm ring-1 ring-foreground/10">
                     <summary className="cursor-pointer text-muted-foreground">
                       {t('Attempt: {score}/100', { score: tried.score })}
                     </summary>

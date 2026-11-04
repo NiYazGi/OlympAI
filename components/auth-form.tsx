@@ -38,12 +38,12 @@ export function AuthForm({
       title={isSignup ? t('Create your OlympAI account') : t('Log in to your training space')}
     >
       {error ? (
-        <p role="alert" className="mb-4 rounded-lg bg-ember/60 p-3 text-sm text-[#ffb3b3] shadow-key">
+        <p role="alert" className="mb-4 rounded-lg bg-ember/60 p-3 text-sm text-destructive shadow-key">
           {t(error)}
         </p>
       ) : null}
       {message ? (
-        <p role="status" className="mb-4 rounded-lg bg-white/[0.05] p-3 text-sm text-white shadow-key">
+        <p role="status" className="mb-4 rounded-lg bg-foreground/[0.05] p-3 text-sm text-foreground shadow-key">
           {t(message)}
         </p>
       ) : null}
@@ -142,7 +142,7 @@ export function AuthForm({
 
         {isSignup ? (
           <label className="flex items-start gap-2.5 pt-2 text-xs leading-5 text-muted-foreground">
-            <input type="checkbox" required className="mt-1 accent-[#e6e6e6]" />
+            <input type="checkbox" required className="mt-1 accent-primary" />
             {t('I agree to the terms and understand that OlympAI is a practice tool.')}
           </label>
         ) : (
@@ -151,7 +151,7 @@ export function AuthForm({
               type="submit"
               formAction={requestPasswordReset}
               formNoValidate
-              className="text-[13px] text-ash transition-colors hover:text-white"
+              className="text-[13px] text-ash transition-colors hover:text-foreground"
             >
               {t('Forgot password?')}
             </button>
@@ -166,7 +166,7 @@ export function AuthForm({
           {isSignup ? t('Already have an account?') : t('New to OlympAI?')}{' '}
           <Link
             href={`${isSignup ? '/login' : '/signup'}${next ? `?next=${encodeURIComponent(next)}` : ''}`}
-            className="font-medium text-white hover:underline"
+            className="font-medium text-foreground hover:underline"
           >
             {isSignup ? t('Log in') : t('Create an account')}
           </Link>
@@ -197,12 +197,12 @@ function RoleCard({
       aria-pressed={selected}
       className={cn(
         'flex items-start gap-3 rounded-xl p-3 text-left ring-1 transition-colors',
-        selected ? 'bg-white/[0.06] ring-white/40' : 'ring-white/10 hover:bg-white/[0.03]',
+        selected ? 'bg-foreground/[0.06] ring-foreground/40' : 'ring-foreground/10 hover:bg-foreground/[0.03]',
       )}
     >
-      <Icon className={cn('mt-0.5 size-4 shrink-0', selected ? 'text-white' : 'text-muted-foreground')} />
+      <Icon className={cn('mt-0.5 size-4 shrink-0', selected ? 'text-foreground' : 'text-muted-foreground')} />
       <span>
-        <span className="block text-sm font-medium text-white">{label}</span>
+        <span className="block text-sm font-medium text-foreground">{label}</span>
         <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">{note}</span>
       </span>
     </button>

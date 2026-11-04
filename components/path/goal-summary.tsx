@@ -119,10 +119,10 @@ export async function GoalSummary({
         <Link
           href={`/tasks/${next.id}`}
           prefetch
-          className="spotlight lift mt-6 flex items-center justify-between gap-3 rounded-xl surface-ember p-4 text-white"
+          className="spotlight lift mt-6 flex items-center justify-between gap-3 rounded-xl surface-ember p-4 text-foreground"
         >
           <span className="min-w-0">
-            <span className="eyebrow block text-[#ffb3b3]">
+            <span className="eyebrow block text-destructive">
               {t('Next up')}
             </span>
             <span className="mt-1.5 block truncate font-medium">{next.title}</span>
@@ -130,7 +130,7 @@ export async function GoalSummary({
           <ArrowRight className="size-4 shrink-0" />
         </Link>
       ) : (
-        <p className="mt-6 rounded-xl bg-white/[0.04] p-4 text-sm text-ash shadow-key">
+        <p className="mt-6 rounded-xl bg-foreground/[0.04] p-4 text-sm text-ash shadow-key">
           {t('Every task in this subject is solved. Move the date forward, or pick a harder target.')}
         </p>
       )}

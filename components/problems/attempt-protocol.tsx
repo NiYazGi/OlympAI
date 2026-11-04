@@ -64,7 +64,7 @@ export function AttemptProtocol({
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-end gap-x-6 gap-y-2">
           <p className="flex items-baseline gap-2">
-            <span className="font-mono text-6xl leading-none font-semibold tracking-tight text-white tabular-nums">
+            <span className="font-mono text-6xl leading-none font-semibold tracking-tight text-foreground tabular-nums">
               {protocol.points}
             </span>
             <span className="text-lg text-muted-foreground">{t('out of {n}', { n: MAX_POINTS })}</span>
@@ -81,7 +81,7 @@ export function AttemptProtocol({
 
       {children}
 
-      <ol aria-label={t('Solution')} className="border-t border-white/[0.06] pt-3">
+      <ol aria-label={t('Solution')} className="border-t border-foreground/[0.06] pt-3">
         {lines.map((line, index) => {
           const number = index + 1
           const callout = calloutOn.get(number)
@@ -138,7 +138,7 @@ export function AttemptProtocol({
       ) : null}
 
       {callouts.length ? (
-        <section className="flex flex-col gap-3 border-t border-white/[0.06] pt-4">
+        <section className="flex flex-col gap-3 border-t border-foreground/[0.06] pt-4">
           <div className="flex flex-wrap items-baseline justify-between gap-x-5 gap-y-2">
             <h3 className="text-sm font-medium">{t('Marks')}</h3>
             {/* The key is the whole set, always, so a colour never has to be
@@ -174,12 +174,12 @@ export function AttemptProtocol({
       ) : null}
 
       {protocol.criteria.length ? (
-        <section className="flex flex-col gap-2 border-t border-white/[0.06] pt-4">
+        <section className="flex flex-col gap-2 border-t border-foreground/[0.06] pt-4">
           <h3 className="text-sm font-medium">{t('Marking scheme')}</h3>
           <table className="w-full border-collapse text-sm">
             <tbody>
               {protocol.criteria.map((criterion) => (
-                <tr key={criterion.text} className="border-t border-white/[0.06] first:border-t-0">
+                <tr key={criterion.text} className="border-t border-foreground/[0.06] first:border-t-0">
                   <td className="py-2 pr-4 text-pretty">{criterion.text}</td>
                   <td
                     className={cn(
@@ -192,11 +192,11 @@ export function AttemptProtocol({
                   </td>
                 </tr>
               ))}
-              <tr className="border-t border-white/20">
+              <tr className="border-t border-foreground/20">
                 <th scope="row" className="py-2.5 text-left font-medium">
                   {t('Total')}
                 </th>
-                <td className="py-2.5 text-right font-mono font-semibold whitespace-nowrap text-white tabular-nums">
+                <td className="py-2.5 text-right font-mono font-semibold whitespace-nowrap text-foreground tabular-nums">
                   {t('{earned} of {max}', { earned: protocol.points, max: MAX_POINTS })}
                 </td>
               </tr>
@@ -206,14 +206,14 @@ export function AttemptProtocol({
       ) : null}
 
       {protocol.feedback ? (
-        <section className="flex flex-col gap-1.5 border-t border-white/[0.06] pt-4">
+        <section className="flex flex-col gap-1.5 border-t border-foreground/[0.06] pt-4">
           <h3 className="text-sm font-medium">{t('Feedback')}</h3>
           <p className="max-w-[40em] text-sm leading-relaxed text-pretty text-foreground/90">{protocol.feedback}</p>
         </section>
       ) : null}
 
       {protocol.nextHint ? (
-        <section className="flex flex-col gap-1.5 border-t border-white/[0.06] pt-4">
+        <section className="flex flex-col gap-1.5 border-t border-foreground/[0.06] pt-4">
           <h3 className="text-sm font-medium">{t('Next step')}</h3>
           <p className="max-w-[40em] rounded-lg bg-accent p-3 text-sm leading-relaxed text-pretty text-accent-foreground">
             {protocol.nextHint}
@@ -226,19 +226,19 @@ export function AttemptProtocol({
 
 const FILL: Record<MarkKind, string> = {
   ok: 'bg-muted-foreground text-void',
-  strong: 'bg-white text-void',
+  strong: 'bg-primary text-primary-foreground',
   gap: 'bg-warning text-void',
   error: 'bg-destructive text-void',
 }
 const LINE: Record<MarkKind, string> = {
   ok: 'bg-muted-foreground',
-  strong: 'bg-white',
+  strong: 'bg-primary',
   gap: 'bg-warning',
   error: 'bg-destructive',
 }
 const INK: Record<MarkKind, string> = {
   ok: 'text-muted-foreground',
-  strong: 'text-white',
+  strong: 'text-foreground',
   gap: 'text-warning',
   error: 'text-destructive',
 }

@@ -168,7 +168,7 @@ function TaskRow({ task, t }: { task: PathTask; t: Translate }) {
     <Link
       href={`/tasks/${task.id}`}
       prefetch={false}
-      className={cn('group flex items-center gap-3 px-4 py-3 sm:px-5', 'transition-colors hover:bg-white/[0.04]')}
+      className={cn('group flex items-center gap-3 px-4 py-3 sm:px-5', 'transition-colors hover:bg-foreground/[0.04]')}
     >
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-medium">{task.title}</span>

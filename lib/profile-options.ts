@@ -6,11 +6,6 @@
 export const SUBJECTS = [
   'Physics',
   'Mathematics',
-  'Computer Science',
-  'Biology',
-  'Economics',
-  'Geography',
-  'Linguistics',
 ] as const
 export const GRADES = ['Grade 7–8', 'Grade 9–10', 'Grade 11–12', 'University'] as const
 

@@ -4,18 +4,18 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-[13px] font-medium tracking-[0.008em] whitespace-nowrap transition-[background-color,color,box-shadow,transform] duration-200 ease-out outline-none select-none focus-visible:ring-2 focus-visible:ring-white/40 active:not-aria-[haspopup]:translate-y-px active:not-aria-[haspopup]:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-[13px] font-medium tracking-[0.008em] whitespace-nowrap transition-[background-color,color,box-shadow,transform] duration-200 ease-out outline-none select-none focus-visible:ring-2 focus-visible:ring-foreground/40 active:not-aria-[haspopup]:translate-y-px active:not-aria-[haspopup]:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
         default:
-          'bg-mist text-primary-foreground shadow-button hover:bg-white [a]:hover:bg-white',
+          'bg-primary text-primary-foreground shadow-button hover:bg-primary/90 [a]:hover:bg-primary/90',
         outline:
-          'bg-white/[0.03] text-foreground shadow-key hover:bg-white/[0.07] aria-expanded:bg-white/[0.07]',
+          'bg-foreground/[0.03] text-foreground shadow-key hover:bg-foreground/[0.07] aria-expanded:bg-foreground/[0.07]',
         secondary:
-          'bg-graphite text-foreground shadow-key hover:bg-[#232426] aria-expanded:bg-[#232426]',
+          'bg-secondary text-secondary-foreground shadow-key hover:bg-foreground/[0.08] aria-expanded:bg-foreground/[0.08]',
         ghost:
-          'text-ash hover:bg-white/[0.06] hover:text-foreground aria-expanded:bg-white/[0.06] aria-expanded:text-foreground',
+          'text-ash hover:bg-foreground/[0.06] hover:text-foreground aria-expanded:bg-foreground/[0.06] aria-expanded:text-foreground',
         destructive:
           'bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40',
         link: 'text-foreground underline-offset-4 hover:underline',

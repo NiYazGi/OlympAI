@@ -12,7 +12,7 @@ export default async function NotFound() {
       </div>
       <div className="enter relative z-10">
         <p className="font-mono text-[64px] leading-none text-fade">404</p>
-        <h1 className="mt-6 text-[32px] font-normal text-white">{t('This page does not exist.')}</h1>
+        <h1 className="mt-6 text-[32px] font-normal text-foreground">{t('This page does not exist.')}</h1>
         <p className="mt-3 text-ash">
           {t('Let\'s get you back to focused practice.')}
         </p>

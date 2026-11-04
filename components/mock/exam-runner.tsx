@@ -128,7 +128,7 @@ export function ExamRunner({
       ) : null}
 
       {error ? (
-        <p role="alert" className="rounded-lg bg-ember/60 p-3 text-sm text-[#ffb3b3] shadow-key">
+        <p role="alert" className="rounded-lg bg-ember/60 p-3 text-sm text-destructive shadow-key">
           {error}
         </p>
       ) : null}

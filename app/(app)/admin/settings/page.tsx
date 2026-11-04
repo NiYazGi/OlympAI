@@ -36,13 +36,13 @@ export default async function AdminSettingsPage() {
 
       <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
         <section className={cn(cardClass, 'space-y-4 p-5 sm:p-6')}>
-          <h2 className="text-[15px] font-medium text-white">{t('Announcement banner')}</h2>
+          <h2 className="text-[15px] font-medium text-foreground">{t('Announcement banner')}</h2>
           <AnnouncementForm current={settings.announcement} />
         </section>
 
         <div className="flex flex-col gap-4">
           <section className={cn(cardClass, 'space-y-3 p-5 sm:p-6')}>
-            <h2 className="text-[15px] font-medium text-white">{t('Sign-ups')}</h2>
+            <h2 className="text-[15px] font-medium text-foreground">{t('Sign-ups')}</h2>
             <p className="text-sm text-ash">
               {settings.signupsOpen
                 ? t('Open: anyone can create an account.')
@@ -58,12 +58,12 @@ export default async function AdminSettingsPage() {
           </section>
 
           <section className={cn(cardClass, 'p-5 sm:p-6')}>
-            <h2 className="text-[15px] font-medium text-white">{t('System')}</h2>
-            <dl className="mt-3 divide-y divide-white/[0.04] text-sm">
+            <h2 className="text-[15px] font-medium text-foreground">{t('System')}</h2>
+            <dl className="mt-3 divide-y divide-foreground/[0.04] text-sm">
               {info.map(([label, value]) => (
                 <div key={label} className="flex justify-between gap-4 py-2">
                   <dt className="text-ash">{label}</dt>
-                  <dd className="text-right font-mono text-[12px] text-white">{value}</dd>
+                  <dd className="text-right font-mono text-[12px] text-foreground">{value}</dd>
                 </div>
               ))}
             </dl>

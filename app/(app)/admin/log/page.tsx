@@ -58,7 +58,7 @@ export default async function AdminLogPage({ searchParams }: { searchParams: Pro
         description={t('Every change made from the admin panel and who made it. Kept so a second admin can see what happened.')}
         note={
           adminFilter ? (
-            <Link href="/admin/log" className="text-xs text-ash hover:text-white">
+            <Link href="/admin/log" className="text-xs text-ash hover:text-foreground">
               {t('Show every admin')}
             </Link>
           ) : null
@@ -66,7 +66,7 @@ export default async function AdminLogPage({ searchParams }: { searchParams: Pro
       />
       <div className={cn(cardClass, 'overflow-hidden')}>
         {rows.length ? (
-          <ul className="divide-y divide-white/[0.04]">
+          <ul className="divide-y divide-foreground/[0.04]">
             {rows.map((row) => {
               const href = targetHref(row.action, row.target)
               const text = describe(row.detail ?? {})
@@ -74,10 +74,10 @@ export default async function AdminLogPage({ searchParams }: { searchParams: Pro
                 <li key={row.id} className="flex items-start gap-4 px-5 py-3">
                   <span className="w-24 shrink-0 font-mono text-[11px] text-smoke">{ago(row.created_at, t, locale)}</span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm text-white">
+                    <p className="text-sm text-foreground">
                       {t(ACTION_LABEL[row.action] ?? row.action)}
                       {href ? (
-                        <Link href={href} className="ml-2 font-mono text-[11px] text-ash hover:text-white">
+                        <Link href={href} className="ml-2 font-mono text-[11px] text-ash hover:text-foreground">
                           {row.target && UUID.test(row.target) ? row.target.slice(0, 8) : row.target}
                         </Link>
                       ) : null}
@@ -85,7 +85,7 @@ export default async function AdminLogPage({ searchParams }: { searchParams: Pro
                     {text ? <p className="mt-0.5 truncate font-mono text-[11px] text-smoke">{text}</p> : null}
                   </div>
                   {row.admin_id ? (
-                    <Link href={`/admin/log?admin=${row.admin_id}`} className="shrink-0 text-xs text-ash hover:text-white">
+                    <Link href={`/admin/log?admin=${row.admin_id}`} className="shrink-0 text-xs text-ash hover:text-foreground">
                       {row.admin}
                     </Link>
                   ) : (

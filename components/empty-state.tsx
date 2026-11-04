@@ -35,7 +35,7 @@ export function EmptyState({
       <div className="flex size-14 items-center justify-center rounded-full bg-graphite text-mist shadow-key-strong">
         <Icon className="size-6" />
       </div>
-      <h2 className="mt-6 text-xl font-normal text-white">{title}</h2>
+      <h2 className="mt-6 text-xl font-normal text-foreground">{title}</h2>
       <p className="mt-2 max-w-md text-sm leading-6 text-pretty text-ash">{body}</p>
       {action ? (
         <Button

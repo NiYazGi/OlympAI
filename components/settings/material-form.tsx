@@ -32,7 +32,7 @@ const KINDS = [
 const LICENCE_CHOICES = (Object.keys(LICENCES) as Licence[]).filter((key) => key !== 'unknown')
 
 const inputClass =
-  'h-10 w-full rounded-lg bg-white/[0.05] px-3 text-sm outline-none shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:bg-white/[0.07] focus:ring-2 focus:ring-white/10'
+  'h-10 w-full rounded-lg bg-foreground/[0.05] px-3 text-sm outline-none shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:bg-foreground/[0.07] focus:ring-2 focus:ring-foreground/10'
 
 export function MaterialForm({
   tasks,
@@ -84,8 +84,8 @@ export function MaterialForm({
                 className={cn(
                   'flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors',
                   kind === option.value
-                    ? 'bg-white/[0.07] shadow-key-strong'
-                    : 'border-border hover:border-white/20',
+                    ? 'bg-foreground/[0.07] shadow-key-strong'
+                    : 'border-border hover:border-foreground/20',
                 )}
               >
                 <input
@@ -177,7 +177,7 @@ export function MaterialForm({
                   'rounded-full border px-3 py-1.5 text-xs font-medium capitalize transition-colors',
                   attachTo === value
                     ? 'border-primary bg-primary text-primary-foreground'
-                    : 'border-border hover:border-white/20',
+                    : 'border-border hover:border-foreground/20',
                 )}
               >
                 {value === 'task' ? t('One task') : t('A whole topic')}

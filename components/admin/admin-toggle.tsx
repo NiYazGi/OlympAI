@@ -32,7 +32,7 @@ export function AdminToggle({ userId, isAdmin, isSelf }: { userId: string; isAdm
           'inline-flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-colors disabled:cursor-not-allowed',
           isAdmin
             ? 'bg-coral/10 text-coral hover:bg-coral/15 disabled:hover:bg-coral/10'
-            : 'bg-white/[0.05] text-ash shadow-key hover:bg-white/[0.08] hover:text-white',
+            : 'bg-foreground/[0.05] text-ash shadow-key hover:bg-foreground/[0.08] hover:text-foreground',
         )}
       >
         {pending ? <Loader2 className="size-3.5 animate-spin" /> : isAdmin ? <ShieldCheck className="size-3.5" /> : null}

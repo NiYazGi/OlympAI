@@ -34,7 +34,7 @@ export function Meter({
 
   return (
     <div
-      className={cn('h-1.5 overflow-hidden rounded-full bg-white/[0.06]', className)}
+      className={cn('h-1.5 overflow-hidden rounded-full bg-foreground/[0.06]', className)}
       {...(label
         ? {
             role: 'progressbar',

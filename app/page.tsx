@@ -6,12 +6,7 @@ import {
   BrainCircuit,
   Calculator,
   ClipboardCheck,
-  Code2,
-  Globe2,
-  Languages,
   Layers,
-  LineChart,
-  Microscope,
   PenLine,
   Search,
   Sparkles,
@@ -25,11 +20,6 @@ import { getT } from '@/lib/i18n/server'
 const subjects = [
   { icon: Atom, name: 'Physics', detail: 'Mechanics, fields, thermodynamics' },
   { icon: Calculator, name: 'Mathematics', detail: 'Algebra, combinatorics, number theory' },
-  { icon: Code2, name: 'Computer Science', detail: 'Algorithms, data structures' },
-  { icon: Microscope, name: 'Biology', detail: 'Cells, genetics, physiology' },
-  { icon: LineChart, name: 'Economics', detail: 'Micro, macro, game theory' },
-  { icon: Globe2, name: 'Geography', detail: 'Climate, maps, population' },
-  { icon: Languages, name: 'Linguistics', detail: 'Self-contained language puzzles' },
 ]
 
 const ladder = [
@@ -86,9 +76,9 @@ export default async function LandingPage() {
         <div className="relative z-10 flex max-w-4xl flex-col items-center">
           <a
             href="#sulu"
-            className="enter group inline-flex items-center gap-2 rounded-full bg-white/[0.04] py-1 pr-3 pl-1 text-[13px] text-ash shadow-key backdrop-blur-xl transition-colors hover:text-white"
+            className="enter group inline-flex items-center gap-2 rounded-full bg-foreground/[0.04] py-1 pr-3 pl-1 text-[13px] text-ash shadow-key backdrop-blur-xl transition-colors hover:text-foreground"
           >
-            <span className="rounded-full bg-coral px-2 py-0.5 text-[11px] font-semibold text-void">{t('AI')}</span>
+            <span className="rounded-full bg-coral px-2 py-0.5 text-[11px] font-semibold text-primary-foreground">{t('AI')}</span>
             {t('Meet Sulu, the coach that asks before it tells')}
             <ArrowRight className="size-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
           </a>
@@ -120,7 +110,7 @@ export default async function LandingPage() {
           </div>
 
           <p className="enter mt-6 font-mono text-xs text-smoke" style={delay(460)}>
-            {t('7 subjects')} <span className="mx-2 text-iron">|</span> {t('5-step study ladder')}{' '}
+            {t('2 subjects')} <span className="mx-2 text-iron">|</span> {t('5-step study ladder')}{' '}
             <span className="mx-2 text-iron">|</span> {t('No card required')}
           </p>
         </div>
@@ -132,9 +122,9 @@ export default async function LandingPage() {
       </section>
 
       {/* Subjects marquee -------------------------------------------------- */}
-      <section id="subjects" className="relative border-y border-white/[0.06] py-10">
+      <section id="subjects" className="relative border-y border-foreground/[0.06] py-10">
         <p className="eyebrow mb-8 text-center" data-reveal>
-          {t('Seven subjects, one discipline')}
+          {t('Two subjects, one discipline')}
         </p>
         <div className="marquee-mask overflow-hidden">
           <div className="marquee gap-3">
@@ -147,7 +137,7 @@ export default async function LandingPage() {
                   <subject.icon className="size-4" />
                 </span>
                 <span className="text-left">
-                  <span className="block text-sm font-medium text-white">{t(subject.name)}</span>
+                  <span className="block text-sm font-medium text-foreground">{t(subject.name)}</span>
                   <span className="block text-xs text-smoke">{t(subject.detail)}</span>
                 </span>
               </div>
@@ -177,7 +167,7 @@ export default async function LandingPage() {
                 </span>
                 <span className="font-mono text-xs text-smoke">{item.step}</span>
               </div>
-              <h3 className="mt-8 text-lg font-medium text-white">{t(item.title)}</h3>
+              <h3 className="mt-8 text-lg font-medium text-foreground">{t(item.title)}</h3>
               <p className="mt-2 text-sm leading-relaxed text-ash">{t(item.body)}</p>
             </div>
           ))}
@@ -197,7 +187,7 @@ export default async function LandingPage() {
               <SuluGlyph className="relative size-7" />
             </span>
             <p className="eyebrow mt-8">{t('Sulu AI')}</p>
-            <h2 className="mt-4 text-[32px] leading-[1.15] font-normal text-white sm:text-[44px]">
+            <h2 className="mt-4 text-[32px] leading-[1.15] font-normal text-foreground sm:text-[44px]">
               {t('A coach that makes you')} <span className="text-shimmer">{t('think')}</span>{t(', not copy.')}
             </h2>
             <p className="mt-6 max-w-lg text-base leading-relaxed text-ash">
@@ -218,12 +208,12 @@ export default async function LandingPage() {
           <div data-reveal style={delay(150)}>
             <div className="beam-frame rounded-[20px]">
               <div className="surface-ember overflow-hidden rounded-[20px]">
-                <div className="flex items-center gap-3 border-b border-white/[0.06] px-5 py-4">
+                <div className="flex items-center gap-3 border-b border-foreground/[0.06] px-5 py-4">
                   <span className="flex size-8 items-center justify-center rounded-full bg-void shadow-key">
                     <SuluGlyph className="size-5" />
                   </span>
                   <div>
-                    <p className="text-sm font-medium text-white">{t('Sulu')}</p>
+                    <p className="text-sm font-medium text-foreground">{t('Sulu')}</p>
                     <p className="font-mono text-[11px] text-ash">{t('Two masses and a pulley')}</p>
                   </div>
                   <span className="ml-auto flex items-center gap-1.5 font-mono text-[11px] text-ash">
@@ -267,7 +257,7 @@ export default async function LandingPage() {
               style={delay((index % 3) * 90)}
               className="spotlight rounded-2xl bg-card p-6 shadow-key"
             >
-              <h3 className="text-base font-medium text-white">{t(feature.title)}</h3>
+              <h3 className="text-base font-medium text-foreground">{t(feature.title)}</h3>
               <p className="mt-3 text-sm leading-relaxed text-ash">{t(feature.body)}</p>
             </div>
           ))}
@@ -275,12 +265,12 @@ export default async function LandingPage() {
 
         <div data-reveal className="mt-3 overflow-hidden rounded-[20px] bg-card shadow-window">
           <div className="grid gap-0 md:grid-cols-[1.2fr_1fr]">
-            <div className="border-b border-white/[0.06] p-6 md:border-r md:border-b-0 sm:p-8">
+            <div className="border-b border-foreground/[0.06] p-6 md:border-r md:border-b-0 sm:p-8">
               <p className="eyebrow">{t('Your attempt')}</p>
               <div className="mt-5 space-y-2 font-mono text-[13px] leading-relaxed text-ash">
                 <p>m₁g − T = m₁a</p>
                 <p>T − m₂g = m₂a</p>
-                <p className="text-white">⇒ a = g(m₁ − m₂)/(m₁ + m₂)</p>
+                <p className="text-foreground">⇒ a = g(m₁ − m₂)/(m₁ + m₂)</p>
                 <p>T = m₁(g − a) = 2m₁m₂g/(m₁ + m₂)</p>
               </div>
             </div>
@@ -291,7 +281,7 @@ export default async function LandingPage() {
                   {t('correct')}
                 </span>
               </div>
-              <p className="mt-5 text-[40px] leading-none font-medium text-white tabular-nums">
+              <p className="mt-5 text-[40px] leading-none font-medium text-foreground tabular-nums">
                 94<span className="text-lg text-smoke">/100</span>
               </p>
               <p className="mt-4 text-sm leading-relaxed text-ash">
@@ -304,7 +294,7 @@ export default async function LandingPage() {
       </section>
 
       {/* CTA ------------------------------------------------------------------ */}
-      <section className="relative overflow-hidden border-t border-white/[0.06]">
+      <section className="relative overflow-hidden border-t border-foreground/[0.06]">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-x-0 -bottom-40 mx-auto h-80 max-w-3xl rounded-full bg-[radial-gradient(closest-side,rgba(99,161,255,0.22),transparent)] blur-2xl"
@@ -336,17 +326,17 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      <footer className="border-t border-white/[0.06]">
+      <footer className="border-t border-foreground/[0.06]">
         <div className="mx-auto flex max-w-[1200px] flex-col gap-6 px-4 py-10 sm:flex-row sm:items-center sm:justify-between sm:px-8">
           <BrandMark />
           <p className="font-mono text-xs text-smoke">
-            v0.1.0 <span className="mx-2 text-iron">|</span> {t('Physics · Maths · CS · Bio · Econ · Geo · Ling')}
+            v0.1.0 <span className="mx-2 text-iron">|</span> {t('Physics · Mathematics')}
           </p>
           <div className="flex gap-6 text-[13px] text-ash">
-            <Link href="/login" className="transition-colors hover:text-white">
+            <Link href="/login" className="transition-colors hover:text-foreground">
               {t('Log in')}
             </Link>
-            <Link href="/signup" className="transition-colors hover:text-white">
+            <Link href="/signup" className="transition-colors hover:text-foreground">
               {t('Sign up')}
             </Link>
           </div>
@@ -362,7 +352,7 @@ function SectionHeading({ eyebrow, title, body }: { eyebrow: string; title: stri
       <p data-reveal className="eyebrow">
         {eyebrow}
       </p>
-      <h2 data-reveal style={delay(80)} className="mt-5 text-[32px] leading-[1.15] font-normal text-white sm:text-[44px]">
+      <h2 data-reveal style={delay(80)} className="mt-5 text-[32px] leading-[1.15] font-normal text-foreground sm:text-[44px]">
         {title}
       </h2>
       <p data-reveal style={delay(160)} className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-ash">
@@ -380,8 +370,8 @@ function Bubble({ from, index, children }: { from: 'sulu' | 'me'; index: number;
       className={cn(
         'max-w-[85%] rounded-2xl p-3.5 text-sm leading-relaxed',
         from === 'sulu'
-          ? 'rounded-tl-md bg-white/[0.06] text-white/90'
-          : 'ml-auto rounded-tr-md bg-mist text-[#1b1c1e]',
+          ? 'rounded-tl-md bg-foreground/[0.06] text-foreground/90'
+          : 'ml-auto rounded-tr-md bg-primary text-primary-foreground',
       )}
     >
       {children}
@@ -402,9 +392,9 @@ async function CommandWindow() {
 
   return (
     <div className="overflow-hidden rounded-2xl bg-ink/90 text-left shadow-window backdrop-blur-xl">
-      <div className="flex items-center gap-3 border-b border-white/[0.06] px-4 py-3.5">
+      <div className="flex items-center gap-3 border-b border-foreground/[0.06] px-4 py-3.5">
         <Search className="size-4 text-smoke" />
-        <span className="text-[15px] text-white">
+        <span className="text-[15px] text-foreground">
           {t('What should I do today')}<span className="caret" />
         </span>
         <span className="ml-auto hidden items-center gap-1 sm:flex">
@@ -419,24 +409,24 @@ async function CommandWindow() {
             key={row.title}
             className={cn(
               'flex items-center gap-3 rounded-lg px-2 py-2',
-              row.active && 'bg-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]',
+              row.active && 'bg-foreground/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]',
             )}
           >
             <span
               className={cn(
                 'flex size-7 items-center justify-center rounded-md',
-                row.active ? 'bg-coral text-void' : 'bg-graphite text-ash',
+                row.active ? 'bg-coral text-primary-foreground' : 'bg-graphite text-ash',
               )}
             >
               <row.icon className="size-3.5" />
             </span>
-            <span className="truncate text-sm text-white">{t(row.title)}</span>
+            <span className="truncate text-sm text-foreground">{t(row.title)}</span>
             <span className="hidden truncate text-sm text-smoke sm:inline">{t(row.meta)}</span>
             <span className="ml-auto font-mono text-[11px] text-smoke">{t(row.tag)}</span>
           </div>
         ))}
       </div>
-      <div className="flex items-center justify-between border-t border-white/[0.06] px-4 py-2.5">
+      <div className="flex items-center justify-between border-t border-foreground/[0.06] px-4 py-2.5">
         <span className="flex items-center gap-2 text-xs text-ash">
           <BrandGlyph className="size-3.5" /> {t('OlympAI')}
         </span>

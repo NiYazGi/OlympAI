@@ -62,7 +62,7 @@ export function UserControls({ account, isSelf, grades }: { account: Account; is
       ) : null}
 
       <section className={cn(cardClass, 'space-y-4 p-5')}>
-        <h2 className="text-[15px] font-medium text-white">{t('Profile')}</h2>
+        <h2 className="text-[15px] font-medium text-foreground">{t('Profile')}</h2>
         <form
           action={(formData) => run(() => updateProfile(account.id, formData))}
           className="space-y-3"
@@ -94,7 +94,7 @@ export function UserControls({ account, isSelf, grades }: { account: Account; is
       </section>
 
       <section className={cn(cardClass, 'space-y-3 p-5')}>
-        <h2 className="text-[15px] font-medium text-white">{t('Account')}</h2>
+        <h2 className="text-[15px] font-medium text-foreground">{t('Account')}</h2>
         <div className="flex flex-wrap gap-2">
           <Button
             size="sm"
@@ -136,7 +136,7 @@ export function UserControls({ account, isSelf, grades }: { account: Account; is
 
       {!isSelf ? (
         <section className={cn(cardClass, 'space-y-3 p-5')}>
-          <h2 className="text-[15px] font-medium text-white">{t('Block')}</h2>
+          <h2 className="text-[15px] font-medium text-foreground">{t('Block')}</h2>
           {account.banned_at ? (
             <>
               <p className="text-sm text-coral">

@@ -40,8 +40,8 @@ export function AdminNav() {
             className={cn(
               'flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors duration-200',
               active
-                ? 'bg-white/[0.08] text-white shadow-[rgba(255,255,255,0.08)_0_1px_0_inset]'
-                : 'text-ash hover:bg-white/[0.04] hover:text-white',
+                ? 'bg-foreground/[0.08] text-foreground shadow-[rgba(255,255,255,0.08)_0_1px_0_inset]'
+                : 'text-ash hover:bg-foreground/[0.04] hover:text-foreground',
             )}
           >
             <item.icon className="size-4" />

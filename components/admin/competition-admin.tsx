@@ -121,7 +121,7 @@ export function CompetitionAdmin({
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start">
       <section className={cn(cardClass, 'overflow-hidden')}>
         {competitions.length > 5 ? (
-          <div className="border-b border-white/[0.06] p-3">
+          <div className="border-b border-foreground/[0.06] p-3">
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -131,16 +131,16 @@ export function CompetitionAdmin({
           </div>
         ) : null}
         {listed.length ? (
-          <ul className="divide-y divide-white/[0.06]">
+          <ul className="divide-y divide-foreground/[0.06]">
             {listed.map((competition) => {
               const over = (competition.ends_on ?? competition.starts_on ?? '9999') < today
               return (
                 <li
                   key={competition.id}
-                  className={cn('flex items-start gap-2 px-5 py-4', editing?.id === competition.id && 'bg-white/[0.03]')}
+                  className={cn('flex items-start gap-2 px-5 py-4', editing?.id === competition.id && 'bg-foreground/[0.03]')}
                 >
                   <div className="min-w-0 flex-1">
-                    <p className={cn('text-sm font-medium', competition.active ? 'text-white' : 'text-smoke line-through')}>
+                    <p className={cn('text-sm font-medium', competition.active ? 'text-foreground' : 'text-smoke line-through')}>
                       {competition.name}
                     </p>
                     <p className="mt-1 text-xs text-ash">
@@ -157,7 +157,7 @@ export function CompetitionAdmin({
                       {!competition.active ? (
                         <span className="rounded-md bg-warning/10 px-1.5 py-0.5 text-[11px] text-warning">{t('hidden')}</span>
                       ) : null}
-                      {over ? <span className="rounded-md bg-white/[0.05] px-1.5 py-0.5 text-[11px] text-smoke">{t('over')}</span> : null}
+                      {over ? <span className="rounded-md bg-foreground/[0.05] px-1.5 py-0.5 text-[11px] text-smoke">{t('over')}</span> : null}
                     </p>
                   </div>
                   {competition.slug && competition.active ? (
@@ -166,7 +166,7 @@ export function CompetitionAdmin({
                       target="_blank"
                       rel="noreferrer"
                       aria-label={t('Open the page students see')}
-                      className="rounded-lg p-2 text-smoke transition-colors hover:bg-white/[0.06] hover:text-white"
+                      className="rounded-lg p-2 text-smoke transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
                     >
                       <ExternalLink className="size-4" />
                     </a>
@@ -175,7 +175,7 @@ export function CompetitionAdmin({
                     type="button"
                     onClick={() => edit(competition)}
                     aria-label={t('Edit {name}', { name: competition.name })}
-                    className="rounded-lg p-2 text-smoke transition-colors hover:bg-white/[0.06] hover:text-white"
+                    className="rounded-lg p-2 text-smoke transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
                   >
                     <Pencil className="size-4" />
                   </button>
@@ -185,7 +185,7 @@ export function CompetitionAdmin({
                     disabled={pending}
                     aria-label={competition.active ? t('Hide from students') : t('Show to students')}
                     title={competition.active ? t('Hide from students') : t('Show to students')}
-                    className="rounded-lg p-2 text-smoke transition-colors hover:bg-white/[0.06] hover:text-white disabled:opacity-50"
+                    className="rounded-lg p-2 text-smoke transition-colors hover:bg-foreground/[0.06] hover:text-foreground disabled:opacity-50"
                   >
                     {busy === competition.id ? (
                       <Loader2 className="size-4 animate-spin" />
@@ -219,10 +219,10 @@ export function CompetitionAdmin({
         key={editing?.id ?? 'new'}
         ref={formRef}
         action={submit}
-        className={cn(cardClass, 'scroll-mt-20 space-y-4 p-5 sm:p-6', editing && 'ring-1 ring-white/20')}
+        className={cn(cardClass, 'scroll-mt-20 space-y-4 p-5 sm:p-6', editing && 'ring-1 ring-foreground/20')}
       >
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-[15px] font-medium text-white">
+          <h2 className="text-[15px] font-medium text-foreground">
             {editing ? t('Edit “{name}”', { name: editing.name }) : t('Add an olympiad')}
           </h2>
           {editing ? (
@@ -232,7 +232,7 @@ export function CompetitionAdmin({
                 setEditing(null)
                 setNotice(null)
               }}
-              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-ash hover:bg-white/[0.06] hover:text-white"
+              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-ash hover:bg-foreground/[0.06] hover:text-foreground"
             >
               <X className="size-3.5" /> {t('Cancel')}
             </button>
@@ -298,7 +298,7 @@ export function CompetitionAdmin({
         {/* The write-up the olympiad's own page shows, per language. A
             language without a summary simply has no prose there. */}
         {LOCALES.map((locale) => (
-          <details key={locale} open={Boolean(value?.details[locale])} className="rounded-lg bg-white/[0.03] p-3 ring-1 ring-white/[0.06]">
+          <details key={locale} open={Boolean(value?.details[locale])} className="rounded-lg bg-foreground/[0.03] p-3 ring-1 ring-foreground/[0.06]">
             <summary className="cursor-pointer text-sm text-ash">
               {t('Description')} · {locale.toUpperCase()}
               {value?.details[locale] ? <span className="ml-2 text-success">●</span> : null}

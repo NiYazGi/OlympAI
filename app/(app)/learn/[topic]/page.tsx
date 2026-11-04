@@ -56,7 +56,7 @@ export default async function TopicPage({ params }: { params: Promise<{ topic: s
         <Link
           href={ladder.deck.href}
           prefetch
-          className={`${cardClass} flex items-center gap-3 p-4 transition-colors hover:bg-white/[0.04]`}
+          className={`${cardClass} flex items-center gap-3 p-4 transition-colors hover:bg-foreground/[0.04]`}
         >
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-medium">{ladder.deck.label}</span>

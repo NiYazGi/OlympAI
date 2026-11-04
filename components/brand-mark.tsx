@@ -49,15 +49,15 @@ export function BrandGlyph({ className }: { className?: string }) {
   )
 }
 
-export function BrandMark({ className, compact = false }: { className?: string; compact?: boolean }) {
+export function BrandMark({ className, compact = false, large = false }: { className?: string; compact?: boolean; large?: boolean }) {
   return (
-    <span className={cn('inline-flex items-center gap-2', className)}>
+    <span className={cn('inline-flex items-center gap-2', large && 'gap-2.5', className)}>
       <span className="relative flex">
-        <span aria-hidden className="absolute inset-0 rounded-full bg-coral/30 blur-md" />
-        <BrandGlyph className="relative size-6" />
+        <span aria-hidden className="absolute inset-0 rounded-full bg-coral/10 blur-md" />
+        <BrandGlyph className={cn('relative size-6', large && 'size-8')} />
       </span>
       {compact ? null : (
-        <span className="text-[15px] font-semibold tracking-[0.01em] text-white">
+        <span className={cn('text-[15px] font-semibold tracking-[0.01em] text-foreground', large && 'text-2xl font-bold tracking-tight')}>
           Olymp<span className="text-coral">AI</span>
         </span>
       )}

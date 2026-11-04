@@ -108,8 +108,8 @@ export function MarketingHeader() {
               onMouseEnter={() => setHovered(link.id)}
               aria-current={active === link.id ? 'true' : undefined}
               className={cn(
-                'relative rounded-lg px-3.5 py-1.5 transition-colors duration-300 hover:text-white',
-                active === link.id && 'text-white',
+                'relative rounded-lg px-3.5 py-1.5 transition-colors duration-300 hover:text-foreground',
+                active === link.id && 'text-foreground',
               )}
             >
               <RollText key={t(link.label)}>{t(link.label)}</RollText>
@@ -162,8 +162,8 @@ export function MarketingHeader() {
               href={`#${link.id}`}
               onClick={(event) => go(event, link.id)}
               className={cn(
-                'rounded-lg px-3 py-2.5 text-ash hover:bg-white/[0.06] hover:text-white',
-                active === link.id && 'bg-white/[0.04] text-white',
+                'rounded-lg px-3 py-2.5 text-ash hover:bg-foreground/[0.06] hover:text-foreground',
+                active === link.id && 'bg-foreground/[0.04] text-foreground',
               )}
             >
               {t(link.label)}

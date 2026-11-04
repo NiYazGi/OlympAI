@@ -45,18 +45,18 @@ export default async function VerifyPage({
       </p>
       <form className="space-y-4" action={verifySignup}>
         {notice ? (
-          <p role="alert" className="rounded-lg bg-ember/60 p-3 text-sm text-[#ffb3b3] shadow-key">
+          <p role="alert" className="rounded-lg bg-ember/60 p-3 text-sm text-destructive shadow-key">
             {notice}
           </p>
         ) : null}
-        {message ? <p className="rounded-lg bg-white/[0.05] p-3 text-sm text-ash shadow-key">{t(message)}</p> : null}
+        {message ? <p className="rounded-lg bg-foreground/[0.05] p-3 text-sm text-ash shadow-key">{t(message)}</p> : null}
         <CodeField label={t('Code from the email')} />
         <Button size="lg" className="h-11 w-full" type="submit">
           {t('Confirm')}
         </Button>
       </form>
       <form action={resendSignupCode} className="mt-4 text-center">
-        <button type="submit" className="text-sm text-ash underline-offset-4 hover:text-white hover:underline">
+        <button type="submit" className="text-sm text-ash underline-offset-4 hover:text-foreground hover:underline">
           {t('Send a new code')}
         </button>
       </form>

@@ -118,7 +118,7 @@ export function CoachChat({
             <div className="flex size-12 items-center justify-center rounded-full bg-card shadow-key">
               <SuluGlyph className="size-7" />
             </div>
-            <h2 className="mt-4 font-medium text-white">{t('Start a focused conversation')}</h2>
+            <h2 className="mt-4 font-medium text-foreground">{t('Start a focused conversation')}</h2>
             <p className="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">
               {t('Show Sulu what you have tried, or ask for one small hint.')}
             </p>
@@ -133,8 +133,8 @@ export function CoachChat({
                 className={cn(
                   'rise min-w-0 max-w-[92%] rounded-2xl px-4 py-3 text-sm leading-6 sm:max-w-[85%]',
                   message.role === 'user'
-                    ? 'rounded-br-md bg-mist text-[#1b1c1e]'
-                    : 'rounded-bl-md bg-white/[0.05] text-white/90 shadow-key',
+                    ? 'rounded-br-md bg-primary text-primary-foreground'
+                    : 'rounded-bl-md bg-foreground/[0.05] text-foreground/90 shadow-key',
                 )}
               >
                 {message.content ? (
@@ -150,7 +150,7 @@ export function CoachChat({
 
       {error ? (
         <div
-          className="mb-2 flex items-center justify-between gap-3 rounded-lg bg-ember/60 p-3 text-sm text-[#ffb3b3] shadow-key"
+          className="mb-2 flex items-center justify-between gap-3 rounded-lg bg-ember/60 p-3 text-sm text-destructive shadow-key"
           role="alert"
         >
           <span>{error}</span>
@@ -165,7 +165,7 @@ export function CoachChat({
         </div>
       ) : null}
 
-      <div className="shrink-0 space-y-3 border-t border-white/[0.06] pt-3 pb-[max(.25rem,env(safe-area-inset-bottom))]">
+      <div className="shrink-0 space-y-3 border-t border-foreground/[0.06] pt-3 pb-[max(.25rem,env(safe-area-inset-bottom))]">
         {taskId && draft.trim() ? (
           <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
             <input

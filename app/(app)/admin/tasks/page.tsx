@@ -125,7 +125,7 @@ export default async function AdminTasksPage({
         <Link
           href="/admin/tasks/new"
           prefetch
-          className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-mist px-3 text-sm text-primary-foreground shadow-button hover:bg-white"
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary px-3 text-sm text-primary-foreground shadow-button hover:bg-primary/90"
         >
           <Plus className="size-4" /> {t('New problem')}
         </Link>
@@ -168,7 +168,7 @@ export default async function AdminTasksPage({
             <option value="difficulty">{t('Hardest')}</option>
           </select>
           {show !== 'all' ? <input type="hidden" name="show" value={show} /> : null}
-          <button type="submit" className="h-10 shrink-0 rounded-lg bg-white/[0.06] px-3 text-sm text-white hover:bg-white/[0.1]">
+          <button type="submit" className="h-10 shrink-0 rounded-lg bg-foreground/[0.06] px-3 text-sm text-foreground hover:bg-foreground/[0.1]">
             {t('Apply')}
           </button>
         </div>
@@ -188,7 +188,7 @@ export default async function AdminTasksPage({
             href={href({ show: value, page: undefined })}
             className={cn(
               'rounded-lg px-2.5 py-1.5 text-xs transition-colors',
-              show === value ? 'bg-mist text-primary-foreground' : 'bg-white/[0.04] text-ash hover:text-white',
+              show === value ? 'bg-primary text-primary-foreground' : 'bg-foreground/[0.04] text-ash hover:text-foreground',
             )}
           >
             {t(label)} <span className="tabular-nums opacity-70">{counts[value]}</span>
@@ -198,12 +198,12 @@ export default async function AdminTasksPage({
 
       <div className={cn(cardClass, 'overflow-hidden')}>
         {shown.length ? (
-          <ul className="divide-y divide-white/[0.04]">
+          <ul className="divide-y divide-foreground/[0.04]">
             {shown.map((row) => (
               <li key={row.id}>
-                <Link href={`/admin/tasks/${row.id}`} prefetch className="flex items-center gap-4 px-5 py-3 transition-colors hover:bg-white/[0.02]">
+                <Link href={`/admin/tasks/${row.id}`} prefetch className="flex items-center gap-4 px-5 py-3 transition-colors hover:bg-foreground/[0.02]">
                   <div className="min-w-0 flex-1">
-                    <p className="flex items-center gap-2 truncate text-sm text-white">
+                    <p className="flex items-center gap-2 truncate text-sm text-foreground">
                       {row.hidden ? <EyeOff className="size-3.5 shrink-0 text-warning" /> : null}
                       <span className="truncate">{row.title}</span>
                     </p>
@@ -233,7 +233,7 @@ export default async function AdminTasksPage({
       {pages > 1 ? (
         <nav className="flex items-center justify-center gap-2 text-sm" aria-label={t('Pages')}>
           {page > 1 ? (
-            <Link href={href({ page: String(page - 1) })} className="rounded-lg px-3 py-1.5 text-ash hover:text-white">
+            <Link href={href({ page: String(page - 1) })} className="rounded-lg px-3 py-1.5 text-ash hover:text-foreground">
               ← {t('Previous')}
             </Link>
           ) : null}
@@ -241,7 +241,7 @@ export default async function AdminTasksPage({
             {page} / {pages}
           </span>
           {page < pages ? (
-            <Link href={href({ page: String(page + 1) })} className="rounded-lg px-3 py-1.5 text-ash hover:text-white">
+            <Link href={href({ page: String(page + 1) })} className="rounded-lg px-3 py-1.5 text-ash hover:text-foreground">
               {t('Next')} →
             </Link>
           ) : null}

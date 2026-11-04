@@ -40,7 +40,7 @@ export default async function OlympiadsPage() {
     <div className="mx-auto flex max-w-6xl flex-col gap-5 p-4 sm:gap-6 sm:p-8">
       <PageHeader
         title={t('Olympiads')}
-        description={t('Upcoming competitions and your preparation for each.')}
+        description={t('Olympiad catalogue: eligibility, selection and past papers.')}
       />
       <Reveal
         fallback={
@@ -65,7 +65,8 @@ async function Competitions() {
   const locale = await getLocale()
 
   const competitions = await getCompetitions()
-  const next = competitions[0]
+  // A dateless reference entry is not an upcoming event.
+  const next = competitions.find((competition) => competition.startsOn !== null)
 
   if (competitions.length === 0) {
     return (
@@ -84,11 +85,11 @@ async function Competitions() {
         <section className="surface-ember relative overflow-hidden rounded-[20px] p-6 md:p-8">
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div className="max-w-lg">
-              <Badge className="bg-coral/15 text-[#ffb3b3]">
+              <Badge className="bg-coral/15 text-destructive">
                 <Flag className="size-3" />
                 {t('Next up')}
               </Badge>
-              <h2 className="mt-4 text-balance text-[28px] font-normal text-white">{next.name}</h2>
+              <h2 className="mt-4 text-balance text-[28px] font-normal text-foreground">{next.name}</h2>
               <p className="mt-1 text-ash">
                 {[next.subject, formatRange(next.startsOn, next.endsOn, t, locale), next.level]
                   .filter(Boolean)
@@ -103,7 +104,7 @@ async function Competitions() {
                 </p>
               ) : (
                 <>
-                  <p className="text-4xl font-medium tabular-nums text-white">{next.readiness}%</p>
+                  <p className="text-4xl font-medium tabular-nums text-foreground">{next.readiness}%</p>
                   <Progress
                     value={next.readiness}
                     className="mt-3 h-2 w-full md:w-48"

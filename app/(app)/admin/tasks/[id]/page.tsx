@@ -65,7 +65,7 @@ export default async function AdminTaskPage({ params }: { params: Promise<{ id: 
           <Link
             href={`/tasks/${task.id}`}
             target="_blank"
-            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-white/[0.03] px-3 text-sm text-white shadow-key hover:bg-white/[0.07]"
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-foreground/[0.03] px-3 text-sm text-foreground shadow-key hover:bg-foreground/[0.07]"
           >
             <ExternalLink className="size-4" /> {t('Open as a student')}
           </Link>
@@ -75,7 +75,7 @@ export default async function AdminTaskPage({ params }: { params: Promise<{ id: 
             href={task.source_url}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-white/[0.03] px-3 text-sm text-white shadow-key hover:bg-white/[0.07]"
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-foreground/[0.03] px-3 text-sm text-foreground shadow-key hover:bg-foreground/[0.07]"
           >
             <ExternalLink className="size-4" /> {t('Original source')}
           </a>
@@ -86,17 +86,17 @@ export default async function AdminTaskPage({ params }: { params: Promise<{ id: 
 
       <div className="grid gap-4 lg:grid-cols-2">
         <section className={cn(cardClass, 'p-5')}>
-          <h2 className="text-[15px] font-medium text-white">
+          <h2 className="text-[15px] font-medium text-foreground">
             {t('Attempts')} <span className="text-smoke">· {attempts ?? 0}</span>
           </h2>
           {recent?.length ? (
             <ul className="mt-3 space-y-2 text-sm">
               {recent.map((row) => (
                 <li key={row.id} className="flex justify-between gap-3">
-                  <Link href={`/admin/users/${row.user_id}`} className="text-ash hover:text-white">
+                  <Link href={`/admin/users/${row.user_id}`} className="text-ash hover:text-foreground">
                     {ago(row.created_at, t, locale)}
                   </Link>
-                  <span className="font-mono text-white">{Math.round(row.score)}</span>
+                  <span className="font-mono text-foreground">{Math.round(row.score)}</span>
                 </li>
               ))}
             </ul>
@@ -105,7 +105,7 @@ export default async function AdminTaskPage({ params }: { params: Promise<{ id: 
           )}
         </section>
         <section className={cn(cardClass, 'p-5')}>
-          <h2 className="text-[15px] font-medium text-white">{t('Reports')}</h2>
+          <h2 className="text-[15px] font-medium text-foreground">{t('Reports')}</h2>
           {reports?.length ? (
             <ul className="mt-3 space-y-3 text-sm">
               {reports.map((row) => (
@@ -117,7 +117,7 @@ export default async function AdminTaskPage({ params }: { params: Promise<{ id: 
                 </li>
               ))}
               <li>
-                <Link href="/admin/reports" className="text-xs text-ash hover:text-white">
+                <Link href="/admin/reports" className="text-xs text-ash hover:text-foreground">
                   {t('Answer reports')} →
                 </Link>
               </li>

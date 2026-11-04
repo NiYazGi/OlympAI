@@ -188,7 +188,7 @@ export function SolutionPanel({ hints, taskId }: { hints: string[]; taskId: stri
       ) : null}
 
       {error ? (
-        <p role="alert" className="rounded-lg bg-ember/60 p-3 text-sm text-[#ffb3b3] shadow-key">
+        <p role="alert" className="rounded-lg bg-ember/60 p-3 text-sm text-destructive shadow-key">
           {error}
         </p>
       ) : null}
@@ -298,14 +298,14 @@ function NotebookPhoto({ taskId, onRead }: { taskId: string; onRead: (text: stri
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl bg-white/[0.03] p-3 ring-1 ring-white/[0.06] sm:flex-row sm:items-start">
+    <div className="flex flex-col gap-3 rounded-xl bg-foreground/[0.03] p-3 ring-1 ring-foreground/[0.06] sm:flex-row sm:items-start">
       {preview ? (
         <a href={preview} target="_blank" rel="noreferrer" className="shrink-0 self-start">
           {/* eslint-disable-next-line @next/next/no-img-element -- a local data URL, not an asset to optimise */}
           <img
             src={preview}
             alt={t('Your notebook page')}
-            className="h-24 w-auto max-w-40 rounded-lg object-cover ring-1 ring-white/10"
+            className="h-24 w-auto max-w-40 rounded-lg object-cover ring-1 ring-foreground/10"
           />
         </a>
       ) : null}

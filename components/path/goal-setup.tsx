@@ -148,8 +148,8 @@ export function GoalSetup({
                 className={cn(
                   'flex items-start gap-3 rounded-xl border p-3 text-left transition-colors',
                   active
-                    ? 'bg-white/[0.07] shadow-key-strong'
-                    : 'shadow-key hover:bg-white/[0.04]',
+                    ? 'bg-foreground/[0.07] shadow-key-strong'
+                    : 'shadow-key hover:bg-foreground/[0.04]',
                   empty && 'cursor-not-allowed opacity-45 hover:border-border hover:bg-transparent',
                 )}
               >
@@ -190,7 +190,7 @@ export function GoalSetup({
                       'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
                       active
                         ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border hover:border-white/20',
+                        : 'border-border hover:border-foreground/20',
                     )}
                   >
                     {entry.name}
@@ -219,7 +219,7 @@ export function GoalSetup({
                   'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
                   active
                     ? 'border-primary bg-primary text-primary-foreground'
-                    : 'border-border hover:border-white/20',
+                    : 'border-border hover:border-foreground/20',
                 )}
               >
                 {t(horizon.label)}
@@ -236,7 +236,7 @@ export function GoalSetup({
             min={tomorrow}
             max={twoYears}
             onChange={(event) => setDate(event.target.value)}
-            className="h-10 rounded-lg bg-white/[0.05] px-3 text-sm text-foreground outline-none shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:bg-white/[0.07] focus:ring-2 focus:ring-white/10"
+            className="h-10 rounded-lg bg-foreground/[0.05] px-3 text-sm text-foreground outline-none shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:bg-foreground/[0.07] focus:ring-2 focus:ring-foreground/10"
           />
         </label>
         {/* The catalogue holds no dates on purpose: sittings move every year, so
@@ -258,7 +258,7 @@ export function GoalSetup({
       </fieldset>
 
       {error ? (
-        <p role="alert" className="mt-4 rounded-lg bg-ember/60 p-3 text-sm text-[#ffb3b3] shadow-key">
+        <p role="alert" className="mt-4 rounded-lg bg-ember/60 p-3 text-sm text-destructive shadow-key">
           {error}
         </p>
       ) : null}

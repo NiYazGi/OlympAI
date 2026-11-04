@@ -60,12 +60,12 @@ export function MobileNav({ role = 'student', inClass = false }: { role?: 'stude
 
   return (
     <>
-      <header className="glass sticky top-0 z-20 flex items-center gap-2.5 border-b border-white/[0.06] px-4 py-3 md:hidden">
+      <header className="glass sticky top-0 z-20 flex items-center gap-2.5 border-b border-foreground/[0.06] px-4 py-3 md:hidden">
         <BrandMark />
         <LanguageSwitcher className="ml-auto" />
       </header>
 
-      <nav className="glass fixed inset-x-0 bottom-0 z-30 flex min-h-16 items-stretch justify-around border-t border-white/[0.06] px-1 pb-[env(safe-area-inset-bottom)] md:hidden">
+      <nav className="glass fixed inset-x-0 bottom-0 z-30 flex min-h-16 items-stretch justify-around border-t border-foreground/[0.06] px-1 pb-[env(safe-area-inset-bottom)] md:hidden">
         {navItems.map((item) => {
           const active = isActive(item.href) || (item.also ?? []).some(isActive)
           return (
@@ -73,9 +73,10 @@ export function MobileNav({ role = 'student', inClass = false }: { role?: 'stude
               key={item.href}
               href={item.href}
               data-tour={`nav:${item.href}`}
+              aria-current={active ? 'page' : undefined}
               className={cn(
                 'relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-md px-1 py-2 text-[11px] font-medium transition-colors duration-200',
-                active ? 'text-white' : 'text-smoke',
+                active ? 'text-primary' : 'text-muted-foreground',
               )}
             >
               {/* The same travelling indicator as the desktop rail. */}
@@ -98,7 +99,7 @@ export function MobileNav({ role = 'student', inClass = false }: { role?: 'stude
           className={cn(
             'flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-md px-1 py-2 text-[11px] font-medium transition-colors',
             moreOpen || moreItems.some((item) => isActive(item.href))
-              ? 'text-white'
+              ? 'text-foreground'
               : 'text-smoke',
           )}
           aria-expanded={moreOpen}
@@ -116,7 +117,7 @@ export function MobileNav({ role = 'student', inClass = false }: { role?: 'stude
               key={item.href}
               href={item.href}
               onClick={() => setMoreOpen(false)}
-              className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-medium text-white hover:bg-white/[0.06]"
+              className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-medium text-foreground hover:bg-foreground/[0.06]"
             >
               <item.icon className="size-5 text-ash" />
               {t(item.label)}

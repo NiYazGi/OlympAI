@@ -10,7 +10,7 @@ import dynamic from 'next/dynamic'
  */
 const placeholder = (height: string) =>
   function ChartPlaceholder() {
-    return <div className={`${height} w-full animate-pulse rounded-lg bg-white/[0.03]`} />
+    return <div className={`${height} w-full animate-pulse rounded-lg bg-foreground/[0.03]`} />
   }
 
 export const AccuracyTrendChart = dynamic(
