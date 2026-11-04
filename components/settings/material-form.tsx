@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { LICENCES, youTubeId, type Licence } from '@/lib/licence'
 import { cardClass, cn } from '@/lib/utils'
+import { useT } from '@/components/i18n-provider'
 
 type Option = { id: string; label: string; group: string }
 export type ExistingResource = {
@@ -31,7 +32,7 @@ const KINDS = [
 const LICENCE_CHOICES = (Object.keys(LICENCES) as Licence[]).filter((key) => key !== 'unknown')
 
 const inputClass =
-  'h-10 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none focus:border-primary'
+  'h-10 w-full rounded-lg bg-white/[0.05] px-3 text-sm outline-none shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:bg-white/[0.07] focus:ring-2 focus:ring-white/10'
 
 export function MaterialForm({
   tasks,
@@ -42,6 +43,8 @@ export function MaterialForm({
   topics: Option[]
   existing: ExistingResource[]
 }) {
+  const t = useT()
+
   const [kind, setKind] = useState<(typeof KINDS)[number]['value']>('video')
   const [url, setUrl] = useState('')
   const [title, setTitle] = useState('')
@@ -58,11 +61,11 @@ export function MaterialForm({
     startTransition(async () => {
       const result = await addMaterial(formData)
       if (result.ok) {
-        setNotice({ tone: 'ok', text: result.message ?? 'Added.' })
+        setNotice({ tone: 'ok', text: result.message ?? t('Added.') })
         setUrl('')
         setTitle('')
       } else {
-        setNotice({ tone: 'error', text: result.error ?? 'That did not save.' })
+        setNotice({ tone: 'error', text: result.error ?? t('That did not save.') })
       }
     })
   }
@@ -71,8 +74,8 @@ export function MaterialForm({
     <div className="space-y-6">
       <form action={submit} className={cn(cardClass, 'space-y-5 p-5 sm:p-6')}>
         <fieldset>
-          <legend className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Kind
+          <legend className="eyebrow">
+            {t('Kind')}
           </legend>
           <div className="mt-3 grid gap-2 sm:grid-cols-3">
             {KINDS.map((option) => (
@@ -81,8 +84,8 @@ export function MaterialForm({
                 className={cn(
                   'flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors',
                   kind === option.value
-                    ? 'border-primary bg-accent/60'
-                    : 'border-border hover:border-primary/40',
+                    ? 'bg-white/[0.07] shadow-key-strong'
+                    : 'border-border hover:border-white/20',
                 )}
               >
                 <input
@@ -95,8 +98,8 @@ export function MaterialForm({
                 />
                 <option.icon className="size-4 shrink-0 text-primary" />
                 <span className="min-w-0">
-                  <span className="block text-sm font-medium">{option.label}</span>
-                  <span className="block text-xs text-muted-foreground">{option.hint}</span>
+                  <span className="block text-sm font-medium">{t(option.label)}</span>
+                  <span className="block text-xs text-muted-foreground">{t(option.hint)}</span>
                 </span>
               </label>
             ))}
@@ -104,8 +107,8 @@ export function MaterialForm({
         </fieldset>
 
         <label className="block">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Link
+          <span className="eyebrow">
+            {t('Link')}
           </span>
           <Input
             name="url"
@@ -116,25 +119,25 @@ export function MaterialForm({
             className="mt-2"
           />
           {kind === 'video' && url && !videoId ? (
-            <span className="mt-1.5 block text-xs text-amber-500">
-              Not a YouTube link. Add it as a reference instead, or paste a YouTube URL.
+            <span className="mt-1.5 block text-xs text-warning">
+              {t('Not a YouTube link. Add it as a reference instead, or paste a YouTube URL.')}
             </span>
           ) : null}
         </label>
 
         {videoId ? (
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Preview
+            <p className="eyebrow mb-2">
+              {t('Preview')}
             </p>
             {/* The same component students see, so what is checked is what ships. */}
-            <YouTubeEmbed url={url} title={title || 'Untitled lecture'} />
+            <YouTubeEmbed url={url} title={title || t('Untitled lecture')} />
           </div>
         ) : null}
 
         <label className="block">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Title
+          <span className="eyebrow">
+            {t('Title')}
           </span>
           <Input
             name="title"
@@ -142,27 +145,27 @@ export function MaterialForm({
             onChange={(event) => setTitle(event.target.value)}
             required
             maxLength={200}
-            placeholder="Binary search, lecture 3"
+            placeholder={t('Binary search, lecture 3')}
             className="mt-2"
           />
         </label>
 
         <label className="block">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Description <span className="font-normal normal-case">(optional)</span>
+          <span className="eyebrow">
+            {t('Description')} <span className="font-normal normal-case">{t('(optional)')}</span>
           </span>
           <Textarea
             name="description"
             maxLength={500}
             rows={2}
-            placeholder="What a student gets out of it."
+            placeholder={t('What a student gets out of it.')}
             className="mt-2 resize-y"
           />
         </label>
 
         <fieldset>
-          <legend className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Attach to
+          <legend className="eyebrow">
+            {t('Attach to')}
           </legend>
           <div className="mt-3 flex gap-2">
             {(['task', 'topic'] as const).map((value) => (
@@ -174,10 +177,10 @@ export function MaterialForm({
                   'rounded-full border px-3 py-1.5 text-xs font-medium capitalize transition-colors',
                   attachTo === value
                     ? 'border-primary bg-primary text-primary-foreground'
-                    : 'border-border hover:border-primary/40',
+                    : 'border-border hover:border-white/20',
                 )}
               >
-                {value === 'task' ? 'One task' : 'A whole topic'}
+                {value === 'task' ? t('One task') : t('A whole topic')}
               </button>
             ))}
           </div>
@@ -189,11 +192,11 @@ export function MaterialForm({
             className={cn(inputClass, 'mt-3')}
           >
             <option value="" disabled>
-              {attachTo === 'task' ? 'Choose a task…' : 'Choose a topic…'}
+              {attachTo === 'task' ? t('Choose a task…') : t('Choose a topic…')}
             </option>
             {(attachTo === 'task' ? tasks : topics).map((option) => (
               <option key={option.id} value={option.id}>
-                {option.group} · {option.label}
+                {t(option.group)} · {option.label}
               </option>
             ))}
           </select>
@@ -201,8 +204,8 @@ export function MaterialForm({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Licence
+            <span className="eyebrow">
+              {t('Licence')}
             </span>
             <select
               name="licence"
@@ -212,27 +215,27 @@ export function MaterialForm({
             >
               {LICENCE_CHOICES.map((key) => (
                 <option key={key} value={key}>
-                  {LICENCES[key].label}
+                  {t(LICENCES[key].label)}
                 </option>
               ))}
             </select>
-            <span className="mt-1.5 block text-xs text-muted-foreground">{info.note}</span>
+            <span className="mt-1.5 block text-xs text-muted-foreground">{t(info.note)}</span>
           </label>
 
           <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Credit{' '}
+            <span className="eyebrow">
+              {t('Credit')}{' '}
               {info.requiresAttribution ? (
-                <span className="text-primary">· required</span>
+                <span className="text-primary">{t('· required')}</span>
               ) : (
-                <span className="font-normal normal-case">(optional)</span>
+                <span className="font-normal normal-case">{t('(optional)')}</span>
               )}
             </span>
             <Input
               name="attribution"
               maxLength={200}
               required={info.requiresAttribution}
-              placeholder="MIT OpenCourseWare"
+              placeholder={t('MIT OpenCourseWare')}
               className="mt-2"
             />
           </label>
@@ -245,7 +248,7 @@ export function MaterialForm({
               'rounded-lg p-3 text-sm',
               notice.tone === 'error'
                 ? 'bg-destructive/10 text-destructive'
-                : 'bg-emerald-500/10 text-emerald-500',
+                : 'bg-success/10 text-success',
             )}
           >
             {notice.text}
@@ -255,11 +258,11 @@ export function MaterialForm({
         <Button type="submit" disabled={pending}>
           {pending ? (
             <>
-              <Loader2 className="size-4 animate-spin" /> Saving…
+              <Loader2 className="size-4 animate-spin" /> {t('Saving…')}
             </>
           ) : (
             <>
-              <Plus className="size-4" /> Add material
+              <Plus className="size-4" /> {t('Add material')}
             </>
           )}
         </Button>
@@ -267,7 +270,7 @@ export function MaterialForm({
 
       {existing.length ? (
         <section className={cn(cardClass, 'p-5 sm:p-6')}>
-          <h2 className="font-semibold">Already added</h2>
+          <h2 className="font-medium">{t('Already added')}</h2>
           <ul className="mt-4 divide-y divide-border">
             {existing.map((resource) => (
               <ExistingRow key={resource.id} resource={resource} />
@@ -280,6 +283,7 @@ export function MaterialForm({
 }
 
 function ExistingRow({ resource }: { resource: ExistingResource }) {
+  const t = useT()
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState('')
 
@@ -288,18 +292,18 @@ function ExistingRow({ resource }: { resource: ExistingResource }) {
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-medium">{resource.title}</span>
         <span className="block truncate text-xs text-muted-foreground">
-          {resource.attachedTo} · {LICENCES[resource.licence].label}
+          {resource.attachedTo} · {t(LICENCES[resource.licence].label)}
         </span>
         {error ? <span className="block text-xs text-destructive">{error}</span> : null}
       </span>
       <button
         type="button"
-        aria-label={`Remove ${resource.title}`}
+        aria-label={t('Remove {title}', { title: resource.title })}
         disabled={pending}
         onClick={() =>
           startTransition(async () => {
             const result = await removeMaterial(resource.id)
-            if (!result.ok) setError(result.error ?? 'Could not remove.')
+            if (!result.ok) setError(result.error ?? t('Could not remove.'))
           })
         }
         className="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"

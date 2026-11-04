@@ -3,6 +3,7 @@ import { ArrowRight, BookOpen, Brain, ClipboardCheck, Compass, PartyPopper, PenL
 import type { NextAction, NextActionKind } from '@/lib/next-action'
 import { Button } from '@/components/ui/button'
 import { cardClass, cn } from '@/lib/utils'
+import { getT } from '@/lib/i18n/server'
 
 const ICONS: Record<NextActionKind, React.ComponentType<{ className?: string }>> = {
   study: BookOpen,
@@ -28,13 +29,15 @@ const ICONS: Record<NextActionKind, React.ComponentType<{ className?: string }>>
  * and /tasks, where shouting would put it in competition with the list it is
  * meant to introduce.
  */
-export function NextActionCard({
+export async function NextActionCard({
   action,
   tone = 'plain',
 }: {
   action: NextAction
   tone?: 'plain' | 'hero'
 }) {
+  const t = await getT()
+
   const Icon = ICONS[action.kind]
   const hero = tone === 'hero'
 
@@ -42,15 +45,15 @@ export function NextActionCard({
     <section
       className={cn(
         cardClass,
-        'rise relative overflow-hidden p-5 sm:p-6',
-        hero && 'bg-primary text-primary-foreground ring-0',
+        'rise spotlight relative overflow-hidden p-6',
+        hero && 'surface-ember rounded-[20px] sm:p-8',
       )}
     >
       <div className="relative z-10 flex items-start gap-4">
         <div
           className={cn(
-            'flex size-11 shrink-0 items-center justify-center rounded-xl',
-            hero ? 'bg-white/15 text-white' : 'bg-primary/15 text-primary',
+            'flex size-11 shrink-0 items-center justify-center rounded-full',
+            hero ? 'bg-coral text-void' : 'bg-graphite text-mist',
           )}
         >
           <Icon className="size-5" />
@@ -59,34 +62,34 @@ export function NextActionCard({
         <div className="min-w-0 flex-1">
           <p
             className={cn(
-              'text-xs font-medium tracking-wide uppercase',
-              hero ? 'text-white/70' : 'text-primary',
+              'eyebrow',
+              hero && 'text-[#ffb3b3]',
             )}
           >
-            Do this now
+            {t('Do this now')}
           </p>
           <h2
             className={cn(
-              'mt-1 leading-7 font-semibold text-balance',
-              hero ? 'text-2xl tracking-tight' : 'text-lg',
+              'mt-2 leading-tight text-balance text-white',
+              hero ? 'text-[28px] font-normal' : 'text-lg font-medium',
             )}
           >
             {action.label}
           </h2>
-          <p className={cn('mt-1 text-sm', hero ? 'text-white/75' : 'text-muted-foreground')}>
+          <p className={cn('mt-1 text-sm', hero ? 'text-white/70' : 'text-muted-foreground')}>
             {action.detail}
           </p>
           <p
             className={cn(
               'mt-3 border-l-2 pl-3 text-sm leading-6 text-pretty',
-              hero ? 'border-white/25 text-white/75' : 'border-foreground/10 text-muted-foreground',
+              hero ? 'border-coral/40 text-white/70' : 'border-white/10 text-muted-foreground',
             )}
           >
             {action.why}
           </p>
 
           <Button
-            className={cn('mt-4', hero && 'bg-white text-primary shadow-sm hover:bg-white/90')}
+            className="mt-5"
             size={hero ? 'lg' : 'default'}
             nativeButton={false}
             render={
@@ -101,7 +104,7 @@ export function NextActionCard({
       {hero ? (
         <div
           aria-hidden
-          className="pointer-events-none absolute -top-20 -right-10 size-64 rounded-full border-[28px] border-white/10"
+          className="breathe pointer-events-none absolute -top-24 -right-16 size-72 rounded-full bg-[radial-gradient(closest-side,rgba(255,99,99,0.25),transparent)]"
         />
       ) : null}
     </section>
@@ -114,7 +117,7 @@ export function NextActionCard({
  * Shown wherever the catalogue has been narrowed. Hiding six subjects without
  * saying so would leave a student wondering where their other work went.
  */
-export function ScopeNote({
+export async function ScopeNote({
   subject,
   scoped,
   hidden,
@@ -127,14 +130,16 @@ export function ScopeNote({
   allHref: string
   focusHref: string
 }) {
+  const t = await getT()
+
   if (!subject) {
     return (
       <p className="text-sm text-muted-foreground">
-        Showing every subject.{' '}
+        {t('Showing every subject.')}{' '}
         <Link href="/learn" prefetch className="text-primary underline-offset-4 hover:underline">
-          Pick a target
+          {t('Pick a target')}
         </Link>{' '}
-        and this narrows to the one you are training for.
+        {t('and this narrows to the one you are training for.')}
       </p>
     )
   }
@@ -142,9 +147,9 @@ export function ScopeNote({
   if (!scoped) {
     return (
       <p className="text-sm text-muted-foreground">
-        Showing every subject.{' '}
+        {t('Showing every subject.')}{' '}
         <Link href={focusHref} prefetch className="text-primary underline-offset-4 hover:underline">
-          Back to {subject}
+          {t('Back to')} {subject}
         </Link>
       </p>
     )
@@ -152,14 +157,13 @@ export function ScopeNote({
 
   return (
     <p className="text-sm text-muted-foreground">
-      Your target is <span className="font-medium text-foreground">{subject}</span>, so that is what
-      is here.{' '}
+      {t('Your target is')} <span className="font-medium text-foreground">{subject}</span>{t(', so that is what is here.')}{' '}
       <Link href={allHref} prefetch className="text-primary underline-offset-4 hover:underline">
-        {hidden === 1 ? 'One other subject' : `${hidden} other subjects`}
+        {hidden === 1 ? t('One other subject') : t('{n} other subjects', { n: hidden })}
       </Link>{' '}
       ·{' '}
       <Link href="/learn" prefetch className="text-primary underline-offset-4 hover:underline">
-        change target
+        {t('change target')}
       </Link>
     </p>
   )

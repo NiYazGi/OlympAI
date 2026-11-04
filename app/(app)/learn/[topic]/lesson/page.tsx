@@ -7,16 +7,20 @@ import { Attribution } from '@/components/resources/resource-list'
 import { Badge } from '@/components/ui/badge'
 import { getLesson } from '@/lib/supabase/study'
 import type { Licence } from '@/lib/licence'
+import { getT } from '@/lib/i18n/server'
 
 export const dynamic = 'force-dynamic'
 
 export async function generateMetadata({ params }: { params: Promise<{ topic: string }> }) {
   const { topic } = await params
   const lesson = await getLesson(topic)
-  return { title: lesson ? lesson.title : 'Lesson' }
+  const t = await getT()
+  return { title: lesson ? lesson.title : t('Lesson') }
 }
 
 export default async function LessonPage({ params }: { params: Promise<{ topic: string }> }) {
+  const t = await getT()
+
   const { topic } = await params
   const lesson = await getLesson(topic)
   if (!lesson) notFound()
@@ -31,11 +35,11 @@ export default async function LessonPage({ params }: { params: Promise<{ topic: 
         {lesson.topicName}
       </Link>
 
-      <PageHeader title={lesson.title} description={`${lesson.subjectName} · ${lesson.topicName}`}>
+      <PageHeader title={lesson.title} description={`${t(lesson.subjectName)} · ${lesson.topicName}`}>
         {lesson.estimatedMinutes ? (
           <Badge variant="outline" className="gap-1.5">
             <Clock className="size-3" />
-            {lesson.estimatedMinutes} min
+            {lesson.estimatedMinutes} {t('min')}
           </Badge>
         ) : null}
       </PageHeader>

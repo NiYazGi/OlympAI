@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { intervalAfter, RATINGS, type Rating } from '@/lib/srs'
 import type { StudyCard, TopicCards } from '@/lib/types'
 import { cardClass, cn } from '@/lib/utils'
+import { useT } from '@/components/i18n-provider'
 
 /**
  * The recall step.
@@ -20,6 +21,8 @@ import { cardClass, cn } from '@/lib/utils'
  * leaving the student to guess what "Hard" costs them.
  */
 export function CardDeck({ deck }: { deck: TopicCards }) {
+  const t = useT()
+
   const router = useRouter()
   const [queue, setQueue] = useState<StudyCard[]>(() => deck.cards.filter((card) => card.due))
   const [position, setPosition] = useState(0)
@@ -52,13 +55,12 @@ export function CardDeck({ deck }: { deck: TopicCards }) {
         <div className="space-y-3">
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span className="tabular-nums">
-              {position + 1} of {queue.length}
+              {position + 1} {t('of')} {queue.length}
             </span>
-            <span className="tabular-nums">{reviewed} reviewed</span>
+            <span className="tabular-nums">{reviewed} {t('reviewed')}</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            Rating a card is your own judgement, so it moves this topic&apos;s progress rather than
-            your XP. The quiz is where answers are marked.
+            {t('Rating a card is your own judgement, so it moves this topic\'s progress rather than your XP. The quiz is where answers are marked.')}
           </p>
 
           {/* Two faces of one card rather than an answer appended underneath.
@@ -72,7 +74,7 @@ export function CardDeck({ deck }: { deck: TopicCards }) {
               key={current.id}
               onClick={() => setRevealed((shown) => !shown)}
               aria-expanded={revealed}
-              aria-label={revealed ? 'Hide the answer' : 'Show the answer'}
+              aria-label={revealed ? t('Hide the answer') : t('Show the answer')}
               className="flip-card relative block min-h-56 w-full text-left"
               data-face={revealed ? 'back' : 'front'}
             >
@@ -125,26 +127,26 @@ export function CardDeck({ deck }: { deck: TopicCards }) {
               className="w-full transition-transform"
               onClick={() => setRevealed(true)}
             >
-              Show answer
+              {t('Show answer')}
             </Button>
           )}
         </div>
       ) : (
         <div className={cn(cardClass, 'p-6 text-center sm:p-8')}>
-          <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-accent text-primary">
+          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-graphite text-mist">
             {reviewed > 0 ? <Check className="size-6" /> : <Layers className="size-6" />}
           </div>
-          <h2 className="mt-4 font-semibold">
-            {reviewed > 0 ? `${reviewed} reviewed. Nothing else is due.` : 'Nothing is due right now.'}
+          <h2 className="mt-4 font-medium">
+            {reviewed > 0 ? t('{reviewed} reviewed. Nothing else is due.', { reviewed }) : t('Nothing is due right now.')}
           </h2>
           <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
             {deck.cards.length === 0
-              ? 'This topic has no cards yet — write your own below and they start showing up here.'
-              : 'Coming back on the day a card is due is the whole point of the spacing. You can still run through the deck early.'}
+              ? t('This topic has no cards yet — write your own below and they start showing up here.')
+              : t('Coming back on the day a card is due is the whole point of the spacing. You can still run through the deck early.')}
           </p>
           {deck.cards.length > 0 ? (
             <Button variant="outline" className="mt-5" onClick={studyAll}>
-              Go through all {deck.cards.length}
+              {t('Go through all')} {deck.cards.length}
             </Button>
           ) : null}
         </div>
@@ -156,6 +158,8 @@ export function CardDeck({ deck }: { deck: TopicCards }) {
 }
 
 function OwnCards({ deck }: { deck: TopicCards }) {
+  const t = useT()
+
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [front, setFront] = useState('')
@@ -170,7 +174,7 @@ function OwnCards({ deck }: { deck: TopicCards }) {
     startTransition(async () => {
       const result = await createCard(deck.topicId, front, back)
       if (!result.ok) {
-        setError(result.error ?? 'The card could not be saved.')
+        setError(result.error ?? t('The card could not be saved.'))
         return
       }
       setFront('')
@@ -191,13 +195,13 @@ function OwnCards({ deck }: { deck: TopicCards }) {
     <section className={cn(cardClass, 'p-5 sm:p-6')}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-semibold">Your own cards</h2>
+          <h2 className="font-medium">{t('Your own cards')}</h2>
           <p className="text-sm text-muted-foreground">
-            Private to you, and scheduled alongside the shared ones.
+            {t('Private to you, and scheduled alongside the shared ones.')}
           </p>
         </div>
         <Button variant={open ? 'ghost' : 'outline'} onClick={() => setOpen(!open)}>
-          {open ? 'Cancel' : <><Plus className="size-4" /> Add a card</>}
+          {open ? t('Cancel') : <><Plus className="size-4" /> {t('Add a card')}</>}
         </Button>
       </div>
 
@@ -206,13 +210,13 @@ function OwnCards({ deck }: { deck: TopicCards }) {
           <Input
             value={front}
             onChange={(event) => setFront(event.target.value)}
-            placeholder="Front — the prompt, e.g. “What is active transport?”"
+            placeholder={t('Front — the prompt, e.g. “What is active transport?”')}
             maxLength={300}
           />
           <Textarea
             value={back}
             onChange={(event) => setBack(event.target.value)}
-            placeholder="Back — what you want to recall"
+            placeholder={t('Back — what you want to recall')}
             className="min-h-24"
             maxLength={1000}
           />
@@ -222,7 +226,7 @@ function OwnCards({ deck }: { deck: TopicCards }) {
             </p>
           ) : null}
           <Button onClick={submit} disabled={pending || !front.trim() || !back.trim()}>
-            Save card
+            {t('Save card')}
           </Button>
         </div>
       ) : null}
@@ -241,7 +245,7 @@ function OwnCards({ deck }: { deck: TopicCards }) {
               <Button
                 variant="ghost"
                 size="icon-sm"
-                aria-label="Delete card"
+                aria-label={t('Delete card')}
                 disabled={pending}
                 onClick={() => remove(card.id)}
               >

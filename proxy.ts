@@ -1,75 +1,25 @@
-import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import type { Database } from '@/lib/supabase/database.types'
-import { getSupabaseEnv, hasSupabaseEnv } from '@/lib/supabase/env'
 
-const protectedPrefixes = [
-  '/dashboard',
-  '/path',
-  '/learn',
-  '/mock',
-  '/tasks',
-  '/sulu-ai',
-  '/progress',
-  '/study-plan',
-  '/olympiads',
-  '/profile',
-  '/me',
-  '/settings',
-  '/onboarding',
-]
-const authRoutes = ['/login', '/signup']
+/** Kept in step with SESSION_COOKIE in lib/db/auth.ts, which the proxy cannot import. */
+const SESSION_COOKIE = 'olympai-session'
 
-function isSafeNext(path: string | null): path is string {
-  // Reject protocol-relative ("//evil.com") and absolute URLs so `next` cannot
-  // be used as an open redirect.
-  return Boolean(path && path.startsWith('/') && !path.startsWith('//'))
-}
 
-export async function proxy(request: NextRequest) {
-  if (!hasSupabaseEnv()) return NextResponse.next({ request })
-
-  let response = NextResponse.next({ request })
-  const { supabaseUrl, supabasePublishableKey } = getSupabaseEnv()
-  const supabase = createServerClient<Database>(supabaseUrl, supabasePublishableKey, {
-    cookies: {
-      getAll: () => request.cookies.getAll(),
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-        response = NextResponse.next({ request })
-        cookiesToSet.forEach(({ name, value, options }) =>
-          response.cookies.set(name, value, options),
-        )
-      },
-    },
-  })
-
-  /*
-   * getClaims() verifies the access token's signature locally against the
-   * project's JWKS — this project signs with asymmetric ES256, so the public
-   * keys are fetchable and cached. getUser() used to sit here instead, and it
-   * POSTs to Supabase Auth on every navigation: measured at 0.5-1.3 s against
-   * this project, paid before a single byte of the page was produced.
-   *
-   * It still refreshes an expiring session, because the SSR client's storage
-   * adapter does that when it reads the token — just once an hour rather than
-   * once a click.
-   *
-   * The weaker guarantee is bounded and acceptable here: a session revoked
-   * server-side stays usable until its token expires. This gate only decides
-   * which page to render. What that page may actually read is decided by RLS
-   * from the same token, and the one privileged write in the app — recording a
-   * grade with the service role — still calls getUser() first.
-   */
-  const { data, error } = await supabase.auth.getClaims()
-  const signedIn = !error && Boolean(data?.claims?.sub)
-
+/**
+ * A cookie check and nothing else. It used to verify a Supabase token here on
+ * every navigation, which put an auth call in front of the first byte of every
+ * protected page.
+ *
+ * Presence is enough for this gate: it only decides whether to send someone to
+ * the login page. The session itself is validated where data is read
+ * (lib/db/auth.ts), so a forged or expired cookie gets past here and then sees
+ * nothing. Signed-in visitors on /login are redirected by the login page, which
+ * can tell a live session from a stale cookie; doing that here could loop.
+ */
+export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname
-  const isProtected = protectedPrefixes.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
-  )
+  const signedIn = Boolean(request.cookies.get(SESSION_COOKIE)?.value)
 
-  if (!signedIn && isProtected) {
+  if (!signedIn) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     url.search = ''
@@ -77,14 +27,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (signedIn && authRoutes.includes(pathname)) {
-    const next = request.nextUrl.searchParams.get('next')
-    return NextResponse.redirect(
-      new URL(isSafeNext(next) ? next : '/dashboard', request.url),
-    )
-  }
-
-  return response
+  return NextResponse.next()
 }
 
 export const config = {
@@ -95,6 +38,7 @@ export const config = {
    */
   matcher: [
     '/dashboard/:path*',
+    '/dashboard',
     '/path/:path*',
     '/path',
     '/learn/:path*',
@@ -115,7 +59,16 @@ export const config = {
     '/settings/:path*',
     '/settings',
     '/onboarding/:path*',
-    '/login',
-    '/signup',
+    '/onboarding',
+    '/tasks',
+    '/sulu-ai',
+    '/olympiads',
+    '/admin/:path*',
+    '/admin',
+    '/class/:path*',
+    '/class',
+    '/plan/:path*',
+    '/plan',
+    '/method',
   ],
 }

@@ -28,15 +28,15 @@ export function EmptyState({
     <section
       className={cn(
         cardClass,
-        'flex flex-col items-center px-6 py-12 text-center sm:py-16',
+        'spotlight flex flex-col items-center px-6 py-14 text-center sm:py-20',
         className,
       )}
     >
-      <div className="flex size-12 items-center justify-center rounded-2xl bg-accent text-primary">
+      <div className="flex size-14 items-center justify-center rounded-full bg-graphite text-mist shadow-key-strong">
         <Icon className="size-6" />
       </div>
-      <h2 className="mt-5 text-lg font-semibold">{title}</h2>
-      <p className="mt-2 max-w-md text-sm leading-6 text-pretty text-muted-foreground">{body}</p>
+      <h2 className="mt-6 text-xl font-normal text-white">{title}</h2>
+      <p className="mt-2 max-w-md text-sm leading-6 text-pretty text-ash">{body}</p>
       {action ? (
         <Button
           className="mt-6"

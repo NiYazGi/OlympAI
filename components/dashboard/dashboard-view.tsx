@@ -1,160 +1,86 @@
-import Link from 'next/link'
-import { Library, TrendingUp } from 'lucide-react'
-import { DailyGoal } from '@/components/dashboard/daily-goal'
-import { GoalProgress } from '@/components/dashboard/goal-progress'
+import { ChevronDown, Library } from 'lucide-react'
+import { DayCard } from '@/components/day/day-card'
+import type { DayStatus } from '@/lib/supabase/day'
+import { StatusStrip } from '@/components/dashboard/status-strip'
 import { NextActionCard } from '@/components/learn/next-action-card'
-import { AccuracyTrendChart } from '@/components/charts'
 import { EmptyState } from '@/components/empty-state'
-import { cardClass, cn, riseDelay } from '@/lib/utils'
+import { DAY_MAX } from '@/lib/day-state'
+import { cardClass, cn } from '@/lib/utils'
 import type { GoalPlan, Readiness } from '@/lib/goal'
 import type { NextAction } from '@/lib/next-action'
 import type { Goal, ProgressAnalytics } from '@/lib/types'
+import { getT } from '@/lib/i18n/server'
 
 /**
- * The dashboard answers one question — what should I do today — and then shows
- * the two things that put the answer in context: the rhythm you are keeping and
- * the target you are keeping it for.
+ * The dashboard answers one question — what should I do today — and stops.
  *
- * It used to open with four counters: attempts, correct, streak and total XP.
- * The first two are review, not action, and they live on /me where reviewing is
- * the point. The other two were already on screen a hundred pixels below, inside
- * the daily goal block, so the row said nothing that was not said twice.
- *
- * The old "Start here" hero is now the same instruction the rest of the app
- * gives, from the same engine, so the dashboard cannot recommend one thing
- * while /learn recommends another.
+ * Three blocks: the one step to take, a single line of status under it, and
+ * the day check-in folded away until it is wanted. It used to carry eight —
+ * an XP ring, a goal ring, the five-axis day card open, an accuracy chart,
+ * topic mastery bars and a library count — every one a reasonable card, all
+ * of the same weight, so the eye had nowhere to go after the first. The
+ * charts and the topic list are on Progress (/me), where reviewing is the
+ * point.
  */
-export function DashboardView({
+export async function DashboardView({
   analytics,
   action,
-  remaining,
   libraryEmpty,
   goal,
   plan,
   ready,
+  day,
 }: {
   analytics: ProgressAnalytics
   action: NextAction
-  remaining: number
-  /** Distinct from `remaining === 0`: an empty library is not an achievement. */
+  /** Distinct from nothing left to solve: an empty library is not an achievement. */
   libraryEmpty: boolean
   goal: Goal | null
   plan: GoalPlan | null
   ready: Readiness | null
+  /** The day's five axes, scored. */
+  day: DayStatus
 }) {
-  const hasStandings = analytics.hasData && analytics.topics.length > 0
+  const t = await getT()
 
   if (libraryEmpty) {
     return (
       <EmptyState
         icon={Library}
-        title="No problems are available yet"
-        body="The library has not been filled in for this workspace. Once it is, what to do next shows up here."
-        action={{ href: '/sulu-ai', label: 'Ask Sulu something' }}
+        title={t('No problems are available yet')}
+        body={t('The library has not been filled in for this workspace. Once it is, what to do next shows up here.')}
+        action={{ href: '/sulu-ai', label: t('Ask Sulu something') }}
       />
     )
   }
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      <NextActionCard action={action} tone="hero" />
-
-      <div className="rise" style={riseDelay(1, 70)}>
-        <DailyGoal analytics={analytics} />
+    <div className="space-y-4 sm:space-y-5">
+      {/* The data-tour wrappers are where the guided tour points. */}
+      <div data-tour="today">
+        <NextActionCard action={action} tone="hero" />
       </div>
 
-      {goal && plan && ready ? (
-        <div className="rise" style={riseDelay(2, 70)}>
-          <GoalProgress goal={goal} plan={plan} ready={ready} />
+      <div data-tour="stats">
+        <StatusStrip analytics={analytics} goal={goal} plan={plan} ready={ready} />
+      </div>
+
+      {/* Folded: a once-a-day form does not need the screen the rest of the
+          day. The summary says whether it has been filled in. */}
+      <details data-tour="day" className={cn(cardClass, 'group')}>
+        <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3.5 text-sm sm:px-5 [&::-webkit-details-marker]:hidden">
+          <span className="font-medium">{t('How the day went')}</span>
+          <span className="text-muted-foreground">
+            {day.recorded
+              ? t('{n} of {max} points', { n: day.score.total, max: DAY_MAX })
+              : t('not filled in yet')}
+          </span>
+          <ChevronDown className="ml-auto size-4 text-muted-foreground transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="border-t border-border/60 [&>section]:rounded-none [&>section]:bg-transparent [&>section]:shadow-none">
+          <DayCard status={day} />
         </div>
-      ) : null}
-
-      {hasStandings ? (
-        <section className="rise space-y-3" style={riseDelay(3, 70)}>
-          <div className="flex items-end justify-between gap-3">
-            <h2 className="flex items-center gap-2 text-sm font-semibold">
-              <TrendingUp className="size-4 text-primary" />
-              Where you stand
-            </h2>
-            <Link
-              href="/me"
-              prefetch
-              className="text-sm font-medium text-primary hover:underline"
-            >
-              Full analytics
-            </Link>
-          </div>
-
-          <div className="grid gap-4 lg:grid-cols-3">
-            {analytics.accuracyTrend.length > 1 ? (
-              <div className={cn(cardClass, 'p-5 lg:col-span-2')}>
-                <p className="text-sm font-medium">Accuracy by week</p>
-                <AccuracyTrendChart data={analytics.accuracyTrend} height="h-56" />
-              </div>
-            ) : (
-              <div
-                className={cn(
-                  cardClass,
-                  'flex items-center p-5 text-sm leading-6 text-muted-foreground lg:col-span-2',
-                )}
-              >
-                One week of attempts so far. The trend line appears once there are two to compare.
-              </div>
-            )}
-
-            {/* Mastery and the topics that need work were two cards saying the
-                same thing from different ends. One list, weakest first, with the
-                ones below the line marked. */}
-            <div className={cn(cardClass, 'p-5')}>
-              <p className="text-sm font-medium">Topic mastery</p>
-              <ul className="mt-4 space-y-3.5">
-                {[...analytics.topics]
-                  .sort((a, b) => a.mastery - b.mastery)
-                  .slice(0, 5)
-                  .map((topic) => {
-                    const weak = topic.mastery < 70
-                    return (
-                      <li key={topic.topic}>
-                        <div className="flex items-center justify-between gap-2 text-sm">
-                          <span className="min-w-0 truncate">{topic.topic}</span>
-                          <span
-                            className={cn(
-                              'shrink-0 font-semibold tabular-nums',
-                              weak ? 'text-amber-500' : 'text-primary',
-                            )}
-                          >
-                            {topic.mastery}%
-                          </span>
-                        </div>
-                        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
-                          <div
-                            className={cn(
-                              'h-full rounded-full transition-[width] duration-700 ease-out',
-                              weak ? 'bg-amber-500' : 'bg-primary',
-                            )}
-                            style={{ width: `${topic.mastery}%` }}
-                          />
-                        </div>
-                      </li>
-                    )
-                  })}
-              </ul>
-              <p className="mt-4 text-xs text-muted-foreground">
-                {analytics.weakTopics.length
-                  ? `Below 70% is where the next gain is — ${analytics.weakTopics.length} topic${analytics.weakTopics.length === 1 ? '' : 's'} to shore up.`
-                  : 'Nothing below 70%. Try something harder.'}
-              </p>
-            </div>
-          </div>
-
-          <p className="text-sm text-muted-foreground">
-            {remaining} problem{remaining === 1 ? '' : 's'} left in the library ·{' '}
-            <Link href="/tasks" prefetch className="text-primary hover:underline">
-              browse them
-            </Link>
-          </p>
-        </section>
-      ) : null}
+      </details>
     </div>
   )
 }

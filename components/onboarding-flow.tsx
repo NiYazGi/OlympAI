@@ -22,8 +22,11 @@ import {
   writeAnswers,
   type Answers,
 } from '@/components/onboarding-storage'
+import { BrandMark } from '@/components/brand-mark'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useT } from '@/components/i18n-provider'
+import { LanguageSwitcher } from '@/components/language-switcher'
 
 type Step = {
   key: ProfileField
@@ -93,7 +96,10 @@ function firstUnanswered(answers: Answers) {
   return index === -1 ? REVIEW : index
 }
 
-export function OnboardingFlow() {
+/** `next` is where the student was heading when asked to sign up — a class invite, usually. */
+export function OnboardingFlow({ next }: { next?: string }) {
+  const t = useT()
+
   const raw = useSyncExternalStore(subscribe, readSnapshot, serverSnapshot)
   const answers = useMemo(() => parseAnswers(raw), [raw])
 
@@ -147,12 +153,13 @@ export function OnboardingFlow() {
     for (const [field, value] of Object.entries(answers)) {
       if (value) formData.set(field, value)
     }
+    if (next) formData.set('next', next)
     startTransition(async () => {
       const result = await completeOnboarding(formData)
       if (result.ok) clearAnswers()
-      else setError(result.error ?? 'Unable to save your setup.')
+      else setError(result.error ?? t('Unable to save your setup.'))
     })
-  }, [answers])
+  }, [answers, next, t])
 
   /** Selecting answers the question and moves on: one action instead of two. */
   const select = useCallback(
@@ -216,27 +223,34 @@ export function OnboardingFlow() {
   const progress = isReview ? 100 : Math.round((step / steps.length) * 100)
 
   return (
-    <main className="min-h-dvh bg-background px-5 py-6 sm:px-8 sm:py-8">
-      <div className="mx-auto flex min-h-[calc(100dvh-3rem)] max-w-xl flex-col">
+    <main className="relative min-h-dvh overflow-hidden bg-void px-5 py-6 sm:px-8 sm:py-8">
+      <div className="hero-atmosphere opacity-50" aria-hidden>
+        <div className="hero-grid" />
+        <span className="hero-bar hero-bar--blue" />
+      </div>
+      <div className="relative z-10 mx-auto flex min-h-[calc(100dvh-3rem)] max-w-xl flex-col">
         <div className="flex items-center justify-between">
-          <Link href="/" className="text-lg font-semibold">
-            Olymp<span className="text-primary">AI</span>
+          <Link href="/" aria-label={t('OlympAI home')}>
+            <BrandMark />
           </Link>
-          <span className="text-sm text-muted-foreground">
-            {isReview ? 'Review' : `${step + 1} of ${steps.length}`}
+          <span className="flex items-center gap-3">
+            <span className="font-mono text-xs text-smoke">
+              {isReview ? t('Review') : t('{n} of {total}', { n: step + 1, total: steps.length })}
+            </span>
+            <LanguageSwitcher />
           </span>
         </div>
 
         <div
-          className="mt-6 h-1.5 overflow-hidden rounded-full bg-muted"
+          className="mt-6 h-1 overflow-hidden rounded-full bg-white/[0.08]"
           role="progressbar"
           aria-valuenow={progress}
           aria-valuemin={0}
           aria-valuemax={100}
-          aria-label="Setup progress"
+          aria-label={t('Setup progress')}
         >
           <div
-            className="h-full bg-primary transition-[width] duration-300 ease-out"
+            className="h-full rounded-full bg-mist transition-[width] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
             style={{ width: `${Math.max(progress, 4)}%` }}
           />
         </div>
@@ -246,15 +260,16 @@ export function OnboardingFlow() {
             <ReviewStep answers={answers} answeredCount={answeredCount} onEdit={goTo} />
           ) : (
             <>
-              <p className="text-sm font-medium text-primary">{current!.eyebrow}</p>
+              <div key={step} className="page-in">
+              <p className="eyebrow">{t(current!.eyebrow)}</p>
               <h1
                 ref={headingRef}
                 tabIndex={-1}
-                className="mt-3 text-3xl font-semibold tracking-tight outline-none sm:text-4xl"
+                className="mt-4 text-[32px] leading-[1.15] font-normal text-white outline-none sm:text-[40px]"
               >
-                {current!.title}
+                {t(current!.title)}
               </h1>
-              <p className="mt-3 text-muted-foreground">{current!.description}</p>
+              <p className="mt-3 text-ash">{t(current!.description)}</p>
 
               <div className={cn('mt-7 grid gap-3', current!.wide && 'sm:grid-cols-2')}>
                 {options.map((option, index) => {
@@ -266,32 +281,33 @@ export function OnboardingFlow() {
                       aria-pressed={active}
                       onClick={() => select(option)}
                       className={cn(
-                        'flex min-h-14 items-center gap-3 rounded-xl border bg-card p-4 text-left transition-all',
+                        'spotlight rise flex min-h-14 items-center gap-3 rounded-xl bg-card p-4 text-left transition-all duration-200',
                         active
-                          ? 'border-primary bg-accent/60 ring-2 ring-primary/20'
-                          : 'border-border hover:border-primary/40 hover:bg-accent/40',
+                          ? 'bg-white/[0.07] shadow-key-strong'
+                          : 'shadow-key hover:bg-white/[0.04]',
                       )}
                     >
                       <span
                         className={cn(
-                          'flex size-5 shrink-0 items-center justify-center rounded-full border text-[11px] font-medium tabular-nums',
+                          'kbd shrink-0 tabular-nums',
                           active
-                            ? 'border-primary bg-primary text-white'
-                            : 'border-border text-muted-foreground',
+                            ? 'bg-mist text-[#1b1c1e]'
+                            : '',
                         )}
                       >
                         {active ? <Check className="size-3" /> : index + 1}
                       </span>
-                      <span className="font-medium">{option}</span>
+                      <span className="font-medium text-white">{t(option)}</span>
                     </button>
                   )
                 })}
+              </div>
               </div>
             </>
           )}
 
           {error ? (
-            <p role="alert" className="mt-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+            <p role="alert" className="mt-4 rounded-lg bg-ember/60 p-3 text-sm text-[#ffb3b3] shadow-key">
               {error}
             </p>
           ) : null}
@@ -303,16 +319,16 @@ export function OnboardingFlow() {
               onClick={() => goTo(Math.max(0, step - 1))}
               disabled={step === 0 || pending}
             >
-              <ArrowLeft className="size-4" /> Back
+              <ArrowLeft className="size-4" /> {t('Back')}
             </Button>
 
             {isReview ? (
               <Button className="min-h-11 flex-1" onClick={submit} disabled={pending}>
-                {pending ? 'Saving…' : 'Start training'} <ArrowRight className="size-4" />
+                {pending ? t('Saving…') : t('Start training')} <ArrowRight className="size-4" />
               </Button>
             ) : isOptional(current!.key) && !choice ? (
               <Button variant="ghost" className="min-h-11 flex-1" onClick={skip}>
-                Skip this question <ArrowRight className="size-4" />
+                {t('Skip this question')} <ArrowRight className="size-4" />
               </Button>
             ) : (
               <Button
@@ -320,15 +336,15 @@ export function OnboardingFlow() {
                 onClick={() => goTo(step + 1)}
                 disabled={!choice}
               >
-                Continue <ArrowRight className="size-4" />
+                {t('Continue')} <ArrowRight className="size-4" />
               </Button>
             )}
           </div>
 
-          <p className="mt-4 text-center text-xs text-muted-foreground">
+          <p className="mt-5 text-center font-mono text-[11px] text-smoke">
             {isReview
-              ? 'Press Enter to finish'
-              : 'Press 1–9 to choose · Enter to continue · Backspace to go back'}
+              ? t('Press Enter to finish')
+              : t('Press 1–9 to choose · Enter to continue · Backspace to go back')}
           </p>
         </div>
       </div>
@@ -345,42 +361,43 @@ function ReviewStep({
   answeredCount: number
   onEdit: (index: number) => void
 }) {
+  const t = useT()
+
   return (
     <>
-      <p className="text-sm font-medium text-primary">Almost there</p>
-      <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-        Does this look right?
+      <p className="eyebrow">{t('Almost there')}</p>
+      <h1 className="mt-4 text-[32px] leading-[1.15] font-normal text-white sm:text-[40px]">
+        {t('Does this look right?')}
       </h1>
-      <p className="mt-3 text-muted-foreground">
-        {answeredCount} of {steps.length} answered. Change anything you like — none of it is
-        permanent.
+      <p className="mt-3 text-ash">
+        {answeredCount} {t('of')} {steps.length} {t('answered. Change anything you like — none of it is permanent.')}
       </p>
 
-      <dl className="mt-7 divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+      <dl className="mt-7 divide-y divide-white/[0.06] overflow-hidden rounded-2xl bg-card shadow-key">
         {steps.map((entry, index) => {
           const value = answers[entry.key]
           return (
             <div key={entry.key} className="flex items-center gap-3 p-4">
               <div className="min-w-0 flex-1">
-                <dt className="text-xs uppercase tracking-wide text-muted-foreground">
-                  {SUMMARY_LABELS[entry.key]}
+                <dt className="eyebrow">
+                  {t(SUMMARY_LABELS[entry.key])}
                 </dt>
                 <dd
                   className={cn(
-                    'mt-0.5 truncate font-medium',
+                    'mt-1.5 truncate font-medium text-white',
                     !value && 'font-normal italic text-muted-foreground',
                   )}
                 >
-                  {value ?? 'Skipped'}
+                  {value ? t(value) : t('Skipped')}
                 </dd>
               </div>
               <button
                 type="button"
                 onClick={() => onEdit(index)}
-                className="flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-primary transition-colors hover:bg-accent"
+                className="flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-ash transition-colors hover:bg-white/[0.06] hover:text-white"
               >
                 <Pencil className="size-3.5" />
-                Change
+                {t('Change')}
               </button>
             </div>
           )

@@ -1,10 +1,14 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { ArrowUp, RotateCcw, Sparkles } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { ArrowUp, FileText, RotateCcw } from 'lucide-react'
+import { SuluGlyph } from '@/components/brand-mark'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { cardClass, cn } from '@/lib/utils'
+import { useT } from '@/components/i18n-provider'
+import { RichMessage } from '@/components/sulu/rich-message'
+import { readDraft, subscribeDraft } from '@/lib/task-draft'
 
 export type ChatMessage = { id: string; role: 'user' | 'assistant'; content: string }
 
@@ -27,6 +31,8 @@ export function CoachChat({
   initialMessages?: ChatMessage[]
   taskId?: string
 }) {
+  const t = useT()
+
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
   const [input, setInput] = useState('')
   const [lastMessage, setLastMessage] = useState('')
@@ -34,6 +40,16 @@ export function CoachChat({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
+  // The solution editor's text, for a chat tied to a task. Attached to each
+  // message unless the student switches it off, so "Check my approach" works on
+  // what is actually written instead of asking for it again.
+  const subscribe = useCallback(
+    (onChange: () => void) => (taskId ? subscribeDraft(taskId, onChange) : () => {}),
+    [taskId],
+  )
+  const draft = useSyncExternalStore(subscribe, () => (taskId ? readDraft(taskId) : ''), () => '')
+  const [attachDraft, setAttachDraft] = useState(true)
+  const sendsDraft = Boolean(taskId && attachDraft && draft.trim())
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
@@ -43,10 +59,15 @@ export function CoachChat({
     const message = raw.trim()
     if (!message || loading) return
 
+    const attached = sendsDraft ? draft.trim() : ''
     setLastMessage(message)
     setMessages((current) => [
       ...current,
-      { id: crypto.randomUUID(), role: 'user', content: message },
+      {
+        id: crypto.randomUUID(),
+        role: 'user',
+        content: attached ? `${message}\n\n<student_draft>\n${attached}\n</student_draft>` : message,
+      },
     ])
     setInput('')
     setError('')
@@ -56,11 +77,11 @@ export function CoachChat({
       const response = await fetch('/api/sulu', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, sessionId, taskId }),
+        body: JSON.stringify({ message, sessionId, taskId, draft: attached || undefined }),
       })
       if (!response.ok || !response.body) {
         const payload = (await response.json().catch(() => null)) as { error?: string } | null
-        throw new Error(payload?.error ?? 'Sulu AI could not respond.')
+        throw new Error(payload?.error ?? t('Sulu AI could not respond.'))
       }
 
       setSessionId(response.headers.get('X-Sulu-Session') ?? sessionId)
@@ -80,7 +101,7 @@ export function CoachChat({
         )
       }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Sulu AI is unavailable.')
+      setError(cause instanceof Error ? cause.message : t('Sulu AI is unavailable.'))
       // Drop the empty assistant bubble, but keep the user's message so Retry
       // has something to resend.
       setMessages((current) => current.filter((item) => item.content))
@@ -94,12 +115,12 @@ export function CoachChat({
       <div ref={scrollRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto px-1 py-2">
         {messages.length === 0 ? (
           <div className="flex h-full min-h-56 flex-col items-center justify-center text-center">
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-accent text-primary">
-              <Sparkles className="size-6" />
+            <div className="flex size-12 items-center justify-center rounded-full bg-card shadow-key">
+              <SuluGlyph className="size-7" />
             </div>
-            <h2 className="mt-4 font-semibold">Start a focused conversation</h2>
+            <h2 className="mt-4 font-medium text-white">{t('Start a focused conversation')}</h2>
             <p className="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">
-              Show Sulu what you have tried, or ask for one small hint.
+              {t('Show Sulu what you have tried, or ask for one small hint.')}
             </p>
           </div>
         ) : (
@@ -110,13 +131,17 @@ export function CoachChat({
             >
               <div
                 className={cn(
-                  'max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-6',
+                  'rise min-w-0 max-w-[92%] rounded-2xl px-4 py-3 text-sm leading-6 sm:max-w-[85%]',
                   message.role === 'user'
-                    ? 'rounded-br-sm bg-primary text-primary-foreground'
-                    : `${cardClass} rounded-bl-sm`,
+                    ? 'rounded-br-md bg-mist text-[#1b1c1e]'
+                    : 'rounded-bl-md bg-white/[0.05] text-white/90 shadow-key',
                 )}
               >
-                {message.content || (loading ? 'Thinking…' : '')}
+                {message.content ? (
+                  <RichMessage content={message.content} role={message.role} />
+                ) : loading ? (
+                  <span className="text-shimmer">{t('Thinking…')}</span>
+                ) : null}
               </div>
             </div>
           ))
@@ -125,7 +150,7 @@ export function CoachChat({
 
       {error ? (
         <div
-          className="mb-2 flex items-center justify-between gap-3 rounded-lg bg-destructive/10 p-3 text-sm text-destructive"
+          className="mb-2 flex items-center justify-between gap-3 rounded-lg bg-ember/60 p-3 text-sm text-[#ffb3b3] shadow-key"
           role="alert"
         >
           <span>{error}</span>
@@ -135,26 +160,38 @@ export function CoachChat({
             onClick={() => send(lastMessage)}
             disabled={!lastMessage || loading}
           >
-            <RotateCcw className="size-3.5" /> Retry
+            <RotateCcw className="size-3.5" /> {t('Retry')}
           </Button>
         </div>
       ) : null}
 
-      <div className="shrink-0 space-y-3 border-t border-border/70 bg-background pt-3 pb-[max(.25rem,env(safe-area-inset-bottom))]">
+      <div className="shrink-0 space-y-3 border-t border-white/[0.06] pt-3 pb-[max(.25rem,env(safe-area-inset-bottom))]">
+        {taskId && draft.trim() ? (
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={attachDraft}
+              onChange={(event) => setAttachDraft(event.target.checked)}
+              className="accent-coral"
+            />
+            <FileText className="size-3.5" />
+            {t('Sulu sees your draft ({n} {n|line|lines})', { n: draft.trim().split('\n').length })}
+          </label>
+        ) : null}
         <div className="flex gap-2 overflow-x-auto">
           {prompts.map((prompt) => (
             <Button
               key={prompt}
               variant="outline"
               className="min-h-10 shrink-0 rounded-full text-xs"
-              onClick={() => send(prompt)}
+              onClick={() => send(t(prompt))}
               disabled={loading}
             >
-              {prompt}
+              {t(prompt)}
             </Button>
           ))}
         </div>
-        <div className={cn(cardClass, 'flex items-end gap-2 p-2')}>
+        <div className="flex items-end gap-2 rounded-2xl bg-ink p-2 shadow-key-strong transition-shadow focus-within:shadow-[rgba(255,255,255,0.08)_0_1px_0_inset,rgba(255,255,255,0.25)_0_0_0_1px]">
           <Textarea
             value={input}
             onChange={(event) => setInput(event.target.value)}
@@ -164,8 +201,8 @@ export function CoachChat({
                 send(input)
               }
             }}
-            placeholder="Ask Sulu about your approach…"
-            aria-label="Message Sulu AI"
+            placeholder={t('Ask Sulu about your approach…')}
+            aria-label={t('Message Sulu AI')}
             className="min-h-12 resize-none border-0 bg-transparent text-base shadow-none focus-visible:ring-0"
             rows={1}
           />
@@ -173,7 +210,7 @@ export function CoachChat({
             size="icon-lg"
             onClick={() => send(input)}
             disabled={!input.trim() || loading}
-            aria-label="Send message"
+            aria-label={t('Send message')}
           >
             <ArrowUp className="size-4" />
           </Button>

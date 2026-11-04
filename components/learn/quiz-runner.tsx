@@ -8,8 +8,10 @@ import { answerQuizQuestion } from '@/app/(app)/learn/actions'
 import { Button } from '@/components/ui/button'
 import type { TopicQuiz } from '@/lib/types'
 import { cardClass, cn } from '@/lib/utils'
+import { useT } from '@/components/i18n-provider'
 
 type Outcome = { isCorrect: boolean; correctIndex: number; explanation: string; xpEarned: number }
+type Miss = { id: string; prompt: string; chosen: string; correct: string; explanation: string }
 
 /**
  * Active recall, one question at a time.
@@ -22,7 +24,12 @@ type Outcome = { isCorrect: boolean; correctIndex: number; explanation: string; 
  * there is nothing in this component to read ahead in.
  */
 export function QuizRunner({ quiz }: { quiz: TopicQuiz }) {
+  const t = useT()
+
   const router = useRouter()
+  // The questions of this round: all of them, or only the ones missed last time.
+  const [round, setRound] = useState(quiz.questions)
+  const [misses, setMisses] = useState<Miss[]>([])
   const [index, setIndex] = useState(0)
   const [chosen, setChosen] = useState<number | null>(null)
   const [outcome, setOutcome] = useState<Outcome | null>(null)
@@ -32,21 +39,35 @@ export function QuizRunner({ quiz }: { quiz: TopicQuiz }) {
   const [earned, setEarned] = useState(0)
   const [pending, startTransition] = useTransition()
 
-  const question = quiz.questions[index]
-  const finished = index >= quiz.questions.length
+  const question = round[index]
+  const finished = index >= round.length
 
   function choose(option: number) {
     if (outcome || pending) return
     setChosen(option)
     setError('')
     startTransition(async () => {
-      const result = await answerQuizQuestion(question.id, option)
+      // Options are shuffled for display; the server marks the stored index.
+      const result = await answerQuizQuestion(question.id, question.optionOrder[option])
       if (!result.ok) {
         setChosen(null)
         setError(result.error)
         return
       }
-      setOutcome(result)
+      const shown = question.optionOrder.indexOf(result.correctIndex)
+      setOutcome({ ...result, correctIndex: shown })
+      if (!result.isCorrect) {
+        setMisses((list) => [
+          ...list,
+          {
+            id: question.id,
+            prompt: question.prompt,
+            chosen: question.options[option],
+            correct: question.options[shown],
+            explanation: result.explanation,
+          },
+        ])
+      }
       setAnswered((n) => n + 1)
       setEarned((n) => n + result.xpEarned)
       if (result.isCorrect) setScore((n) => n + 1)
@@ -57,10 +78,13 @@ export function QuizRunner({ quiz }: { quiz: TopicQuiz }) {
     setChosen(null)
     setOutcome(null)
     setIndex((n) => n + 1)
-    if (index + 1 >= quiz.questions.length) router.refresh()
+    if (index + 1 >= round.length) router.refresh()
   }
 
-  function restart() {
+  function restart(onlyMissed = false) {
+    const missed = new Set(misses.map((miss) => miss.id))
+    setRound(onlyMissed ? quiz.questions.filter((item) => missed.has(item.id)) : quiz.questions)
+    setMisses([])
     setIndex(0)
     setChosen(null)
     setOutcome(null)
@@ -72,25 +96,48 @@ export function QuizRunner({ quiz }: { quiz: TopicQuiz }) {
   if (finished) {
     return (
       <div className={cn(cardClass, 'animate-in fade-in zoom-in-95 p-6 text-center duration-400 sm:p-8')}>
-        <p className="text-sm text-muted-foreground">This round</p>
+        <p className="text-sm text-muted-foreground">{t('This round')}</p>
         <p className="mt-1 text-3xl font-semibold tabular-nums">
           {score} <span className="text-muted-foreground">/ {answered}</span>
         </p>
-        <p className="mt-1 text-sm font-medium text-primary tabular-nums">+{earned} XP</p>
+        <p className="mt-1 text-sm font-medium text-primary tabular-nums">+{earned} {t('XP')}</p>
         <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-muted-foreground">
           {score === answered
-            ? 'Every one right. The facts behind them are worth committing to cards before you move on.'
-            : 'Worth another pass. A question you got wrong is the most useful thing on this page.'}
+            ? t('Every one right. The facts behind them are worth committing to cards before you move on.')
+            : t('Worth another pass. A question you got wrong is the most useful thing on this page.')}
         </p>
+        {misses.length ? (
+          <ul className="mx-auto mt-5 max-w-xl space-y-3 text-left">
+            {misses.map((miss) => (
+              <li key={miss.id} className="rounded-lg bg-white/[0.03] p-4 text-sm ring-1 ring-foreground/10">
+                <p className="font-medium">{miss.prompt}</p>
+                <p className="mt-2 text-destructive">
+                  <X className="mr-1 inline size-3.5" />
+                  {miss.chosen}
+                </p>
+                <p className="mt-1 text-primary">
+                  <Check className="mr-1 inline size-3.5" />
+                  {miss.correct}
+                </p>
+                <p className="mt-2 leading-6 text-muted-foreground">{miss.explanation}</p>
+              </li>
+            ))}
+          </ul>
+        ) : null}
         <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <Button variant="outline" onClick={restart}>
-            <RotateCcw className="size-4" /> Go again
+          {misses.length ? (
+            <Button onClick={() => restart(true)}>
+              <RotateCcw className="size-4" /> {t('Retry the ones I missed')}
+            </Button>
+          ) : null}
+          <Button variant="outline" onClick={() => restart()}>
+            <RotateCcw className="size-4" /> {t('Go again')}
           </Button>
           <Button
             nativeButton={false}
             render={
               <Link href={`/learn/${quiz.topicSlug}/cards`} prefetch>
-                Review the cards
+                {t('Review the cards')}
               </Link>
             }
           />
@@ -103,17 +150,17 @@ export function QuizRunner({ quiz }: { quiz: TopicQuiz }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <span className="tabular-nums">
-          Question {index + 1} of {quiz.questions.length}
+          {t('Question')} {index + 1} {t('of')} {round.length}
         </span>
         <span className="tabular-nums">
-          {score}/{answered} right
+          {score}/{answered} {t('right')}
         </span>
       </div>
 
       <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
         <div
           className="h-full rounded-full bg-primary transition-[width] duration-500 ease-out"
-          style={{ width: `${(index / quiz.questions.length) * 100}%` }}
+          style={{ width: `${(index / round.length) * 100}%` }}
         />
       </div>
 
@@ -127,7 +174,7 @@ export function QuizRunner({ quiz }: { quiz: TopicQuiz }) {
             const wrongChoice = Boolean(outcome) && isChosen && !outcome!.isCorrect
 
             return (
-              <li key={option}>
+              <li key={`${question.id}-${optionIndex}`}>
                 <button
                   type="button"
                   onClick={() => choose(optionIndex)}
@@ -172,7 +219,7 @@ export function QuizRunner({ quiz }: { quiz: TopicQuiz }) {
         </ul>
 
         {error ? (
-          <p role="alert" className="mt-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+          <p role="alert" className="mt-4 rounded-lg bg-ember/60 p-3 text-sm text-[#ffb3b3] shadow-key">
             {error}
           </p>
         ) : null}
@@ -180,20 +227,20 @@ export function QuizRunner({ quiz }: { quiz: TopicQuiz }) {
         {outcome ? (
           <div className="animate-in fade-in slide-in-from-bottom-2 mt-5 space-y-3 border-t border-foreground/10 pt-5 duration-300">
             <div className="flex flex-wrap items-center gap-2">
-              <p className={cn('font-medium', outcome.isCorrect ? 'text-primary' : 'text-amber-500')}>
-                {outcome.isCorrect ? 'Right.' : 'Not this time.'}
+              <p className={cn('font-medium', outcome.isCorrect ? 'text-primary' : 'text-warning')}>
+                {outcome.isCorrect ? t('Right.') : t('Not this time.')}
               </p>
               {/* A question pays once, ever, so a re-run earns nothing and says
                   so rather than silently paying zero. */}
               <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">
-                {outcome.xpEarned > 0 ? `+${outcome.xpEarned} XP` : 'Already counted'}
+                {outcome.xpEarned > 0 ? t('+{xpEarned} XP', { xpEarned: outcome.xpEarned }) : t('Already counted')}
               </span>
             </div>
             <p className="text-sm leading-6 text-pretty text-muted-foreground">
               {outcome.explanation}
             </p>
             <Button onClick={next}>
-              {index + 1 >= quiz.questions.length ? 'See the result' : 'Next question'}
+              {index + 1 >= round.length ? t('See the result') : t('Next question')}
             </Button>
           </div>
         ) : null}

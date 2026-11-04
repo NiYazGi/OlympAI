@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { ArrowRight, BookOpen, Brain, Check, ClipboardCheck, PenLine, Timer } from 'lucide-react'
 import type { LadderStage, StageKey } from '@/lib/ladder'
 import { cardClass, cn, riseDelay } from '@/lib/utils'
+import { getT } from '@/lib/i18n/server'
 
 const ICONS: Record<StageKey, React.ComponentType<{ className?: string }>> = {
   study: BookOpen,
@@ -18,13 +19,15 @@ const ICONS: Record<StageKey, React.ComponentType<{ className?: string }>> = {
  * make the ladder look complete when it is only unwritten, and a student who
  * cannot see that mechanics has no cards yet has no way to ask for them.
  */
-export function StageList({
+export async function StageList({
   stages,
   next,
 }: {
   stages: LadderStage[]
   next: LadderStage | null
 }) {
+  const t = await getT()
+
   return (
     <ol className="space-y-3">
       {stages.map((stage, index) => {
@@ -60,14 +63,14 @@ export function StageList({
                 <span className="text-xs font-medium tabular-nums text-muted-foreground">
                   {index + 1}
                 </span>
-                <h3 className="font-semibold">{stage.label}</h3>
+                <h3 className="font-medium">{stage.label}</h3>
                 {isNext ? (
                   <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">
-                    Next
+                    {t('Next')}
                   </span>
                 ) : null}
                 {done ? (
-                  <span className="text-xs font-medium text-primary">Done</span>
+                  <span className="text-xs font-medium text-primary">{t('Done')}</span>
                 ) : null}
               </div>
 

@@ -6,6 +6,7 @@ import { setGoal } from '@/app/(app)/path/actions'
 import { Button } from '@/components/ui/button'
 import { cardClass, cn } from '@/lib/utils'
 import type { CompetitionOption } from '@/lib/types'
+import { useT } from '@/components/i18n-provider'
 
 /** Offered horizons, in days. */
 const HORIZONS = [
@@ -48,6 +49,8 @@ export function GoalSetup({
   preferredType?: string | null
   compact?: boolean
 }) {
+  const t = useT()
+
   const [open, setOpen] = useState(!compact)
   const [competitionId, setCompetitionId] = useState(currentId ?? '')
   const [date, setDate] = useState(currentDate ?? '')
@@ -78,14 +81,14 @@ export function GoalSetup({
     startTransition(async () => {
       const result = await setGoal(formData)
       if (result.ok) setOpen(false)
-      else setError(result.error ?? 'That did not save.')
+      else setError(result.error ?? t('That did not save.'))
     })
   }
 
   if (compact && !open) {
     return (
       <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
-        Change goal
+        {t('Change goal')}
       </Button>
     )
   }
@@ -94,23 +97,22 @@ export function GoalSetup({
     <section className={cn(compact ? 'w-full' : `${cardClass} p-6`)}>
       {!compact ? (
         <>
-          <div className="flex size-11 items-center justify-center rounded-xl bg-accent text-primary">
+          <div className="flex size-11 items-center justify-center rounded-full bg-graphite text-mist">
             <Flag className="size-5" />
           </div>
-          <h2 className="mt-4 text-lg font-semibold">What are you preparing for?</h2>
+          <h2 className="mt-4 text-lg font-medium">{t('What are you preparing for?')}</h2>
           <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
             {grouped.hasPreference && preferredType
-              ? `You said you were aiming at ${preferredType.toLowerCase()}, so those are listed first. `
+              ? t('You said you were aiming at {n}, so those are listed first. ', { n: t(preferredType).toLowerCase() })
               : ''}
-            Choose the competition and the date you are aiming at. The schedule, the weekly load
-            and your readiness are worked out from there.
+            {t('Choose the competition and the date you are aiming at. The schedule, the weekly load and your readiness are worked out from there.')}
           </p>
         </>
       ) : null}
 
       <fieldset className="mt-5">
-        <legend className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Competition
+        <legend className="eyebrow">
+          {t('Competition')}
         </legend>
         {/*
           The named cards and the generic chips below are one choice, not two.
@@ -121,16 +123,16 @@ export function GoalSetup({
         <p className="mt-2 text-sm" aria-live="polite">
           {chosen ? (
             <>
-              <span className="text-muted-foreground">Selected: </span>
+              <span className="text-muted-foreground">{t('Selected:')} </span>
               <span className="font-medium text-foreground">{chosen.name}</span>
               {chosen.subjectName ? (
                 <span className="text-muted-foreground"> · {chosen.subjectName}</span>
               ) : (
-                <span className="text-muted-foreground"> · you choose the subject</span>
+                <span className="text-muted-foreground"> {t('· you choose the subject')}</span>
               )}
             </>
           ) : (
-            <span className="text-muted-foreground">Nothing selected yet — pick one below.</span>
+            <span className="text-muted-foreground">{t('Nothing selected yet — pick one below.')}</span>
           )}
         </p>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -146,8 +148,8 @@ export function GoalSetup({
                 className={cn(
                   'flex items-start gap-3 rounded-xl border p-3 text-left transition-colors',
                   active
-                    ? 'border-primary bg-accent/60'
-                    : 'border-border hover:border-primary/40 hover:bg-accent/30',
+                    ? 'bg-white/[0.07] shadow-key-strong'
+                    : 'shadow-key hover:bg-white/[0.04]',
                   empty && 'cursor-not-allowed opacity-45 hover:border-border hover:bg-transparent',
                 )}
               >
@@ -163,7 +165,7 @@ export function GoalSetup({
                   <span className="block text-sm font-medium">{entry.name}</span>
                   <span className="block text-xs text-muted-foreground">
                     {entry.subjectName}
-                    {empty ? ' · no tasks yet' : ` · ${entry.taskCount} tasks`}
+                    {empty ? t(' · no tasks yet') : t(' · {taskCount} tasks', { taskCount: entry.taskCount })}
                   </span>
                 </span>
               </button>
@@ -174,9 +176,7 @@ export function GoalSetup({
         {grouped.generic.length ? (
           <>
             <p className="mt-4 text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">Or</span> a stage rather than a named
-              contest. Choosing one of these replaces the selection above, and you pick the subject
-              yourself.
+              <span className="font-medium text-foreground">{t('Or')}</span> {t('a stage rather than a named contest. Choosing one of these replaces the selection above, and you pick the subject yourself.')}
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               {grouped.generic.map((entry) => {
@@ -190,7 +190,7 @@ export function GoalSetup({
                       'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
                       active
                         ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border hover:border-primary/40',
+                        : 'border-border hover:border-white/20',
                     )}
                   >
                     {entry.name}
@@ -203,8 +203,8 @@ export function GoalSetup({
       </fieldset>
 
       <fieldset className="mt-6">
-        <legend className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Target date
+        <legend className="eyebrow">
+          {t('Target date')}
         </legend>
         <div className="mt-3 flex flex-wrap gap-2">
           {HORIZONS.map((horizon) => {
@@ -219,38 +219,38 @@ export function GoalSetup({
                   'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
                   active
                     ? 'border-primary bg-primary text-primary-foreground'
-                    : 'border-border hover:border-primary/40',
+                    : 'border-border hover:border-white/20',
                 )}
               >
-                {horizon.label}
+                {t(horizon.label)}
               </button>
             )
           })}
         </div>
         <label className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
           <CalendarDays className="size-4 shrink-0" />
-          <span className="sr-only">Exact date</span>
+          <span className="sr-only">{t('Exact date')}</span>
           <input
             type="date"
             value={date}
             min={tomorrow}
             max={twoYears}
             onChange={(event) => setDate(event.target.value)}
-            className="h-10 rounded-lg border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-primary"
+            className="h-10 rounded-lg bg-white/[0.05] px-3 text-sm text-foreground outline-none shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:bg-white/[0.07] focus:ring-2 focus:ring-white/10"
           />
         </label>
         {/* The catalogue holds no dates on purpose: sittings move every year, so
             the official page is the only trustworthy source. */}
         {chosen?.registrationUrl ? (
           <p className="mt-2 text-xs text-muted-foreground">
-            Check this year&apos;s date on the{' '}
+            {t('Check this year\'s date on the')}{' '}
             <a
               href={chosen.registrationUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="text-primary hover:underline"
             >
-              official page
+              {t('official page')}
             </a>
             .
           </p>
@@ -258,7 +258,7 @@ export function GoalSetup({
       </fieldset>
 
       {error ? (
-        <p role="alert" className="mt-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+        <p role="alert" className="mt-4 rounded-lg bg-ember/60 p-3 text-sm text-[#ffb3b3] shadow-key">
           {error}
         </p>
       ) : null}
@@ -269,7 +269,7 @@ export function GoalSetup({
         disabled={pending || !competitionId || !date}
       >
         <Trophy className="size-4" />
-        {pending ? 'Saving…' : 'Set this goal'}
+        {pending ? t('Saving…') : t('Set this goal')}
       </Button>
     </section>
   )

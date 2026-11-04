@@ -5,6 +5,7 @@ import { Check, Target } from 'lucide-react'
 import { setTargetSubject } from '@/app/(app)/path/actions'
 import { Button } from '@/components/ui/button'
 import { cardClass, cn } from '@/lib/utils'
+import { useT } from '@/components/i18n-provider'
 
 export function TargetPicker({
   subjects,
@@ -15,6 +16,8 @@ export function TargetPicker({
   current: string | null
   compact?: boolean
 }) {
+  const t = useT()
+
   const [error, setError] = useState('')
   const [pending, startTransition] = useTransition()
   const [open, setOpen] = useState(!compact)
@@ -24,14 +27,14 @@ export function TargetPicker({
     startTransition(async () => {
       const result = await setTargetSubject(id)
       if (result.ok) setOpen(false)
-      else setError(result.error ?? 'That did not save.')
+      else setError(result.error ?? t('That did not save.'))
     })
   }
 
   if (compact && !open) {
     return (
       <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
-        Change subject
+        {t('Change subject')}
       </Button>
     )
   }
@@ -40,13 +43,12 @@ export function TargetPicker({
     <section className={cn(compact ? 'w-full' : `${cardClass} p-6`)}>
       {!compact ? (
         <>
-          <div className="flex size-11 items-center justify-center rounded-xl bg-accent text-primary">
+          <div className="flex size-11 items-center justify-center rounded-full bg-graphite text-mist">
             <Target className="size-5" />
           </div>
-          <h2 className="mt-4 text-lg font-semibold">Choose what you are training for</h2>
+          <h2 className="mt-4 text-lg font-medium">{t('Choose what you are training for')}</h2>
           <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
-            Pick a subject and the path lays itself out: topics in order of difficulty, each one
-            unlocking the next.
+            {t('Pick a subject and the path lays itself out: topics in order of difficulty, each one unlocking the next.')}
           </p>
         </>
       ) : null}
@@ -64,8 +66,8 @@ export function TargetPicker({
               className={cn(
                 'flex items-center gap-3 rounded-xl border p-3 text-left transition-colors',
                 active
-                  ? 'border-primary bg-accent/60'
-                  : 'border-border hover:border-primary/40 hover:bg-accent/30',
+                  ? 'bg-white/[0.07] shadow-key-strong'
+                  : 'shadow-key hover:bg-white/[0.04]',
                 empty && 'cursor-not-allowed opacity-45 hover:border-border hover:bg-transparent',
               )}
             >
@@ -82,7 +84,7 @@ export function TargetPicker({
                 <span className="block text-xs text-muted-foreground">
                   {empty
                     ? 'no tasks yet'
-                    : `${subject.taskCount} task${subject.taskCount === 1 ? '' : 's'}`}
+                    : t('{n} tasks', { n: subject.taskCount })}
                 </span>
               </span>
             </button>

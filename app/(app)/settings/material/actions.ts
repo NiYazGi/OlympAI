@@ -4,8 +4,8 @@ import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getVerifiedUser } from '@/lib/supabase/auth'
 import { createClient } from '@/lib/supabase/server'
-import { hasSupabaseSecretKey } from '@/lib/supabase/secret-env'
 import { LICENCES, youTubeId, type Licence } from '@/lib/licence'
+import { getT } from '@/lib/i18n/server'
 
 export type MaterialResult = { ok: boolean; error?: string; message?: string }
 
@@ -23,11 +23,9 @@ const MAX_ATTRIBUTION = 200
  * policy can say who is writing, not whether the licence has been established.
  */
 export async function addMaterial(formData: FormData): Promise<MaterialResult> {
+  const t = await getT()
   const user = await getVerifiedUser()
-  if (!user) return { ok: false, error: 'Your session has expired. Please log in again.' }
-  if (!hasSupabaseSecretKey()) {
-    return { ok: false, error: 'Adding material is not configured on this server.' }
-  }
+  if (!user) return { ok: false, error: t('Your session has expired. Please log in again.') }
 
   const supabase = await createClient()
   const { data: profile } = await supabase
@@ -36,42 +34,42 @@ export async function addMaterial(formData: FormData): Promise<MaterialResult> {
     .eq('id', user.id)
     .maybeSingle()
   if (!profile?.is_admin) {
-    return { ok: false, error: 'Only an administrator can add material.' }
+    return { ok: false, error: t('Only an administrator can add material.') }
   }
 
   const kind = String(formData.get('kind') ?? '')
   if (!(KINDS as readonly string[]).includes(kind)) {
-    return { ok: false, error: 'Choose what kind of material this is.' }
+    return { ok: false, error: t('Choose what kind of material this is.') }
   }
 
   const title = String(formData.get('title') ?? '').trim().slice(0, MAX_TITLE)
-  if (!title) return { ok: false, error: 'Give it a title.' }
+  if (!title) return { ok: false, error: t('Give it a title.') }
 
   const url = String(formData.get('url') ?? '').trim()
   let parsed: URL
   try {
     parsed = new URL(url)
   } catch {
-    return { ok: false, error: 'That is not a valid URL.' }
+    return { ok: false, error: t('That is not a valid URL.') }
   }
   // Only http(s): a javascript: or data: link would be rendered as an anchor.
   if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
-    return { ok: false, error: 'The link must start with http:// or https://.' }
+    return { ok: false, error: t('The link must start with http:// or https://.') }
   }
   if (kind === 'video' && !youTubeId(url)) {
     return {
       ok: false,
-      error: 'Video links must be YouTube. Anything else can be added as a reference instead.',
+      error: t('Video links must be YouTube. Anything else can be added as a reference instead.'),
     }
   }
 
   const licence = String(formData.get('licence') ?? '') as Licence
-  if (!(licence in LICENCES)) return { ok: false, error: 'Choose a licence.' }
+  if (!(licence in LICENCES)) return { ok: false, error: t('Choose a licence.') }
   if (licence === 'unknown') {
     return {
       ok: false,
       error:
-        'Material with no recorded licence is not published. Find the terms first, or leave it out.',
+        t('Material with no recorded licence is not published. Find the terms first, or leave it out.'),
     }
   }
 
@@ -81,24 +79,24 @@ export async function addMaterial(formData: FormData): Promise<MaterialResult> {
   if (LICENCES[licence].requiresAttribution && !attribution) {
     return {
       ok: false,
-      error: `${LICENCES[licence].label} requires credit. Name the author or the source.`,
+      error: t('{label} requires credit. Name the author or the source.', { label: LICENCES[licence].label }),
     }
   }
 
   const taskId = String(formData.get('task_id') ?? '').trim() || null
   const topicId = String(formData.get('topic_id') ?? '').trim() || null
   if (!taskId && !topicId) {
-    return { ok: false, error: 'Attach it to a task or to a topic.' }
+    return { ok: false, error: t('Attach it to a task or to a topic.') }
   }
 
   const admin = createAdminClient()
   if (taskId) {
     const { data: task } = await admin.from('tasks').select('id').eq('id', taskId).maybeSingle()
-    if (!task) return { ok: false, error: 'That task does not exist.' }
+    if (!task) return { ok: false, error: t('That task does not exist.') }
   }
   if (topicId) {
     const { data: topic } = await admin.from('topics').select('id').eq('id', topicId).maybeSingle()
-    if (!topic) return { ok: false, error: 'That topic does not exist.' }
+    if (!topic) return { ok: false, error: t('That topic does not exist.') }
   }
 
   const { error } = await admin.from('resources').insert({
@@ -119,12 +117,13 @@ export async function addMaterial(formData: FormData): Promise<MaterialResult> {
 
   if (taskId) revalidatePath(`/tasks/${taskId}`)
   revalidatePath('/settings/material')
-  return { ok: true, message: `Added “${title}”.` }
+  return { ok: true, message: t('Added “{title}”.', { title }) }
 }
 
 export async function removeMaterial(id: string): Promise<MaterialResult> {
+  const t = await getT()
   const user = await getVerifiedUser()
-  if (!user) return { ok: false, error: 'Your session has expired. Please log in again.' }
+  if (!user) return { ok: false, error: t('Your session has expired. Please log in again.') }
 
   const supabase = await createClient()
   const { data: profile } = await supabase
@@ -132,7 +131,7 @@ export async function removeMaterial(id: string): Promise<MaterialResult> {
     .select('is_admin')
     .eq('id', user.id)
     .maybeSingle()
-  if (!profile?.is_admin) return { ok: false, error: 'Only an administrator can remove material.' }
+  if (!profile?.is_admin) return { ok: false, error: t('Only an administrator can remove material.') }
 
   const admin = createAdminClient()
   const { data: row } = await admin
@@ -141,9 +140,9 @@ export async function removeMaterial(id: string): Promise<MaterialResult> {
     .eq('id', id)
     .maybeSingle()
   const { error } = await admin.from('resources').delete().eq('id', id)
-  if (error) return { ok: false, error: 'That could not be removed.' }
+  if (error) return { ok: false, error: t('That could not be removed.') }
 
   if (row?.task_id) revalidatePath(`/tasks/${row.task_id}`)
   revalidatePath('/settings/material')
-  return { ok: true, message: 'Removed.' }
+  return { ok: true, message: t('Removed.') }
 }

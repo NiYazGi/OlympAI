@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { CalendarCheck } from 'lucide-react'
 import { cardClass, cn } from '@/lib/utils'
 import type { ProgressAnalytics } from '@/lib/types'
+import { getT } from '@/lib/i18n/server'
 
 const INTENSITY_SESSIONS: Record<string, number> = {
   '3 short sessions a week': 3,
@@ -16,13 +17,15 @@ const INTENSITY_SESSIONS: Record<string, number> = {
  * answering "what should I do next" with different answers. The path decides
  * what; this only says how often, and how the current week is going.
  */
-export function WeekRhythm({
+export async function WeekRhythm({
   analytics,
   intensity,
 }: {
   analytics: ProgressAnalytics
   intensity: string | null
 }) {
+  const t = await getT()
+
   const target = INTENSITY_SESSIONS[intensity ?? ''] ?? 4
   const active = analytics.recentActivity.filter((day) => day.problems > 0).length
   const week =
@@ -33,12 +36,12 @@ export function WeekRhythm({
   return (
     <section className={cn(cardClass, 'p-5')}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2 font-semibold">
+        <h2 className="flex items-center gap-2 font-medium">
           <CalendarCheck className="size-4 text-primary" />
-          This week
+          {t('This week')}
         </h2>
         <span className="text-sm tabular-nums text-muted-foreground">
-          {active}/{target} sessions
+          {active}/{target} {t('sessions')}
         </span>
       </div>
 
@@ -46,7 +49,7 @@ export function WeekRhythm({
         {week.map((day, index) => (
           <div key={`${day.day}-${index}`} className="flex-1 text-center">
             <div
-              title={`${day.problems} attempt${day.problems === 1 ? '' : 's'}`}
+              title={t('{n} {n|attempt|attempts}', { n: day.problems })}
               className={cn(
                 'h-8 rounded-md',
                 day.problems > 0
@@ -63,10 +66,10 @@ export function WeekRhythm({
 
       <p className="mt-3 text-sm text-muted-foreground">
         {active >= target
-          ? 'Target met for this week.'
-          : `${target - active} more session${target - active === 1 ? '' : 's'} to hit your rhythm.`}{' '}
+          ? t('Target met for this week.')
+          : t('{n} more sessions to hit your rhythm.', { n: target - active })}{' '}
         <Link href="/me" prefetch className="text-primary hover:underline">
-          Change it
+          {t('Change it')}
         </Link>
       </p>
     </section>

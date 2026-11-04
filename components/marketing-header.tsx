@@ -2,45 +2,179 @@
 
 import Link from 'next/link'
 import { Menu, X } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from 'react'
 import { BrandMark } from '@/components/brand-mark'
+import { useT } from '@/components/i18n-provider'
+import { LanguageSwitcher } from '@/components/language-switcher'
+import { RollText, useScrolled } from '@/components/motion'
 import { Button } from '@/components/ui/button'
-import { ThemeToggle } from '@/components/theme-toggle'
+import { cn } from '@/lib/utils'
 
+// In page order, so the indicator moves the same way the page does.
+const links = [
+  { id: 'subjects', label: 'Subjects' },
+  { id: 'ladder', label: 'How it works' },
+  { id: 'sulu', label: 'Sulu AI' },
+  { id: 'grading', label: 'Grading' },
+]
+
+const SECTION_IDS = links.map((link) => link.id)
+
+/** The section whose top has most recently passed under the header. */
+function useActiveSection(ids: string[]) {
+  const [active, setActive] = useState<string | null>(null)
+  useEffect(() => {
+    const update = () => {
+      const line = window.innerHeight * 0.35
+      let current: string | null = null
+      for (const id of ids) {
+        const el = document.getElementById(id)
+        if (el && el.getBoundingClientRect().top <= line) current = id
+      }
+      const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4
+      setActive(atBottom ? ids[ids.length - 1] : current)
+    }
+    update()
+    window.addEventListener('scroll', update, { passive: true })
+    window.addEventListener('resize', update)
+    return () => {
+      window.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
+    }
+  }, [ids])
+  return active
+}
+
+/**
+ * A floating glass pill. Transparent over the hero, it picks up its border,
+ * blur and fill once the page starts moving underneath it.
+ *
+ * One highlight slides between the tabs: it follows the pointer while it is
+ * over the nav and otherwise rests on the section in view, so clicking a tab
+ * shows the highlight travel there as the page scrolls.
+ */
 export function MarketingHeader() {
+  const t = useT()
   const [open, setOpen] = useState(false)
+  const scrolled = useScrolled()
+  const active = useActiveSection(SECTION_IDS)
+  const [hovered, setHovered] = useState<string | null>(null)
+  const navRef = useRef<HTMLElement>(null)
+  const [pill, setPill] = useState<{ left: number; width: number } | null>(null)
+
+  const target = hovered ?? active
+
+  useLayoutEffect(() => {
+    const nav = navRef.current
+    const el = target ? nav?.querySelector<HTMLElement>(`[data-tab="${target}"]`) : null
+    setPill(el ? { left: el.offsetLeft, width: el.offsetWidth } : null)
+  }, [target, t])
+
+  function go(event: MouseEvent<HTMLAnchorElement>, id: string) {
+    const el = document.getElementById(id)
+    if (!el) return
+    event.preventDefault()
+    setOpen(false)
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 72, behavior: reduce ? 'auto' : 'smooth' })
+    history.replaceState(null, '', `#${id}`)
+  }
 
   return (
-    <header className="relative z-20 border-b border-border/70 bg-background/85 backdrop-blur">
-      <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-5 sm:px-8">
-        <Link href="/" aria-label="OlympAI home"><BrandMark /></Link>
-        <nav className="hidden items-center gap-7 text-sm text-muted-foreground md:flex">
-          <a href="#subjects" className="transition-colors hover:text-foreground">Subjects</a>
-          <a href="#sulu" className="transition-colors hover:text-foreground">Sulu AI</a>
-          <a href="#how" className="transition-colors hover:text-foreground">Progress</a>
+    <header className="fixed inset-x-0 top-0 z-50 px-4 pt-4 sm:pt-5">
+      <div
+        data-scrolled={scrolled || open}
+        className="nav-pill enter mx-auto flex h-12 max-w-[1080px] items-center justify-between rounded-xl px-3 pl-4"
+      >
+        <Link href="/" aria-label={t('OlympAI home')} className="shrink-0">
+          <BrandMark />
+        </Link>
+        <nav
+          ref={navRef}
+          onMouseLeave={() => setHovered(null)}
+          className="relative hidden items-center text-[13px] font-medium text-ash md:flex"
+        >
+          <span
+            aria-hidden
+            className={cn('tab-pill', pill ? 'opacity-100' : 'opacity-0')}
+            style={pill ? { transform: `translateX(${pill.left}px)`, width: pill.width } : undefined}
+          />
+          {links.map((link) => (
+            <a
+              key={link.id}
+              data-tab={link.id}
+              href={`#${link.id}`}
+              onClick={(event) => go(event, link.id)}
+              onMouseEnter={() => setHovered(link.id)}
+              aria-current={active === link.id ? 'true' : undefined}
+              className={cn(
+                'relative rounded-lg px-3.5 py-1.5 transition-colors duration-300 hover:text-white',
+                active === link.id && 'text-white',
+              )}
+            >
+              <RollText key={t(link.label)}>{t(link.label)}</RollText>
+            </a>
+          ))}
         </nav>
-        <div className="hidden items-center gap-2 md:flex">
-          <ThemeToggle />
-          <Button variant="ghost" nativeButton={false} render={<Link href="/login">Log in</Link>} />
-          <Button nativeButton={false} render={<Link href="/signup">Start training</Link>}>Start training</Button>
+        <div className="hidden items-center gap-1.5 md:flex">
+          <LanguageSwitcher />
+          <Button
+            variant="ghost"
+            nativeButton={false}
+            render={
+              <Link href="/login">
+                <RollText>{t('Log in')}</RollText>
+              </Link>
+            }
+          />
+          <Button
+            nativeButton={false}
+            render={
+              <Link href="/signup">
+                <RollText>{t('Start training')}</RollText>
+              </Link>
+            }
+          />
         </div>
-        <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setOpen(!open)} aria-label="Toggle menu">
-          {open ? <X className="size-5" /> : <Menu className="size-5" />}
-        </Button>
+        <div className="flex items-center gap-1 md:hidden">
+          <LanguageSwitcher />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setOpen(!open)}
+            aria-label={t('Toggle menu')}
+            aria-expanded={open}
+          >
+            {open ? <X className="size-4" /> : <Menu className="size-4" />}
+          </Button>
+        </div>
       </div>
-      {open ? (
-        <div className="border-t border-border bg-card px-5 py-4 md:hidden">
-          <nav className="flex flex-col gap-4 text-sm">
-            <a href="#subjects" onClick={() => setOpen(false)}>Subjects</a>
-            <a href="#sulu" onClick={() => setOpen(false)}>Sulu AI</a>
-            <a href="#how" onClick={() => setOpen(false)}>Progress</a>
-            <div className="flex gap-2 pt-2">
-              <Button variant="outline" className="flex-1" nativeButton={false} render={<Link href="/login">Log in</Link>} />
-              <Button className="flex-1" nativeButton={false} render={<Link href="/signup">Start training</Link>} />
-            </div>
-          </nav>
-        </div>
-      ) : null}
+      <div
+        className={cn(
+          'glass mx-auto mt-2 max-w-[1080px] overflow-hidden rounded-xl border border-hairline transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] md:hidden',
+          open ? 'max-h-80 opacity-100' : 'pointer-events-none max-h-0 border-transparent opacity-0',
+        )}
+      >
+        <nav className="flex flex-col gap-1 p-2 text-sm">
+          {links.map((link) => (
+            <a
+              key={link.id}
+              href={`#${link.id}`}
+              onClick={(event) => go(event, link.id)}
+              className={cn(
+                'rounded-lg px-3 py-2.5 text-ash hover:bg-white/[0.06] hover:text-white',
+                active === link.id && 'bg-white/[0.04] text-white',
+              )}
+            >
+              {t(link.label)}
+            </a>
+          ))}
+          <div className="flex gap-2 p-1 pt-2">
+            <Button variant="outline" className="flex-1" nativeButton={false} render={<Link href="/login">{t('Log in')}</Link>} />
+            <Button className="flex-1" nativeButton={false} render={<Link href="/signup">{t('Start training')}</Link>} />
+          </div>
+        </nav>
+      </div>
     </header>
   )
 }

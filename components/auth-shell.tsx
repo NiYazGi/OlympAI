@@ -1,26 +1,58 @@
+'use client'
+
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-import { BrandMark } from '@/components/brand-mark'
+import { BrandGlyph, BrandMark } from '@/components/brand-mark'
+import { delay } from '@/lib/utils'
+import { useT } from '@/components/i18n-provider'
+import { LanguageSwitcher } from '@/components/language-switcher'
 
+/**
+ * Auth pages sit on the same atmosphere as the hero: a quiet blue wash and one
+ * coral streak, with the form in a single key-cap card in the middle.
+ */
 export function AuthShell({ children, title, eyebrow }: { children: React.ReactNode; title: string; eyebrow: string }) {
+  const t = useT()
+
   return (
-    <main className="flex min-h-dvh bg-background">
-      <div className="hidden w-[42%] flex-col justify-between bg-primary p-10 text-white lg:flex">
-        <BrandMark light />
-        <div className="max-w-sm">
-          <p className="mb-4 text-sm font-medium text-white/70">{eyebrow}</p>
-          <h1 className="text-4xl font-semibold leading-tight tracking-tight">Train with intent. Compete with confidence.</h1>
-          <p className="mt-5 text-sm leading-6 text-white/70">A focused practice space for students who want to understand hard problems, not just finish them.</p>
-        </div>
-        <p className="text-xs text-white/50">OlympAI · Built for ambitious minds</p>
+    <main className="relative flex min-h-dvh flex-col overflow-hidden bg-void">
+      <div className="hero-atmosphere opacity-70" aria-hidden>
+        <div className="hero-grid" />
+        <span className="hero-bar hero-bar--blue" />
+        <span className="hero-bar hero-bar--coral-2" />
       </div>
-      <div className="flex flex-1 flex-col px-5 py-6 sm:px-10 lg:px-20">
-        <Link href="/" className="mb-14 inline-flex w-fit items-center gap-2 text-sm text-muted-foreground hover:text-foreground lg:hidden"><ArrowLeft className="size-4" /> Back home</Link>
-        <div className="m-auto w-full max-w-md">
-          <div className="mb-8 lg:hidden"><BrandMark /></div>
-          <p className="text-sm font-medium text-primary">{eyebrow}</p>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight">{title}</h2>
-          <div className="mt-8">{children}</div>
+
+      <header className="relative z-10 flex items-center justify-between px-5 py-5 sm:px-8">
+        <Link href="/" aria-label={t('OlympAI home')}>
+          <BrandMark />
+        </Link>
+        <div className="flex items-center gap-3">
+          <LanguageSwitcher />
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-[13px] text-ash transition-colors hover:text-white"
+          >
+            <ArrowLeft className="size-3.5" /> {t('Back home')}
+          </Link>
+        </div>
+      </header>
+
+      <div className="relative z-10 flex flex-1 items-center justify-center px-4 py-10">
+        <div className="enter w-full max-w-[400px]">
+          <div className="mb-8 flex flex-col items-center text-center">
+            <span className="relative mb-6 flex size-14 items-center justify-center rounded-2xl bg-card shadow-key-strong">
+              <span aria-hidden className="breathe absolute inset-0 rounded-2xl bg-coral/20 blur-xl" />
+              <BrandGlyph className="relative size-7" />
+            </span>
+            <p className="eyebrow">{eyebrow}</p>
+            <h1 className="mt-3 text-2xl font-normal text-white" style={delay(80)}>
+              {title}
+            </h1>
+          </div>
+          <div className="rounded-[20px] bg-ink/80 p-6 shadow-window backdrop-blur-xl sm:p-8">{children}</div>
+          <p className="mt-6 text-center font-mono text-[11px] text-smoke">
+            {t('Train with intent')} <span className="mx-1.5 text-iron">|</span> {t('Compete with confidence')}
+          </p>
         </div>
       </div>
     </main>

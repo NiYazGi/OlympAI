@@ -1,7 +1,7 @@
 import { Reveal } from '@/components/reveal'
 import Link from 'next/link'
 import { ViewTransition } from 'react'
-import { GraduationCap } from 'lucide-react'
+import { CalendarRange, GraduationCap } from 'lucide-react'
 import { PageHeader } from '@/components/page-header'
 import { EmptyState } from '@/components/empty-state'
 import { NextActionCard, ScopeNote } from '@/components/learn/next-action-card'
@@ -22,8 +22,12 @@ import {
 import { buildPath } from '@/lib/path'
 import { planForGoal, readiness } from '@/lib/goal'
 import { cardClass, cn, riseDelay } from '@/lib/utils'
+import { getT } from '@/lib/i18n/server'
 
-export const metadata = { title: 'Learn' }
+export async function generateMetadata() {
+  const t = await getT()
+  return { title: t('Learn') }
+}
 export const dynamic = 'force-dynamic'
 
 export default async function LearnPage({
@@ -31,18 +35,29 @@ export default async function LearnPage({
 }: {
   searchParams: Promise<{ all?: string }>
 }) {
+  const t = await getT()
+
   const { all } = await searchParams
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-5 p-4 sm:gap-6 sm:p-8">
       <PageHeader
-        title="Learn"
-        description="Your target, and the route to it: read it, check you followed it, remember it, then solve with it."
-      />
+        title={t('Learn')}
+        description={t('Your target, and the route to it: read it, check you followed it, remember it, then solve with it.')}
+      >
+        {/* The plan left the navigation; it opens from here. */}
+        <Link
+          href="/plan"
+          prefetch
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-white/[0.03] px-3 text-sm text-foreground shadow-key hover:bg-white/[0.07]"
+        >
+          <CalendarRange className="size-4" /> {t('Week-by-week plan')}
+        </Link>
+      </PageHeader>
       <Reveal
         fallback={
           <>
-            <PendingRegion label="Working out what to do next" />
+            <PendingRegion label={t('Working out what to do next')} />
             <BlockSkeleton className={`${cardClass} h-40`} />
           </>
         }
@@ -54,6 +69,8 @@ export default async function LearnPage({
 }
 
 async function Plan({ showAll }: { showAll: boolean }) {
+  const t = await getT()
+
   const [action, surface, goal, competitions, subjects, analytics, tasks, profile] =
     await Promise.all([
       getNextAction(),
@@ -85,7 +102,7 @@ async function Plan({ showAll }: { showAll: boolean }) {
     return (
       <>
         <p className="text-sm text-muted-foreground">
-          {goal.competition.name} covers more than one subject — choose the one you are training in.
+          {goal.competition.name} {t('covers more than one subject — choose the one you are training in.')}
         </p>
         <TargetPicker subjects={subjects} current={goal.subjectId} />
       </>
@@ -94,7 +111,7 @@ async function Plan({ showAll }: { showAll: boolean }) {
 
   const path = buildPath(tasks, goal.subjectName)
   const attemptsLastWeek = analytics.recentActivity.reduce((sum, day) => sum + day.problems, 0)
-  const plan = planForGoal(path, goal.targetDate, attemptsLastWeek)
+  const plan = planForGoal(path, goal.targetDate, attemptsLastWeek, profile?.training_intensity ?? null, goal.goalSetAt)
   const ready = readiness(path, analytics.hasData ? analytics.accuracy : null)
 
   return (
@@ -122,16 +139,16 @@ async function Plan({ showAll }: { showAll: boolean }) {
         {surface.subjects.length === 0 ? (
           <EmptyState
             icon={GraduationCap}
-            title="No topics yet"
-            body="Subjects and topics arrive with the reference content. Once they do, every one of them gets the same five steps."
-            action={{ href: '/tasks', label: 'Browse problems' }}
+            title={t('No topics yet')}
+            body={t('Subjects and topics arrive with the reference content. Once they do, every one of them gets the same five steps.')}
+            action={{ href: '/tasks', label: t('Browse problems') }}
           />
         ) : (
           surface.subjects.map((subject) => (
             <section key={subject.name} className="space-y-3">
               {surface.subjects.length > 1 ? (
                 <div className="flex items-baseline justify-between gap-3 pt-2">
-                  <h2 className="font-semibold">{subject.name}</h2>
+                  <h2 className="font-medium">{subject.name}</h2>
                   <span className="text-sm tabular-nums text-muted-foreground">
                     {subject.percent}%
                   </span>
@@ -165,8 +182,8 @@ async function Plan({ showAll }: { showAll: boolean }) {
 
                       <p className="mt-1 text-sm text-muted-foreground">
                         {topic.next
-                          ? `Next: ${topic.next.label} — ${topic.next.detail}`
-                          : 'Nothing left to do here.'}
+                          ? t('Next: {label} — {detail}', { label: topic.next.label, detail: topic.next.detail })
+                          : t('Nothing left to do here.')}
                       </p>
 
                       <div className="mt-3 flex gap-1">

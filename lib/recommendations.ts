@@ -1,3 +1,4 @@
+import { fitsGrade } from '@/lib/profile-options'
 import type { CatalogueTask, ProgressAnalytics } from '@/lib/types'
 
 /**
@@ -9,9 +10,14 @@ import type { CatalogueTask, ProgressAnalytics } from '@/lib/types'
 export function recommendTask(
   tasks: CatalogueTask[],
   analytics: ProgressAnalytics,
+  grades: [number, number] | null = null,
 ): CatalogueTask | null {
   const unsolved = tasks.filter((task) => !task.solved)
   if (unsolved.length === 0) return null
+  // A problem from the student's own grade papers, when there is one left.
+  // Other grades stay possible: a strong student runs out of their own.
+  const ownGrade = unsolved.filter((task) => fitsGrade(task, grades))
+  const pool = ownGrade.length ? ownGrade : unsolved
 
   const masteryByTopic = new Map(analytics.topics.map((item) => [item.topic, item]))
 
@@ -36,5 +42,5 @@ export function recommendTask(
     return weakness + difficultyFit + revisit
   }
 
-  return [...unsolved].sort((a, b) => score(b) - score(a))[0] ?? null
+  return [...pool].sort((a, b) => score(b) - score(a))[0] ?? null
 }

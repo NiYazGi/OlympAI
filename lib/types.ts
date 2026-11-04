@@ -46,9 +46,18 @@ export type CatalogueTask = {
   title: string
   subject: string
   topic: string
+  /** Where the topic sits in the syllabus — what orders a route. */
+  topicPosition: number
+  /** 'oblast' | 'republican' | 'international', or null when unclassified. */
+  level: string | null
+  /** The sitting it was written for, when it came from a real paper. */
+  paper: string | null
   difficulty: number
   estimatedMinutes: number | null
   source: string | null
+  /** School grades the task is set for; null when it is open to every grade. */
+  gradeMin: number | null
+  gradeMax: number | null
   solved: boolean
   attempts: number
 }
@@ -66,18 +75,43 @@ export type TaskDetail = CatalogueTask & {
   attribution: string | null
 }
 
+export type TaskAttemptEntry = {
+  id: string
+  answer: string
+  score: number
+  feedback: string | null
+  isCorrect: boolean
+  createdAt: string
+  verdict: import('@/lib/sulu/types').Verdict
+  /** Out of 7; derived from the score for attempts graded before the protocol. */
+  points: number
+}
+
+export type TaskReportEntry = {
+  id: string
+  kind: 'grading' | 'statement'
+  message: string
+  status: 'open' | 'resolved' | 'rejected'
+  resolution: string | null
+  createdAt: string
+  attemptId: string | null
+}
+
 export type ChatSessionSummary = {
   id: string
   title: string
   createdAt: string
   lastMessageAt: string | null
   preview: string | null
+  /** The task the conversation was started from, if any. */
+  taskId: string | null
 }
 
 export type StoredMessage = { id: string; role: 'user' | 'assistant'; content: string }
 
 export type Competition = {
   id: string
+  slug: string | null
   name: string
   subject: string | null
   level: string | null
@@ -89,6 +123,16 @@ export type Competition = {
   registered: boolean
   /** Accuracy in this competition's subject, or null when nothing was attempted there. */
   readiness: number | null
+  /** Structural facts, which do not move from year to year. */
+  region: string | null
+  founded: number | null
+  officialUrl: string | null
+  papersUrl: string | null
+  /** The write-up, in the reader's language. Null when none has been written. */
+  summary: string | null
+  format: string | null
+  route: string | null
+  eligibility: string | null
 }
 
 export type CompetitionOption = {
@@ -107,6 +151,8 @@ export type Goal = {
   subjectId: string | null
   subjectName: string | null
   targetDate: string | null
+  /** When the goal was chosen. Pace is not judged before a week has passed. */
+  goalSetAt: string | null
   /** True when the competition dictates the subject, so it cannot be changed. */
   subjectLocked: boolean
 }
@@ -146,7 +192,10 @@ export type Lesson = {
 export type QuizQuestion = {
   id: string
   prompt: string
+  /** In display order, shuffled per visit. */
   options: string[]
+  /** For each displayed option, its index in the stored question. */
+  optionOrder: number[]
   /** What this student has already done with it, if anything. */
   lastChoice: number | null
   lastCorrect: boolean | null
@@ -178,7 +227,9 @@ export type TopicCards = {
   topicName: string
   subjectName: string
   cards: StudyCard[]
+  /** Studied cards whose review date has come. New cards are not counted. */
   dueCount: number
+  newCount: number
   learnedCount: number
 }
 
@@ -189,6 +240,8 @@ export type TopicLadder = {
   subjectName: string
   subjectSlug: string
   stages: LadderStage[]
+  /** The flashcard deck, beside the ladder rather than a rung of it. */
+  deck: LadderStage
   /** The figures the stages were built from, for lib/next-action.ts. */
   input: LadderInput
   percent: number

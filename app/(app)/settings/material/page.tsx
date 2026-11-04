@@ -7,11 +7,17 @@ import { createClient } from '@/lib/supabase/server'
 import { getCurrentProfile } from '@/lib/supabase/queries'
 import { getReference } from '@/lib/supabase/reference'
 import type { Licence } from '@/lib/licence'
+import { getT } from '@/lib/i18n/server'
 
-export const metadata = { title: 'Add material' }
+export async function generateMetadata() {
+  const t = await getT()
+  return { title: t('Add material') }
+}
 export const dynamic = 'force-dynamic'
 
 export default async function MaterialPage() {
+  const t = await getT()
+
   const profile = await getCurrentProfile()
   // Not a redirect: an admin-only page should not advertise that it exists.
   if (!profile?.is_admin) notFound()
@@ -34,7 +40,7 @@ export default async function MaterialPage() {
     .map((task) => ({
       id: task.id,
       label: task.title,
-      group: reference.subjectById[task.subject_id] ?? 'Other',
+      group: t(reference.subjectById[task.subject_id] ?? 'Other'),
     }))
     .sort((a, b) => a.group.localeCompare(b.group) || a.label.localeCompare(b.label))
 
@@ -42,7 +48,7 @@ export default async function MaterialPage() {
     .map((row) => ({
       id: row.id,
       label: row.name,
-      group: reference.subjectById[row.subject_id] ?? 'Other',
+      group: t(reference.subjectById[row.subject_id] ?? 'Other'),
     }))
     .sort((a, b) => a.group.localeCompare(b.group) || a.label.localeCompare(b.label))
 
@@ -54,7 +60,7 @@ export default async function MaterialPage() {
     licence: row.licence as Licence,
     attachedTo: row.task_id
       ? (taskTitle.get(row.task_id) ?? 'a task')
-      : `${topicName.get(row.topic_id ?? '') ?? 'a topic'} (whole topic)`,
+      : t('{topic} (whole topic)', { topic: topicName.get(row.topic_id ?? '') ?? t('a topic') }),
   }))
 
   return (
@@ -64,12 +70,12 @@ export default async function MaterialPage() {
         className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
-        Settings
+        {t('Settings')}
       </Link>
 
       <PageHeader
-        title="Add material"
-        description="Lectures and readings for a task or a whole topic. Nothing is saved without a recorded licence."
+        title={t('Add material')}
+        description={t('Lectures and readings for a task or a whole topic. Nothing is saved without a recorded licence.')}
       />
 
       <MaterialForm tasks={tasks} topics={topics} existing={existing} />

@@ -3,8 +3,9 @@ import 'server-only'
 import { cache } from 'react'
 import { getSessionUserId } from '@/lib/supabase/auth'
 import { getReference } from '@/lib/supabase/reference'
+import { getFlame } from '@/lib/supabase/visits'
+import { pointsFromScore, protocolFromRow, verdictOf, type Protocol } from '@/lib/protocol'
 import { createClient } from '@/lib/supabase/server'
-import { hasSupabaseEnv } from '@/lib/supabase/env'
 import {
   levelFromXp,
   quizXp,
@@ -20,7 +21,9 @@ import type {
   Goal,
   Profile,
   ProgressAnalytics,
+  TaskAttemptEntry,
   TaskDetail,
+  TaskReportEntry,
 } from '@/lib/types'
 
 export type {
@@ -121,7 +124,6 @@ const getQuizAnswers = cache(async (): Promise<XpQuizAnswer[]> => {
  * per-request query, so this costs nothing beyond what the page already paid.
  */
 export const getTaskCatalogue = cache(async (): Promise<CatalogueTask[]> => {
-  if (!hasSupabaseEnv()) return []
   const [reference, attempts] = await Promise.all([getReference(), getAttempts()])
 
   const byTask = new Map<string, { total: number; solved: boolean }>()
@@ -139,9 +141,14 @@ export const getTaskCatalogue = cache(async (): Promise<CatalogueTask[]> => {
       title: task.title,
       subject: reference.subjectById[task.subject_id] ?? 'General',
       topic: reference.topicById[task.topic_id] ?? 'General practice',
+      topicPosition: reference.topicPositionById[task.topic_id] ?? 99,
+      level: task.level,
+      paper: task.paper,
       difficulty: task.difficulty,
       estimatedMinutes: task.estimated_minutes,
       source: task.source,
+      gradeMin: task.grade_min,
+      gradeMax: task.grade_max,
       solved: record?.solved ?? false,
       attempts: record?.total ?? 0,
     }
@@ -155,10 +162,11 @@ export const getTaskCatalogue = cache(async (): Promise<CatalogueTask[]> => {
  * the server. Selecting it would ship the answer in the page payload.
  */
 export const getTaskDetail = cache(async (slug: string): Promise<TaskDetail | null> => {
-  if (!hasSupabaseEnv()) return null
   const [reference, attempts] = await Promise.all([getReference(), getAttempts()])
 
-  const task = reference.tasks.find((entry) => entry.id === slug)
+  // A class's own problem is not in the shared catalogue; it is read as this
+  // user, so the row policy decides whether they are in the class.
+  const task = reference.tasks.find((entry) => entry.id === slug) ?? (await getClassTask(slug))
   if (!task) return null
 
   const history = attempts.filter((attempt) => attempt.task_id === slug)
@@ -167,9 +175,14 @@ export const getTaskDetail = cache(async (slug: string): Promise<TaskDetail | nu
     title: task.title,
     subject: reference.subjectById[task.subject_id] ?? 'General',
     topic: reference.topicById[task.topic_id] ?? 'General practice',
+    topicPosition: reference.topicPositionById[task.topic_id] ?? 99,
+    level: task.level,
+    paper: task.paper,
     difficulty: task.difficulty,
     estimatedMinutes: task.estimated_minutes,
     source: task.source,
+    gradeMin: task.grade_min,
+    gradeMax: task.grade_max,
     solved: history.some((attempt) => attempt.is_correct),
     attempts: history.length,
     problem: task.problem,
@@ -184,9 +197,112 @@ export const getTaskDetail = cache(async (slug: string): Promise<TaskDetail | nu
   }
 })
 
+/**
+ * The student's own submissions to one task, newest first, with what the
+ * grader said. The page used to show only a count and a best score, so the
+ * written work and the feedback on it could not be found again.
+ */
+export const getTaskHistory = cache(async (taskId: string): Promise<TaskAttemptEntry[]> => {
+  const userId = await getSessionUserId()
+  if (!userId) return []
+
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('task_attempts')
+    .select('id, answer, score, feedback, is_correct, points, created_at')
+    .eq('user_id', userId)
+    .eq('task_id', taskId)
+    .order('created_at', { ascending: false })
+    .limit(20)
+  return (data ?? []).map((row) => {
+    const verdict = verdictOf(row)
+    return {
+      id: row.id,
+      answer: row.answer,
+      score: row.score,
+      feedback: row.feedback,
+      isCorrect: row.is_correct,
+      createdAt: row.created_at,
+      verdict,
+      points: row.points ?? pointsFromScore(verdict, row.score),
+    }
+  })
+})
+
+export type AttemptDetail = {
+  id: string
+  taskId: string
+  userId: string
+  createdAt: string
+  protocol: Protocol
+}
+
+/**
+ * One attempt with its protocol.
+ *
+ * Read with the caller's own client, so RLS decides who may see it: the
+ * student who wrote it, or a teacher of theirs. Nothing here checks either,
+ * because the policy already does and a second check could only disagree.
+ */
+export const getAttemptDetail = cache(async (attemptId: string): Promise<AttemptDetail | null> => {
+  // A malformed id is a missing attempt, not a database error.
+  if (!/^[0-9a-f-]{36}$/i.test(attemptId)) return null
+  const supabase = await createClient()
+  const { data: row } = await supabase
+    .from('task_attempts')
+    .select('id, task_id, user_id, created_at, answer, is_correct, score, feedback, points, summary, marks, criteria, break_point')
+    .eq('id', attemptId)
+    .maybeSingle()
+  if (!row) return null
+  return {
+    id: row.id,
+    taskId: row.task_id,
+    userId: row.user_id,
+    createdAt: row.created_at,
+    protocol: protocolFromRow(row),
+  }
+})
+
+/** Reports this student sent about one task, with how each was settled. */
+export const getTaskReports = cache(async (taskId: string): Promise<TaskReportEntry[]> => {
+  const userId = await getSessionUserId()
+  if (!userId) return []
+
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('task_reports')
+    .select('id, kind, message, status, resolution, created_at, attempt_id')
+    .eq('user_id', userId)
+    .eq('task_id', taskId)
+    .order('created_at', { ascending: false })
+    .limit(10)
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    kind: row.kind as TaskReportEntry['kind'],
+    message: row.message,
+    status: row.status as TaskReportEntry['status'],
+    resolution: row.resolution,
+    createdAt: row.created_at,
+    attemptId: row.attempt_id,
+  }))
+})
+
+async function getClassTask(id: string) {
+  if (!id.startsWith('class-')) return null
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('tasks')
+    .select(
+      'id, subject_id, topic_id, title, problem, difficulty, hints, source, estimated_minutes, given, find_prompt, diagram_url, source_url, licence, attribution',
+    )
+    .eq('id', id)
+    .not('class_id', 'is', null)
+    .maybeSingle()
+  return data ? { ...data, grade_min: null, grade_max: null, level: null, paper: null } : null
+}
+
 /** Lectures and readings attached to a task, or to the topic it belongs to. */
 export const getTaskResources = cache(async (taskId: string) => {
-  if (!hasSupabaseEnv()) return []
   const reference = await getReference()
   const task = reference.tasks.find((entry) => entry.id === taskId)
   if (!task) return []
@@ -212,7 +328,6 @@ export const getTaskResources = cache(async (taskId: string) => {
 /** Subjects with how much content each actually has, for the target picker. */
 export const getSubjectSummary = cache(
   async (): Promise<{ id: string; name: string; taskCount: number }[]> => {
-    if (!hasSupabaseEnv()) return []
     const reference = await getReference()
     const counts = new Map<string, number>()
     for (const task of reference.tasks) {
@@ -226,7 +341,6 @@ export const getSubjectSummary = cache(
 
 /** Everything a student can aim at, with how much content backs each one. */
 export const getCompetitionOptions = cache(async (): Promise<CompetitionOption[]> => {
-  if (!hasSupabaseEnv()) return []
   const supabase = await createClient()
   const [{ data: rows }, reference] = await Promise.all([
     supabase
@@ -285,18 +399,19 @@ export const getGoal = cache(async (): Promise<Goal> => {
     subjectId,
     subjectName: subjectId ? (reference.subjectById[subjectId] ?? null) : null,
     targetDate: profile?.target_date ?? null,
+    goalSetAt: profile?.goal_set_at ?? null,
     subjectLocked: Boolean(competition?.subjectId),
   }
 })
 
 export const getProgressAnalytics = cache(async (): Promise<ProgressAnalytics> => {
-  if (!hasSupabaseEnv()) return emptyAnalytics
 
-  const [attemptsList, reference, profile, quizAnswers] = await Promise.all([
+  const [attemptsList, reference, profile, quizAnswers, flame] = await Promise.all([
     getAttempts(),
     getReference(),
     getCurrentProfile(),
     getQuizAnswers(),
+    getFlame(),
   ])
   const goal = profile?.daily_xp_goal ?? 50
 
@@ -307,6 +422,8 @@ export const getProgressAnalytics = cache(async (): Promise<ProgressAnalytics> =
     return {
       ...emptyAnalytics,
       currentLevel: profile?.level ?? null,
+      // The flame counts days the app was opened, so a first day already has one.
+      activeStreak: flame.current,
       xp: { ...emptyAnalytics.xp, goal },
     }
   }
@@ -365,14 +482,6 @@ export const getProgressAnalytics = cache(async (): Promise<ProgressAnalytics> =
     if (!dayCounts.has(day)) dayCounts.set(day, 0)
   }
 
-  // A streak should survive "today, not yet": start at yesterday when there is
-  // no activity today, instead of reporting zero all morning.
-  let streak = 0
-  let offset = dayCounts.has(utcDay(dayOffset(0))) ? 0 : 1
-  while (dayCounts.has(utcDay(dayOffset(offset)))) {
-    streak += 1
-    offset += 1
-  }
 
   const recentActivity = Array.from({ length: 7 }, (_, index) => {
     const day = dayOffset(6 - index)
@@ -409,8 +518,12 @@ export const getProgressAnalytics = cache(async (): Promise<ProgressAnalytics> =
     hasData: true,
     totalAttempts: attemptsList.length,
     correctAnswers,
-    accuracy: Math.round((correctAnswers / attemptsList.length) * 100),
-    activeStreak: streak,
+    // Zero when only quiz answers exist: 0/0 rendered as "NaN%".
+    accuracy: attemptsList.length ? Math.round((correctAnswers / attemptsList.length) * 100) : 0,
+    // The flame: days in a row the app was opened (lib/supabase/visits.ts). It
+    // used to be days with an attempt, which a beginner reading their first
+    // lessons could not keep alive; one streak, counted one way.
+    activeStreak: flame.current,
     longestCorrectRun,
     currentLevel: profile?.level ?? null,
     recentActivity,
@@ -481,7 +594,6 @@ export type MockPaper = {
 }
 
 export const getMockHistory = cache(async (): Promise<MockSummary[]> => {
-  if (!hasSupabaseEnv()) return []
   const userId = await getSessionUserId()
   if (!userId) return []
 
@@ -515,7 +627,6 @@ export const getMockHistory = cache(async (): Promise<MockSummary[]> => {
  * answer key, and afterwards the grader's feedback is the useful part.
  */
 export const getMockPaper = cache(async (id: string): Promise<MockPaper | null> => {
-  if (!hasSupabaseEnv()) return null
   const userId = await getSessionUserId()
   if (!userId) return null
 

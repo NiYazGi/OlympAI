@@ -5,19 +5,84 @@ notes to a graded derivation, an AI coach, a route through a chosen subject
 toward a chosen competition, and timed mock papers that measure the student's
 level.
 
-Next.js 16 (App Router, Turbopack) · React 19 · Supabase (Postgres, Auth, RLS) ·
-Tailwind v4 · OpenAI for grading and coaching.
+Next.js 16 (App Router, Turbopack) · React 19 · embedded Postgres (PGlite) with
+RLS and local auth · Tailwind v4 · OpenAI for grading and coaching.
 
 ## Running it
 
 ```bash
 pnpm install
-cp .env.example .env.local   # then fill it in — see SUPABASE.md
-pnpm db:migrate              # applies anything pending
-pnpm dev
+pnpm dev                     # development, compiles pages on first visit
+pnpm preview                 # production build + server: what visitors get
 ```
 
-`pnpm db:status` lists migrations that have not run. `pnpm typecheck` and
+No database to set up. The app runs Postgres itself (PGlite, compiled to
+WebAssembly) with its files in `.data/db`, creates it on first start and
+applies `supabase/migrations/*` — schema, RLS policies and seed content —
+automatically. In development it also creates an admin account: login `test`,
+password `test`. Accounts, sessions and password hashes live in the same
+database (`lib/db/auth.ts`); there is no mail server, so password-reset links
+are printed to the server log.
+
+**The task library** is the Kazakhstan mathematics olympiad archive
+(olympiads.bc-pf.org): 1818 problems from the regional, national and ГЖО
+rounds (grades 6-11) and the APMO, Balkan, Junior Balkan and Silk Road papers,
+imported by `scripts/import-kz-math.py` into migration `0033`. Each task carries
+a grade range (`grade_min`/`grade_max`, migration `0032`), its source URL, and
+LaTeX that `components/math-text.tsx` typesets on the server. No reference
+solutions exist, so the grader judges reasoning on its own; the licence is
+recorded as unknown until the terms are confirmed. The olympiad list is empty.
+
+Physics adds 272 problems from the Kazakhstan national and regional rounds
+(grades 9-11, theory tours, 2010-2025), migration `0035` via
+`scripts/import-kz-physics.py`. Those papers exist only as PDFs, so each
+problem was transcribed from the page images into text with LaTeX, and its
+figures cropped into `public/tasks/physics/` and referenced from the statement
+as `![…](/tasks/physics/…)` lines, which `components/math-text.tsx` renders.
+Experimental tours are left out; data-processing tours whose measurements are
+given in the statement are kept. Misprints in the source papers are kept as
+printed.
+
+`.env.local` is only needed for Sulu and grading (`OPENAI_API_KEY`); see
+`.env.example`. `pnpm db:status` lists migrations, `pnpm db:migrate` applies pending ones
+without starting the app, `pnpm db:reset` deletes the
+database so the next start rebuilds it. Stop the app before either: one
+process owns the data directory at a time, and that also means one server
+process — the database is not shared across machines or instances.
+
+Admins: `pnpm db:create-admin <login>` (app stopped) creates one with a random
+32-character password and writes it to `.data/credentials-<login>.txt`, which
+git ignores — move it somewhere safe and delete the file. Admins can promote
+others from `/admin/users`. The development-only `test`/`test` admin is created
+only while the database has no admin at all.
+
+Students can contest a grade ("I think the check is wrong") or flag a mistake in
+a statement from the task page. Reports land in `/admin/reports`, where an
+admin answers them and, for a grading report, can re-score the attempt; the
+answer shows on the student's task page, and topic statistics follow the new
+score because they are derived from the attempts.
+
+### Deploying
+
+- **One Node server with a persistent disk.** `pnpm build && pnpm start`. The
+  database is a directory (`OLYMPAI_DB_DIR`, default `.data/db`) owned by that
+  one process: no serverless hosting (Vercel, Netlify functions), no second
+  instance behind a load balancer, no ephemeral container filesystem.
+- **HTTPS in front of it.** The session cookie is `Secure` in production, so
+  over plain HTTP nobody can log in. A reverse proxy (Caddy, nginx) that
+  forwards the original Host header keeps Server Actions' origin check happy.
+- **Environment:** `OPENAI_API_KEY` (Sulu and grading do not work without
+  it), `NEXT_PUBLIC_SITE_URL` (the public https URL), optionally
+  `OLYMPAI_DB_DIR`.
+- **Back up the data directory.** Stop the app, or copy a snapshot of the disk;
+  copying files out from under a running Postgres can catch it mid-write.
+- **Never run `pnpm dev` on the server.**
+- No mail server: password-reset links are written to the server log, so
+  resets go through whoever runs it. Sign-up is open and not email-verified.
+- Login is throttled per account (10 failures per 15 minutes, in memory).
+
+The hosted-Supabase setup this replaced is described in SUPABASE.md, kept for
+the reasoning behind the RLS and grading design, which still applies. `pnpm typecheck` and
 `pnpm lint` both have to pass; they are the only automated checks in the repo.
 
 Checks that run against the live grader, model and database are in `.tools/`,
@@ -159,7 +224,8 @@ the browser can see it.
 | Deadline, workload, readiness | `lib/goal.ts` |
 | Mock composition and scoring | `lib/mock.ts` |
 | Licensing | `lib/licence.ts` |
-| Migrations + runner | `supabase/migrations/`, `scripts/migrate.mjs` |
+| Database, migrations, query layer | `lib/db/` (`index.ts`, `query.ts`), `supabase/migrations/` |
+| Accounts and sessions | `lib/db/auth.ts`, `lib/db/password.ts` |
 
 ## Screens
 
@@ -182,10 +248,15 @@ into `/me` and `/learn`.
 - **The next action is always about the target subject**, never about what is
   on screen. Opening the full catalogue to look something up must not change
   what the app says you ought to be doing.
-- **Reference content is cached across requests for a minute**
-  (`lib/supabase/reference.ts`). A stale entry survives a server restart and
-  deleting `.next/cache`, so if content added by a migration has to appear
-  immediately, bump the version suffix in the cache key.
+- **Reference content is read once per request** (`lib/supabase/reference.ts`),
+  not cached across requests: the database is in-process, so a fresh read costs
+  less than the cache did, and new content appears immediately.
+- **`lib/supabase/*` now talks to the local database.** The names stayed so
+  every query in the app kept compiling against the generated types;
+  `lib/db/query.ts` implements the part of the Supabase query builder in use
+  and runs each statement as `anon`, `authenticated` or `service_role`, so RLS
+  is enforced as before. A filter it does not support throws rather than
+  silently matching everything.
 - **`<ViewTransition>` comes from the React build Next vendors**, not from the
   installed `react` package, and `@types/react` does not declare it yet — hence
   `types/react-view-transition.d.ts`. Delete that file when the types catch up.

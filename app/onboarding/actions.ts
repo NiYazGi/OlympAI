@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { isAllowed, isOptional, type ProfileField } from '@/lib/profile-options'
 import type { Database } from '@/lib/supabase/database.types'
+import { getT } from '@/lib/i18n/server'
 
 type ProfileUpdate = Database['public']['Tables']['profiles']['Update']
 
@@ -31,11 +32,12 @@ export type OnboardingResult = { ok: boolean; error?: string }
  * Continue button stayed disabled anyway.
  */
 export async function completeOnboarding(formData: FormData): Promise<OnboardingResult> {
+  const t = await getT()
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return { ok: false, error: 'Your session has expired. Please log in again.' }
+  if (!user) return { ok: false, error: t('Your session has expired. Please log in again.') }
 
   const update: ProfileUpdate = {}
   for (const field of FIELDS) {
@@ -47,10 +49,10 @@ export async function completeOnboarding(formData: FormData): Promise<Onboarding
         update[field] = null
         continue
       }
-      return { ok: false, error: `Please choose an option for "${field.replace(/_/g, ' ')}".` }
+      return { ok: false, error: t('Please choose an option for "{n}".', { n: field.replace(/_/g, ' ') }) }
     }
     if (!isAllowed(field, value)) {
-      return { ok: false, error: 'That choice is not one of the available options.' }
+      return { ok: false, error: t('That choice is not one of the available options.') }
     }
     update[field] = value
   }
@@ -59,7 +61,10 @@ export async function completeOnboarding(formData: FormData): Promise<Onboarding
     .from('profiles')
     .update({ ...update, onboarding_completed_at: new Date().toISOString() })
     .eq('id', user.id)
-  if (error) return { ok: false, error: 'Unable to save your setup. Please try again.' }
+  if (error) return { ok: false, error: t('Unable to save your setup. Please try again.') }
 
-  redirect('/dashboard')
+  // Back to wherever they were going, validated rather than trusted: it
+  // arrives in a form field.
+  const next = String(formData.get('next') ?? '')
+  redirect(next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard')
 }

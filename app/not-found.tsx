@@ -1,16 +1,22 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { getT } from '@/lib/i18n/server'
 
-export default function NotFound() {
+export default async function NotFound() {
+  const t = await getT()
+
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-background p-6 text-center">
-      <div>
-        <p className="text-sm font-semibold text-primary">404</p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight">This page does not exist.</h1>
-        <p className="mt-3 text-muted-foreground">
-          Let&apos;s get you back to focused practice.
+    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-void p-6 text-center">
+      <div className="hero-atmosphere opacity-60" aria-hidden>
+        <span className="hero-bar hero-bar--coral-2" />
+      </div>
+      <div className="enter relative z-10">
+        <p className="font-mono text-[64px] leading-none text-fade">404</p>
+        <h1 className="mt-6 text-[32px] font-normal text-white">{t('This page does not exist.')}</h1>
+        <p className="mt-3 text-ash">
+          {t('Let\'s get you back to focused practice.')}
         </p>
-        <Button className="mt-6" nativeButton={false} render={<Link href="/">Go to OlympAI</Link>} />
+        <Button className="mt-6" nativeButton={false} render={<Link href="/">{t('Go to OlympAI')}</Link>} />
       </div>
     </main>
   )

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getSessionUserId } from '@/lib/supabase/auth'
+import { getT } from '@/lib/i18n/server'
 
 export type GoalResult = { ok: boolean; error?: string }
 
@@ -25,14 +26,15 @@ function revalidateGoalViews() {
  * horizon the schedule can say anything useful about.
  */
 export async function setGoal(formData: FormData): Promise<GoalResult> {
+  const t = await getT()
   const userId = await getSessionUserId()
-  if (!userId) return { ok: false, error: 'Your session has expired. Please log in again.' }
+  if (!userId) return { ok: false, error: t('Your session has expired. Please log in again.') }
 
   const competitionId = String(formData.get('competition_id') ?? '').trim()
   const targetDate = String(formData.get('target_date') ?? '').trim()
-  if (!competitionId) return { ok: false, error: 'Choose what you are preparing for.' }
+  if (!competitionId) return { ok: false, error: t('Choose what you are preparing for.') }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(targetDate)) {
-    return { ok: false, error: 'Choose a target date.' }
+    return { ok: false, error: t('Choose a target date.') }
   }
 
   const supabase = await createClient()
@@ -41,17 +43,17 @@ export async function setGoal(formData: FormData): Promise<GoalResult> {
     .select('id, subject_id')
     .eq('id', competitionId)
     .maybeSingle()
-  if (!competition) return { ok: false, error: 'That competition is no longer listed.' }
+  if (!competition) return { ok: false, error: t('That competition is no longer listed.') }
 
   const target = new Date(`${targetDate}T00:00:00Z`)
   const today = new Date()
   const start = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
   const days = Math.round((target.getTime() - start) / 86_400_000)
   if (Number.isNaN(days) || days < 1) {
-    return { ok: false, error: 'Pick a date in the future.' }
+    return { ok: false, error: t('Pick a date in the future.') }
   }
   if (days > MAX_HORIZON_DAYS) {
-    return { ok: false, error: 'Pick a date within the next two years.' }
+    return { ok: false, error: t('Pick a date within the next two years.') }
   }
 
   // A generic target carries no subject, so keep whatever the student chose.
@@ -59,24 +61,30 @@ export async function setGoal(formData: FormData): Promise<GoalResult> {
 
   const { error } = await supabase
     .from('profiles')
-    .update({ target_competition_id: competition.id, target_date: targetDate, ...subjectPatch })
+    .update({
+      target_competition_id: competition.id,
+      target_date: targetDate,
+      goal_set_at: new Date().toISOString(),
+      ...subjectPatch,
+    })
     .eq('id', userId)
-  if (error) return { ok: false, error: 'That did not save. Please try again.' }
+  if (error) return { ok: false, error: t('That did not save. Please try again.') }
 
   revalidateGoalViews()
   return { ok: true }
 }
 
 export async function clearGoal(): Promise<GoalResult> {
+  const t = await getT()
   const userId = await getSessionUserId()
-  if (!userId) return { ok: false, error: 'Your session has expired. Please log in again.' }
+  if (!userId) return { ok: false, error: t('Your session has expired. Please log in again.') }
 
   const supabase = await createClient()
   const { error } = await supabase
     .from('profiles')
-    .update({ target_competition_id: null, target_date: null })
+    .update({ target_competition_id: null, target_date: null, goal_set_at: null })
     .eq('id', userId)
-  if (error) return { ok: false, error: 'That did not save. Please try again.' }
+  if (error) return { ok: false, error: t('That did not save. Please try again.') }
 
   revalidateGoalViews()
   return { ok: true }
@@ -84,8 +92,9 @@ export async function clearGoal(): Promise<GoalResult> {
 
 /** Used when a generic target leaves the subject unset. */
 export async function setTargetSubject(subjectId: string | null): Promise<GoalResult> {
+  const t = await getT()
   const userId = await getSessionUserId()
-  if (!userId) return { ok: false, error: 'Your session has expired. Please log in again.' }
+  if (!userId) return { ok: false, error: t('Your session has expired. Please log in again.') }
 
   const supabase = await createClient()
   if (subjectId) {
@@ -94,30 +103,59 @@ export async function setTargetSubject(subjectId: string | null): Promise<GoalRe
       .select('id')
       .eq('id', subjectId)
       .maybeSingle()
-    if (!subject) return { ok: false, error: 'That subject is no longer available.' }
+    if (!subject) return { ok: false, error: t('That subject is no longer available.') }
   }
 
   const { error } = await supabase
     .from('profiles')
     .update({ target_subject_id: subjectId })
     .eq('id', userId)
-  if (error) return { ok: false, error: 'That did not save. Please try again.' }
+  if (error) return { ok: false, error: t('That did not save. Please try again.') }
 
   revalidateGoalViews()
   return { ok: true }
 }
 
 export async function setDailyGoal(goal: number): Promise<GoalResult> {
+  const t = await getT()
   const userId = await getSessionUserId()
-  if (!userId) return { ok: false, error: 'Your session has expired. Please log in again.' }
+  if (!userId) return { ok: false, error: t('Your session has expired. Please log in again.') }
   if (!Number.isInteger(goal) || goal < MIN_GOAL || goal > MAX_GOAL) {
-    return { ok: false, error: `Choose a goal between ${MIN_GOAL} and ${MAX_GOAL} XP.` }
+    return { ok: false, error: t('Choose a goal between {MIN_GOAL} and {MAX_GOAL} XP.', { MIN_GOAL, MAX_GOAL }) }
   }
 
   const supabase = await createClient()
   const { error } = await supabase.from('profiles').update({ daily_xp_goal: goal }).eq('id', userId)
-  if (error) return { ok: false, error: 'That did not save. Please try again.' }
+  if (error) return { ok: false, error: t('That did not save. Please try again.') }
 
   revalidateGoalViews()
+  return { ok: true }
+}
+
+/** Longer than this is a paragraph, and the field is meant to hold a name. */
+const MAX_UNIVERSITY = 120
+
+/**
+ * What the olympiad is for: the student's own sentence about their own life —
+ * a university, a faculty, a scholarship. Never validated against a list.
+ * Empty clears it.
+ */
+export async function setTargetUniversity(formData: FormData): Promise<GoalResult> {
+  const t = await getT()
+  const userId = await getSessionUserId()
+  if (!userId) return { ok: false, error: t('Your session has expired. Please log in again.') }
+
+  const value = String(formData.get('target_university') ?? '').trim()
+  if (value.length > MAX_UNIVERSITY) return { ok: false, error: t('Keep it under a line.') }
+
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('profiles')
+    .update({ target_university: value || null })
+    .eq('id', userId)
+  if (error) return { ok: false, error: t('That did not save. Please try again.') }
+
+  revalidateGoalViews()
+  revalidatePath('/method')
   return { ok: true }
 }

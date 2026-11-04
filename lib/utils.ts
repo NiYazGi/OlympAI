@@ -6,9 +6,8 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// Shared surface style for custom cards, matching the shadcn Card ring look.
-export const cardClass =
-  'rounded-xl bg-card ring-1 ring-foreground/10'
+// Shared surface for custom cards: the keyboard-key stack on Ink, 16px radius.
+export const cardClass = 'spotlight rounded-2xl bg-card shadow-key'
 
 /** Up to two uppercase initials for an avatar fallback. */
 export function initials(fullName: string | null | undefined) {
@@ -27,4 +26,13 @@ export function initials(fullName: string | null | undefined) {
  */
 export function riseDelay(index: number, step = 40, cap = 6): CSSProperties {
   return { '--rise-delay': `${Math.min(index, cap) * step}ms` } as CSSProperties
+}
+
+/** An inset well for hand-rolled form fields, matching components/ui/input. */
+export const fieldClass =
+  'h-11 w-full rounded-lg bg-white/[0.05] px-3 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none transition-colors placeholder:text-smoke hover:bg-white/[0.07] focus:bg-white/[0.07] focus:ring-2 focus:ring-white/10'
+
+/** Inline style for a staggered scroll reveal (`data-reveal`) or entrance (`.enter`). */
+export function delay(ms: number): CSSProperties {
+  return { '--reveal-delay': `${ms}ms`, '--enter-delay': `${ms}ms` } as CSSProperties
 }

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Figure } from '@/components/learn/figure'
 import type { Lesson, LessonBlock } from '@/lib/types'
 import { cardClass, cn, riseDelay } from '@/lib/utils'
+import { useT } from '@/components/i18n-provider'
 
 const BLOCK: Record<
   LessonBlock['kind'],
@@ -32,6 +33,8 @@ const BLOCK: Record<
  * enough that the check step follows while it is still in mind.
  */
 export function LessonReader({ lesson }: { lesson: Lesson }) {
+  const t = useT()
+
   const router = useRouter()
   const [completed, setCompleted] = useState(Boolean(lesson.completedAt))
   const [pending, startTransition] = useTransition()
@@ -68,16 +71,16 @@ export function LessonReader({ lesson }: { lesson: Lesson }) {
               className={cn(cardClass, spec.className, 'rise p-5 sm:p-6')}
               style={riseDelay(index, 60)}
             >
-              <div className="flex items-center gap-2 text-xs font-medium tracking-wide uppercase">
+              <div className="eyebrow flex items-center gap-2">
                 <Icon className="size-3.5" />
-                {spec.label}
+                {t(spec.label)}
                 <span className="ml-auto tabular-nums opacity-60">
                   {index + 1}/{lesson.blocks.length}
                 </span>
               </div>
 
               {block.heading ? (
-                <h2 className="mt-3 text-lg font-semibold text-balance">{block.heading}</h2>
+                <h2 className="mt-3 text-lg font-medium text-balance">{block.heading}</h2>
               ) : null}
 
               {block.body ? (
@@ -119,21 +122,21 @@ export function LessonReader({ lesson }: { lesson: Lesson }) {
 
       <div className={cn(cardClass, 'flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5')}>
         <div>
-          <p className="font-medium">{completed ? 'Marked as read.' : 'Finished reading?'}</p>
+          <p className="font-medium">{completed ? t('Marked as read.') : t('Finished reading?')}</p>
           <p className="text-sm text-muted-foreground">
-            Your own note to yourself — it is not a score, and nothing checks it.
+            {t('Your own note to yourself — it is not a score, and nothing checks it.')}
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant={completed ? 'outline' : 'default'} onClick={toggle} disabled={pending}>
-            {completed ? 'Not yet' : <><Check className="size-4" /> Mark as read</>}
+            {completed ? t('Not yet') : <><Check className="size-4" /> {t('Mark as read')}</>}
           </Button>
           <Button
             variant="secondary"
             nativeButton={false}
             render={
               <Link href={`/learn/${lesson.topicSlug}/quiz`} prefetch>
-                Check yourself
+                {t('Check yourself')}
               </Link>
             }
           />

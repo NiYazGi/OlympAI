@@ -11,6 +11,8 @@
  * the state below is recomputed from the rows that produced it.
  */
 
+import { identity, type Translate } from '@/lib/i18n/config'
+
 export type StageKey = 'study' | 'check' | 'recall' | 'apply' | 'sit'
 
 /**
@@ -44,7 +46,7 @@ export type LadderInput = {
   } | null
   /** Distinct questions the student has ever answered correctly, out of all. */
   quiz: { total: number; correct: number; answered: number }
-  cards: { total: number; learned: number; due: number }
+  cards: { total: number; learned: number; due: number; fresh: number }
   tasks: { total: number; solved: number }
   /** Mock papers sat in this topic's subject. */
   mocks: { taken: number; bestPercent: number | null; subjectEligible: boolean }
@@ -53,39 +55,39 @@ export type LadderInput = {
 const share = (done: number, total: number) =>
   total === 0 ? 0 : Math.round((done / total) * 100)
 
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
-
-export function buildLadder(input: LadderInput): LadderStage[] {
+export function buildLadder(input: LadderInput, t: Translate = identity): LadderStage[] {
   const topic = `/learn/${input.topicSlug}`
 
   const study: LadderStage = input.lesson
     ? {
         key: 'study',
-        label: 'Read',
-        blurb: 'Short blocks: the idea, why it works, a worked example, what to remember.',
+        label: t('Read'),
+        blurb: t('Short blocks: the idea, why it works, a worked example, what to remember.'),
         state: input.lesson.completed ? 'done' : input.lesson.opened ? 'in-progress' : 'ready',
         detail: input.lesson.completed
-          ? 'Read through.'
+          ? t('Read through.')
           : input.lesson.opened
-            ? 'Opened, not finished.'
-            : `${plural(input.lesson.blocks, 'block')}${input.lesson.minutes ? ` · about ${input.lesson.minutes} min` : ''}.`,
+            ? t('Opened, not finished.')
+            : input.lesson.minutes
+              ? t('{blocks} blocks · about {minutes} min.', { blocks: input.lesson.blocks, minutes: input.lesson.minutes })
+              : t('{blocks} blocks.', { blocks: input.lesson.blocks }),
         percent: input.lesson.completed ? 100 : input.lesson.opened ? 50 : 0,
         href: `${topic}/lesson`,
       }
     : {
         key: 'study',
-        label: 'Read',
-        blurb: 'Short blocks: the idea, why it works, a worked example, what to remember.',
+        label: t('Read'),
+        blurb: t('Short blocks: the idea, why it works, a worked example, what to remember.'),
         state: 'empty',
-        detail: 'No notes written for this topic yet.',
+        detail: t('No notes written for this topic yet.'),
         percent: 0,
         href: null,
       }
 
   const check: LadderStage = {
     key: 'check',
-    label: 'Check',
-    blurb: 'A few quick questions, marked the moment you answer.',
+    label: t('Check'),
+    blurb: t('A few quick questions, marked the moment you answer.'),
     state:
       input.quiz.total === 0
         ? 'empty'
@@ -96,41 +98,19 @@ export function buildLadder(input: LadderInput): LadderStage[] {
             : 'ready',
     detail:
       input.quiz.total === 0
-        ? 'No questions for this topic yet.'
+        ? t('No questions for this topic yet.')
         : input.quiz.answered === 0
-          ? `${plural(input.quiz.total, 'question')} waiting.`
-          : `${input.quiz.correct} of ${input.quiz.total} answered right.`,
+          ? t('{total} questions waiting.', { total: input.quiz.total })
+          : t('{correct} of {total} answered right.', { correct: input.quiz.correct, total: input.quiz.total }),
     percent: share(input.quiz.correct, input.quiz.total),
     href: input.quiz.total === 0 ? null : `${topic}/quiz`,
   }
 
-  const recall: LadderStage = {
-    key: 'recall',
-    label: 'Memorise',
-    blurb: 'Cards for the terms and facts, spaced out so they stick.',
-    state:
-      input.cards.total === 0
-        ? 'empty'
-        : input.cards.learned >= input.cards.total
-          ? 'done'
-          : input.cards.learned > 0 || input.cards.due < input.cards.total
-            ? 'in-progress'
-            : 'ready',
-    detail:
-      input.cards.total === 0
-        ? 'No cards for this topic yet.'
-        : input.cards.due > 0
-          ? `${plural(input.cards.due, 'card')} due now.`
-          : `${input.cards.learned} of ${input.cards.total} known · nothing due.`,
-    percent: share(input.cards.learned, input.cards.total),
-    href: input.cards.total === 0 ? null : `${topic}/cards`,
-  }
-
   const apply: LadderStage = {
     key: 'apply',
-    label: 'Solve',
+    label: t('Solve'),
     blurb:
-      'Full derivations, marked against the method. The same library as Problems in the menu, filtered to this topic.',
+      t('Full derivations, marked against the method. The same library as Problems in the menu, filtered to this topic.'),
     state:
       input.tasks.total === 0
         ? 'empty'
@@ -141,8 +121,8 @@ export function buildLadder(input: LadderInput): LadderStage[] {
             : 'ready',
     detail:
       input.tasks.total === 0
-        ? 'No problems in this topic yet.'
-        : `${input.tasks.solved} of ${plural(input.tasks.total, 'problem')} solved.`,
+        ? t('No problems in this topic yet.')
+        : t('{solved} of {total} problems solved.', { solved: input.tasks.solved, total: input.tasks.total }),
     percent: share(input.tasks.solved, input.tasks.total),
     href:
       input.tasks.total === 0
@@ -153,31 +133,31 @@ export function buildLadder(input: LadderInput): LadderStage[] {
   // Nothing above has been finished yet, so "ready when you are" would be
   // technically true and misleading: the paper is open from day one, and
   // sitting it first tells a beginner only that they are a beginner.
-  const startedAnything = [study, check, recall, apply].some(
+  const startedAnything = [study, check, apply].some(
     (stage) => stage.state === 'in-progress' || stage.state === 'done',
   )
 
   const sit: LadderStage = {
     key: 'sit',
-    label: 'Sit a paper',
-    blurb: 'Timed, no hints, no coach — the whole subject at once.',
+    label: t('Sit a paper'),
+    blurb: t('Timed, no hints, no coach — the whole subject at once.'),
     state: !input.mocks.subjectEligible
       ? 'empty'
       : input.mocks.taken > 0
         ? 'done'
         : 'ready',
     detail: !input.mocks.subjectEligible
-      ? `${input.subjectName} needs at least three problems before a paper measures anything.`
+      ? t('{subject} needs at least three problems before a paper measures anything.', { subject: t(input.subjectName) })
       : input.mocks.taken > 0
-        ? `${plural(input.mocks.taken, 'paper')} sat · best ${input.mocks.bestPercent ?? 0}%.`
+        ? t('{taken} papers sat · best {n}%.', { taken: input.mocks.taken, n: input.mocks.bestPercent ?? 0 })
         : startedAnything
-          ? 'Ready when you are.'
-          : 'Open now, but it measures best once the steps above are behind you.',
+          ? t('Ready when you are.')
+          : t('Open now, but it measures best once the steps above are behind you.'),
     percent: input.mocks.bestPercent ?? 0,
     href: input.mocks.subjectEligible ? '/mock' : null,
   }
 
-  return [study, check, recall, apply, sit]
+  return [study, check, apply, sit]
 }
 
 /**
@@ -197,4 +177,40 @@ export function ladderPercent(stages: LadderStage[]): number {
   const real = stages.filter((stage) => stage.state !== 'empty')
   if (real.length === 0) return 0
   return Math.round(real.reduce((sum, stage) => sum + stage.percent, 0) / real.length)
+}
+
+/**
+ * Flashcards, which are no longer a rung.
+ *
+ * They were the third of five steps, which put a deck of definitions between
+ * reading a topic and using it, and made the app's daily instruction "review
+ * nine cards" more often than "solve something". The deck still schedules
+ * itself; it is just not what a session is for, it no longer counts towards a
+ * topic's progress, and it is never the next step the app names.
+ */
+export function buildCardsAside(input: LadderInput, t: Translate): LadderStage {
+  const topic = `/learn/${input.topicSlug}`
+  return {
+    key: 'recall',
+    label: t('Memorise'),
+    blurb: t('Cards for the terms and facts, spaced out so they stick.'),
+    state:
+      input.cards.total === 0
+        ? 'empty'
+        : input.cards.learned >= input.cards.total
+          ? 'done'
+          : input.cards.fresh < input.cards.total
+            ? 'in-progress'
+            : 'ready',
+    detail:
+      input.cards.total === 0
+        ? t('No cards for this topic yet.')
+        : input.cards.due > 0
+          ? t('{due} cards due now.', { due: input.cards.due })
+          : input.cards.fresh === input.cards.total
+            ? t('{n} new {n|card|cards} to learn.', { n: input.cards.total })
+          : t('{learned} of {total} known · nothing due.', { learned: input.cards.learned, total: input.cards.total }),
+    percent: share(input.cards.learned, input.cards.total),
+    href: input.cards.total === 0 ? null : `${topic}/cards`,
+  }
 }

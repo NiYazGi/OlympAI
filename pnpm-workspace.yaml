@@ -6,3 +6,9 @@
 # fresh install cannot silently pick up a newer 4.x.
 overrides:
   hono: 4.12.25
+  # Build-time dependencies of next, held at their patched releases until next
+  # itself requires them (pnpm audit, 2026-11-01).
+  nanoid@<3.3.18: ^3.3.18
+  browserslist@<4.28.7: ^4.28.7
+  source-map-js@<1.2.2: ^1.2.2
+  baseline-browser-mapping@<2.11.0: ^2.11.0

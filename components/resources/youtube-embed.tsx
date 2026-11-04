@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ExternalLink, Play } from 'lucide-react'
 import { youTubeId } from '@/lib/licence'
 import { cardClass, cn } from '@/lib/utils'
+import { useT } from '@/components/i18n-provider'
 
 /**
  * A YouTube lecture, embedded the only way the terms allow: the official
@@ -29,6 +30,8 @@ export function YouTubeEmbed({
   title: string
   className?: string
 }) {
+  const t = useT()
+
   const [playing, setPlaying] = useState(false)
   // Built from the parsed id, never from the raw URL, so a crafted link in the
   // database cannot become an arbitrary iframe.
@@ -67,7 +70,7 @@ export function YouTubeEmbed({
         </span>
         <span className="max-w-sm px-6 text-center text-sm font-medium text-pretty">{title}</span>
         <span className="text-xs text-muted-foreground">
-          Plays on YouTube · nothing is loaded until you press play
+          {t('Plays on YouTube · nothing is loaded until you press play')}
         </span>
       </button>
     )

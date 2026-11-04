@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Brain, BookOpen, ClipboardCheck, Layers } from 'lucide-react'
 import type { TopicShortcut as Shortcut } from '@/lib/supabase/study'
 import { cardClass, cn } from '@/lib/utils'
+import { getT } from '@/lib/i18n/server'
 
 /**
  * "This problem is the last step of Mechanics" — with the earlier steps linked.
@@ -10,13 +11,15 @@ import { cardClass, cn } from '@/lib/utils'
  * it is the route back to the material, which is a different kind of help from
  * the one the grader and the coach provide.
  */
-export function TopicShortcutPanel({ shortcut }: { shortcut: Shortcut }) {
+export async function TopicShortcutPanel({ shortcut }: { shortcut: Shortcut }) {
+  const t = await getT()
+
   const links = [
     shortcut.lessonTitle
       ? {
           href: `/learn/${shortcut.slug}/lesson`,
           icon: BookOpen,
-          label: 'Read the notes',
+          label: t('Read the notes'),
           detail: shortcut.lessonTitle,
         }
       : null,
@@ -24,22 +27,22 @@ export function TopicShortcutPanel({ shortcut }: { shortcut: Shortcut }) {
       ? {
           href: `/learn/${shortcut.slug}/quiz`,
           icon: ClipboardCheck,
-          label: 'Check yourself',
+          label: t('Check yourself'),
           detail:
             shortcut.quizLeft > 0
-              ? `${shortcut.quizLeft} of ${shortcut.quizTotal} still to get right`
-              : `All ${shortcut.quizTotal} answered`,
+              ? t('{left} of {total} still to get right', { left: shortcut.quizLeft, total: shortcut.quizTotal })
+              : t('All {quizTotal} answered', { quizTotal: shortcut.quizTotal }),
         }
       : null,
     shortcut.cardsTotal > 0
       ? {
           href: `/learn/${shortcut.slug}/cards`,
           icon: Brain,
-          label: 'Cards',
+          label: t('Cards'),
           detail:
             shortcut.cardsDue > 0
-              ? `${shortcut.cardsDue} due now`
-              : `${shortcut.cardsTotal} in the deck, none due`,
+              ? t('{n} due now', { n: shortcut.cardsDue })
+              : t('{cardsTotal} in the deck, none due', { cardsTotal: shortcut.cardsTotal }),
         }
       : null,
   ].filter((item) => item !== null)
@@ -50,19 +53,19 @@ export function TopicShortcutPanel({ shortcut }: { shortcut: Shortcut }) {
     <section className={cn(cardClass, 'p-4 sm:p-5')}>
       <div className="flex items-center gap-2">
         <Layers className="size-4 text-primary" />
-        <h2 className="text-sm font-semibold">
-          The last step of{' '}
+        <h2 className="text-sm font-medium">
+          {t('The last step of')}{' '}
           <Link
             href={`/learn/${shortcut.slug}`}
             prefetch
             className="text-primary underline-offset-4 hover:underline"
           >
-            {shortcut.name}
+            {t(shortcut.name)}
           </Link>
         </h2>
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
-        Stuck on the method rather than the arithmetic? Go back a step.
+        {t('Stuck on the method rather than the arithmetic? Go back a step.')}
       </p>
 
       <ul className="mt-3 space-y-1.5">

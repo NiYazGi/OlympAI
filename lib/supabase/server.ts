@@ -1,32 +1,14 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import 'server-only'
+
 import { cache } from 'react'
-import type { Database } from '@/lib/supabase/database.types'
-import { getSupabaseEnv } from '@/lib/supabase/env'
+import { getSessionUser } from '@/lib/db/auth'
+import { createDbClient } from '@/lib/db/client'
 
 /**
- * One client per request. Without `cache()` every helper built its own, each
- * re-reading cookies and keeping its own auth state, so nothing could be shared
- * or deduplicated between them.
+ * The caller's client: `authenticated` with their id when signed in, `anon`
+ * otherwise. RLS sees exactly what it saw under Supabase. One per request.
  */
 export const createClient = cache(async () => {
-  const cookieStore = await cookies()
-  const { supabaseUrl, supabasePublishableKey } = getSupabaseEnv()
-
-  return createServerClient<Database>(supabaseUrl, supabasePublishableKey, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll()
-      },
-      setAll(cookiesToSet) {
-        try {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options),
-          )
-        } catch {
-          // Server Components cannot write cookies. The proxy refreshes them.
-        }
-      },
-    },
-  })
+  const user = await getSessionUser()
+  return createDbClient(user ? { role: 'authenticated', userId: user.id } : { role: 'anon', userId: null })
 })

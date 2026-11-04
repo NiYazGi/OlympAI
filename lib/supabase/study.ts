@@ -1,14 +1,14 @@
 import 'server-only'
 
 import { cache } from 'react'
+import { getT } from '@/lib/i18n/server'
 import { getSessionUserId } from '@/lib/supabase/auth'
 import { getReference, getStudyReference } from '@/lib/supabase/reference'
 import { createClient } from '@/lib/supabase/server'
-import { hasSupabaseEnv } from '@/lib/supabase/env'
-import { buildLadder, ladderPercent, nextStep } from '@/lib/ladder'
+import { buildCardsAside, buildLadder, ladderPercent, nextStep } from '@/lib/ladder'
 import { nextAction, type NextAction } from '@/lib/next-action'
 import { recommendTask } from '@/lib/recommendations'
-import { getGoal, getProgressAnalytics, getTaskCatalogue } from '@/lib/supabase/queries'
+import { getCurrentProfile, getGoal, getProgressAnalytics, getTaskCatalogue } from '@/lib/supabase/queries'
 import { cardState, isDue, isLearned, orderForReview, type Rating } from '@/lib/srs'
 import { parseFigure } from '@/lib/figures'
 import type {
@@ -34,6 +34,7 @@ export type {
   TopicLadder,
   TopicQuiz,
 } from '@/lib/types'
+import { gradeRange } from '@/lib/profile-options'
 export type { NextAction } from '@/lib/next-action'
 
 /**
@@ -106,7 +107,7 @@ function reviewsByCard(reviews: { card_id: string; rating: number; created_at: s
 type OrderedTopic = TopicLadder & { order: number }
 
 async function buildTopicLadders(): Promise<OrderedTopic[]> {
-  if (!hasSupabaseEnv()) return []
+  const t = await getT()
 
   const [reference, study, progress, mocks] = await Promise.all([
     getReference(),
@@ -174,7 +175,10 @@ async function buildTopicLadders(): Promise<OrderedTopic[]> {
       cards: {
         total: cards.length,
         learned: cardStates.filter(isLearned).length,
-        due: cardStates.filter((state) => isDue(state, now)).length,
+        // Only cards already studied can be due. A fresh account used to open on
+        // "9 cards due" for a deck it had never seen.
+        due: cardStates.filter((state) => !state.isNew && isDue(state, now)).length,
+        fresh: cardStates.filter((state) => state.isNew).length,
       },
       tasks: {
         total: tasks.length,
@@ -186,7 +190,8 @@ async function buildTopicLadders(): Promise<OrderedTopic[]> {
         subjectEligible: (tasksBySubject.get(topic.subject_id) ?? 0) >= 3,
       },
     }
-    const stages = buildLadder(input)
+    const stages = buildLadder(input, t)
+    const deck = buildCardsAside(input, t)
 
     return {
       id: topic.id,
@@ -195,6 +200,7 @@ async function buildTopicLadders(): Promise<OrderedTopic[]> {
       subjectName,
       subjectSlug: subject?.slug ?? '',
       stages,
+      deck,
       input,
       percent: ladderPercent(stages),
       next: nextStep(stages),
@@ -261,16 +267,18 @@ const getFocusTopics = cache(async (): Promise<{ subject: string | null; topics:
  * what the app says you ought to be doing.
  */
 export const getNextAction = cache(async (): Promise<NextAction> => {
-  const [{ subject, topics }, catalogue, analytics] = await Promise.all([
+  const [{ subject, topics }, catalogue, analytics, profile] = await Promise.all([
     getFocusTopics(),
     getTaskCatalogue(),
     getProgressAnalytics(),
+    getCurrentProfile(),
   ])
 
   const pick = subject
     ? recommendTask(
         catalogue.filter((task) => task.subject === subject),
         analytics,
+        gradeRange(profile?.grade),
       )
     : null
 
@@ -292,6 +300,7 @@ export const getNextAction = cache(async (): Promise<NextAction> => {
           estimatedMinutes: pick.estimatedMinutes,
         }
       : null,
+    await getT(),
   )
 })
 
@@ -359,7 +368,6 @@ export const getTopicLadder = cache(async (slug: string): Promise<TopicLadder | 
 // ------------------------------------------------------------------ lesson ---
 
 export const getLesson = cache(async (topicSlug: string): Promise<Lesson | null> => {
-  if (!hasSupabaseEnv()) return null
 
   const [reference, study, progress] = await Promise.all([
     getReference(),
@@ -405,8 +413,20 @@ export const getLesson = cache(async (topicSlug: string): Promise<Lesson | null>
 
 // -------------------------------------------------------------------- quiz ---
 
+/**
+ * A fresh order of option indexes. Every stored question had its right answer
+ * in position A, so a run could be passed by remembering the letter.
+ */
+function shuffledOrder(length: number) {
+  const order = Array.from({ length }, (_, index) => index)
+  for (let i = length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[order[i], order[j]] = [order[j], order[i]]
+  }
+  return order
+}
+
 export const getTopicQuiz = cache(async (topicSlug: string): Promise<TopicQuiz | null> => {
-  if (!hasSupabaseEnv()) return null
 
   const [reference, study, progress] = await Promise.all([
     getReference(),
@@ -422,13 +442,17 @@ export const getTopicQuiz = cache(async (topicSlug: string): Promise<TopicQuiz |
   const questions = study.questions
     .filter((item) => item.topic_id === topic.id)
     .sort((a, b) => a.position - b.position)
-    .map((item) => ({
+    .map((item) => {
+      const optionOrder = shuffledOrder(item.options.length)
+      return {
       id: item.id,
       prompt: item.prompt,
-      options: item.options,
+      options: optionOrder.map((index) => item.options[index]),
+      optionOrder,
       lastChoice: latest.get(item.id)?.chosen_index ?? null,
       lastCorrect: latest.get(item.id)?.is_correct ?? null,
-    }))
+      }
+    })
 
   return {
     topicSlug: topic.slug,
@@ -442,7 +466,6 @@ export const getTopicQuiz = cache(async (topicSlug: string): Promise<TopicQuiz |
 // -------------------------------------------------------------------- cards ---
 
 export const getTopicCards = cache(async (topicSlug: string): Promise<TopicCards | null> => {
-  if (!hasSupabaseEnv()) return null
 
   const [reference, study, progress] = await Promise.all([
     getReference(),
@@ -495,7 +518,8 @@ export const getTopicCards = cache(async (topicSlug: string): Promise<TopicCards
     topicName: topic.name,
     subjectName: reference.subjectById[topic.subject_id] ?? 'Practice',
     cards,
-    dueCount: cards.filter((card) => card.due).length,
+    dueCount: cards.filter((card) => card.due && !card.state.isNew).length,
+    newCount: cards.filter((card) => card.state.isNew).length,
     learnedCount: cards.filter((card) => isLearned(card.state)).length,
   }
 })
@@ -522,7 +546,6 @@ export type TopicShortcut = {
  */
 export const getTopicShortcut = cache(
   async (topicName: string): Promise<TopicShortcut | null> => {
-    if (!hasSupabaseEnv()) return null
     const ladders = await buildTopicLadders()
     const topic = ladders.find((item) => item.name === topicName)
     if (!topic) return null

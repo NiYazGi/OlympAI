@@ -18,13 +18,34 @@ import { EmptyState } from '@/components/empty-state'
 import { cardClass, cn, riseDelay } from '@/lib/utils'
 import { xpForFirstSolve } from '@/lib/xp'
 import type { CatalogueTask } from '@/lib/types'
+import { useT } from '@/components/i18n-provider'
+import { Button } from '@/components/ui/button'
 
 const ALL_SUBJECTS = 'All subjects'
 const ALL_TOPICS = 'All topics'
+const ALL_OLYMPIADS = 'All olympiads'
+
+/** "Областная олимпиада, 2004" → "Областная олимпиада": the olympiad, without the sitting. */
+function olympiadOf(task: { source: string | null; title: string }) {
+  const text = task.source ?? task.title
+  const match = text.match(/^(.*?)[\s,]*(?:19|20)\d{2}/)
+  return match?.[1]?.trim() || null
+}
 const ALL_LEVELS = 'All levels'
 const ALL_STATES = 'All'
 const DIFFICULTIES = [ALL_LEVELS, 'Easy', 'Medium', 'Hard']
 const STATES = [ALL_STATES, 'Solved', 'Unsolved', 'Attempted']
+const ALL_GRADES = 'All grades'
+/** Rendered in pages: a library of nearly two thousand rows cannot be one list. */
+const PAGE = 40
+
+/** "9 класс" for a single grade, "10–11 класс" for a band. */
+export function gradeLabel(task: Pick<CatalogueTask, 'gradeMin' | 'gradeMax'>, t: (key: string, vars?: Record<string, string | number>) => string) {
+  if (task.gradeMin === null || task.gradeMax === null) return null
+  return task.gradeMin === task.gradeMax
+    ? t('Grade {n}', { n: task.gradeMin })
+    : t('Grades {from}–{to}', { from: task.gradeMin, to: task.gradeMax })
+}
 
 function FilterSelect({
   value,
@@ -37,15 +58,16 @@ function FilterSelect({
   options: string[]
   label: string
 }) {
+  const t = useT()
   return (
     <Select value={value} onValueChange={(next) => onChange(next as string)}>
       <SelectTrigger className="h-9 w-full sm:w-auto" aria-label={label}>
-        <SelectValue />
+        <SelectValue>{(current: string) => t(current)}</SelectValue>
       </SelectTrigger>
       <SelectContent>
         {options.map((option) => (
           <SelectItem key={option} value={option}>
-            {option}
+            {t(option)}
           </SelectItem>
         ))}
       </SelectContent>
@@ -61,6 +83,8 @@ function FilterSelect({
  * the identical rows in the database went unread.
  */
 export function ProblemBank({ tasks }: { tasks: CatalogueTask[] }) {
+  const t = useT()
+
   // ?topic= is how the ladder's "Apply" step arrives here. It seeds the filter
   // and nothing more: the selects stay in charge afterwards, so changing one
   // does not have to fight the URL it was opened from.
@@ -74,6 +98,8 @@ export function ProblemBank({ tasks }: { tasks: CatalogueTask[] }) {
       : ALL_TOPICS,
   )
   const [state, setState] = useState(ALL_STATES)
+  const [grade, setGrade] = useState(ALL_GRADES)
+  const [olympiad, setOlympiad] = useState(ALL_OLYMPIADS)
 
   // Filter options come from the rows actually present, so they cannot drift
   // out of sync with the catalogue the way two hand-kept lists did.
@@ -99,12 +125,46 @@ export function ProblemBank({ tasks }: { tasks: CatalogueTask[] }) {
     [tasks, subject],
   )
 
+  // Single grades present in the library, each a filter option: a band task
+  // (10-11) is listed under both of its grades.
+  const grades = useMemo(() => {
+    const present = new Set<number>()
+    for (const task of tasks) {
+      if (task.gradeMin === null || task.gradeMax === null) continue
+      for (let g = task.gradeMin; g <= task.gradeMax; g++) present.add(g)
+    }
+    return [ALL_GRADES, ...[...present].sort((a, b) => a - b).map((g) => `Grade ${g}`)]
+  }, [tasks])
+  const showGradeFilter = grades.length > 2
+
+  // The archive's olympiads, so a whole one can be found at once: searching a
+  // title only ever matched the spelling it was typed in.
+  const olympiads = useMemo(
+    () => [
+      ALL_OLYMPIADS,
+      ...[
+        ...new Set(
+          tasks
+            .filter((task) => subject === ALL_SUBJECTS || task.subject === subject)
+            .map(olympiadOf)
+            .filter((name): name is string => Boolean(name)),
+        ),
+      ].sort((a, b) => a.localeCompare(b)),
+    ],
+    [tasks, subject],
+  )
+
   const filtered = useMemo(
     () =>
       tasks.filter((task) => {
         if (query && !task.title.toLowerCase().includes(query.trim().toLowerCase())) return false
         if (subject !== ALL_SUBJECTS && task.subject !== subject) return false
         if (topic !== ALL_TOPICS && task.topic !== topic) return false
+        if (olympiad !== ALL_OLYMPIADS && olympiadOf(task) !== olympiad) return false
+        if (grade !== ALL_GRADES) {
+          const g = Number(grade.slice('Grade '.length))
+          if (task.gradeMin === null || task.gradeMax === null || g < task.gradeMin || g > task.gradeMax) return false
+        }
         if (difficulty !== ALL_LEVELS && difficultyLabel(task.difficulty) !== difficulty) {
           return false
         }
@@ -113,8 +173,15 @@ export function ProblemBank({ tasks }: { tasks: CatalogueTask[] }) {
         if (state === 'Attempted' && task.attempts === 0) return false
         return true
       }),
-    [tasks, query, subject, topic, difficulty, state],
+    [tasks, query, subject, topic, difficulty, state, grade, olympiad],
   )
+
+  // How many of the filtered rows are on screen. Changing any filter starts
+  // again from the first page, so the key carries the filters it was shown for.
+  const filterKey = [query, subject, topic, difficulty, state, grade, olympiad].join('\u0000')
+  const [shown, setShown] = useState({ key: filterKey, count: PAGE })
+  const count = shown.key === filterKey ? shown.count : PAGE
+  const page = filtered.slice(0, count)
 
   if (tasks.length === 0) {
     // Deliberately not "apply the migrations in supabase/migrations": that was
@@ -122,9 +189,9 @@ export function ProblemBank({ tasks }: { tasks: CatalogueTask[] }) {
     return (
       <EmptyState
         icon={Library}
-        title="No tasks here yet"
-        body="Nothing has been added to the library for this workspace. Sulu can still work through a problem with you in the meantime."
-        action={{ href: '/sulu-ai', label: 'Open Sulu AI' }}
+        title={t('No tasks here yet')}
+        body={t('Nothing has been added to the library for this workspace. Sulu can still work through a problem with you in the meantime.')}
+        action={{ href: '/sulu-ai', label: t('Open Sulu AI') }}
       />
     )
   }
@@ -137,44 +204,51 @@ export function ProblemBank({ tasks }: { tasks: CatalogueTask[] }) {
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search problems…"
-            aria-label="Search problems"
+            placeholder={t('Search problems…')}
+            aria-label={t('Search problems')}
             className="h-9 pl-9"
           />
         </div>
         {showSubjectFilter ? (
           <FilterSelect
-            label="Subject"
+            label={t('Subject')}
             value={subject}
             onChange={(next) => {
               setSubject(next)
               setTopic(ALL_TOPICS)
+              setOlympiad(ALL_OLYMPIADS)
             }}
             options={subjects}
           />
         ) : null}
-        <FilterSelect label="Topic" value={topic} onChange={setTopic} options={topics} />
+        {showGradeFilter ? (
+          <FilterSelect label={t('Grade')} value={grade} onChange={setGrade} options={grades} />
+        ) : null}
+        <FilterSelect label={t('Topic')} value={topic} onChange={setTopic} options={topics} />
+        {olympiads.length > 2 ? (
+          <FilterSelect label={t('Olympiad')} value={olympiad} onChange={setOlympiad} options={olympiads} />
+        ) : null}
         <FilterSelect
-          label="Difficulty"
+          label={t('Difficulty')}
           value={difficulty}
           onChange={setDifficulty}
           options={DIFFICULTIES}
         />
-        <FilterSelect label="Status" value={state} onChange={setState} options={STATES} />
+        <FilterSelect label={t('Status')} value={state} onChange={setState} options={STATES} />
       </div>
 
       <p className="text-sm text-muted-foreground" aria-live="polite">
-        {filtered.length} of {tasks.length} problem{tasks.length === 1 ? '' : 's'}
+        {t('{shown} of {total} problems', { shown: filtered.length, total: tasks.length })}
       </p>
 
       {filtered.length === 0 ? (
         <div className={cn(cardClass, 'p-8 text-center text-sm text-muted-foreground')}>
-          No problem matches these filters.
+          {t('No problem matches these filters.')}
         </div>
       ) : (
         <ul className="grid gap-3">
-          {filtered.map((task, index) => (
-            <li key={task.id} className="rise" style={riseDelay(index)}>
+          {page.map((task, index) => (
+            <li key={task.id} className="rise" style={riseDelay(index % PAGE)}>
               <Link
                 href={`/tasks/${task.id}`}
                 className={cn(
@@ -191,23 +265,23 @@ export function ProblemBank({ tasks }: { tasks: CatalogueTask[] }) {
                     </h3>
                     {task.solved ? (
                       <Badge variant="secondary" className="gap-1">
-                        <Check className="size-3" /> Solved
+                        <Check className="size-3" /> {t('Solved')}
                       </Badge>
                     ) : task.attempts > 0 ? (
                       <Badge variant="outline">
-                        {task.attempts} attempt{task.attempts === 1 ? '' : 's'}
+                        {t('Attempts: {n}', { n: task.attempts })}
                       </Badge>
                     ) : null}
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {task.subject} · {task.topic}
-                    {task.source ? ` · ${task.source}` : ''}
+                    {t(task.subject)} · {t(task.topic)}
+                    {gradeLabel(task, t) ? ` · ${gradeLabel(task, t)}` : ''}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-4">
                   {!task.solved ? (
                     <span
-                      title="XP for a first solve"
+                      title={t('XP for a first solve')}
                       className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground"
                     >
                       <Zap className="size-3" />
@@ -216,7 +290,7 @@ export function ProblemBank({ tasks }: { tasks: CatalogueTask[] }) {
                   ) : null}
                   {task.estimatedMinutes ? (
                     <span className="hidden items-center gap-1.5 text-sm text-muted-foreground sm:flex">
-                      <Clock className="size-3.5" /> {task.estimatedMinutes} min
+                      <Clock className="size-3.5" /> {task.estimatedMinutes} {t('min')}
                     </span>
                   ) : null}
                   <DifficultyStars level={task.difficulty} />
@@ -227,6 +301,16 @@ export function ProblemBank({ tasks }: { tasks: CatalogueTask[] }) {
           ))}
         </ul>
       )}
+
+      {filtered.length > count ? (
+        <Button
+          variant="outline"
+          className="self-center"
+          onClick={() => setShown({ key: filterKey, count: count + PAGE })}
+        >
+          {t('Show {n} more', { n: Math.min(PAGE, filtered.length - count) })}
+        </Button>
+      ) : null}
     </div>
   )
 }

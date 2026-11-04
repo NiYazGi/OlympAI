@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { ClipboardCheck, Loader2 } from 'lucide-react'
 import { startMock } from '@/app/(app)/mock/actions'
 import { Button } from '@/components/ui/button'
+import { useT } from '@/components/i18n-provider'
 
 export function StartMock({
   subject,
@@ -14,6 +15,8 @@ export function StartMock({
   disabled?: boolean
   label?: string
 }) {
+  const t = useT()
+
   const [error, setError] = useState('')
   const [pending, startTransition] = useTransition()
 
@@ -25,17 +28,17 @@ export function StartMock({
           setError('')
           startTransition(async () => {
             const result = await startMock(subject)
-            if (!result.ok) setError(result.error ?? 'The test could not be started.')
+            if (!result.ok) setError(result.error ?? t('The test could not be started.'))
           })
         }}
       >
         {pending ? (
           <>
-            <Loader2 className="size-4 animate-spin" /> Preparing…
+            <Loader2 className="size-4 animate-spin" /> {t('Preparing…')}
           </>
         ) : (
           <>
-            <ClipboardCheck className="size-4" /> {label ?? `Start a ${subject} mock`}
+            <ClipboardCheck className="size-4" /> {label ?? t('Start a {subject} mock', { subject })}
           </>
         )}
       </Button>

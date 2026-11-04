@@ -5,16 +5,20 @@ import { PageHeader } from '@/components/page-header'
 import { EmptyState } from '@/components/empty-state'
 import { QuizRunner } from '@/components/learn/quiz-runner'
 import { getTopicQuiz } from '@/lib/supabase/study'
+import { getT } from '@/lib/i18n/server'
 
 export const dynamic = 'force-dynamic'
 
 export async function generateMetadata({ params }: { params: Promise<{ topic: string }> }) {
   const { topic } = await params
   const quiz = await getTopicQuiz(topic)
-  return { title: quiz ? `${quiz.topicName} quiz` : 'Quiz' }
+  const t = await getT()
+  return { title: quiz ? t('{topic} quiz', { topic: quiz.topicName }) : t('Quiz') }
 }
 
 export default async function QuizPage({ params }: { params: Promise<{ topic: string }> }) {
+  const t = await getT()
+
   const { topic } = await params
   const quiz = await getTopicQuiz(topic)
   if (!quiz) notFound()
@@ -30,16 +34,16 @@ export default async function QuizPage({ params }: { params: Promise<{ topic: st
       </Link>
 
       <PageHeader
-        title="Check yourself"
-        description={`${quiz.subjectName} · ${quiz.topicName}`}
+        title={t('Check yourself')}
+        description={`${t(quiz.subjectName)} · ${quiz.topicName}`}
       />
 
       {quiz.questions.length === 0 ? (
         <EmptyState
           icon={ClipboardCheck}
-          title="No questions for this topic yet"
-          body="Nothing has been written for this topic. When it is, this is where the quick check will be."
-          action={{ href: `/learn/${quiz.topicSlug}`, label: 'Back to the topic' }}
+          title={t('No questions for this topic yet')}
+          body={t('Nothing has been written for this topic. When it is, this is where the quick check will be.')}
+          action={{ href: `/learn/${quiz.topicSlug}`, label: t('Back to the topic') }}
         />
       ) : (
         <QuizRunner quiz={quiz} />

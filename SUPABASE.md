@@ -1,4 +1,12 @@
-# Supabase setup
+# Supabase setup (historical)
+
+> The app no longer uses a hosted Supabase project. It runs Postgres in-process
+> (PGlite, `lib/db/`) and applies the same migrations to it; see "Running it" in
+> README.md. What follows describes the hosted setup it replaced. The reasoning
+> about RLS, the service role and grading still holds — the local database
+> enforces the same policies — but the setup steps and environment variables
+> below no longer apply.
+
 
 OlympAI uses Supabase Auth, Postgres and Row Level Security.
 
@@ -71,7 +79,19 @@ licensing, `0018` the admin flag, `0019`-`0021` the learning ladder (lessons,
 quizzes, flashcards, lesson views, and the physics content), `0022` takes the
 answer-key columns away from the browser's role, `0023` adds the economics
 ladder, and `0024`-`0025` give lesson blocks their figures — parameters in
-`jsonb`, never markup.
+`jsonb`, never markup. `0031` stops students from setting their own `is_admin`
+through the profile update policy; only the service role can change it now.
+
+### The first administrator
+
+The admin panel lives at `/admin` and is a 404 for everyone else. Make the
+first admin from the SQL editor; after that, admins grant access to each other
+from `/admin/users`:
+
+```sql
+update public.profiles set is_admin = true
+where id = (select id from auth.users where email = 'you@example.com');
+```
 
 `0006` closes the write holes described above and bounds the profile fields that
 reach the model's system prompt. `0007` fills in the full statement, givens,

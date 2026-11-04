@@ -1,26 +1,24 @@
 <svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <style>
-    @media (prefers-color-scheme: light) {
-      .background { fill: black; }
-      .foreground { fill: white; }
-    }
-    @media (prefers-color-scheme: dark) {
-      .background { fill: white; }
-      .foreground { fill: black; }
-    }
-  </style>
-  <g clip-path="url(#clip0_7960_43945)">
-    <rect class="background" width="180" height="180" rx="37" />
-    <g style="transform: scale(95%); transform-origin: center">
-      <path class="foreground"
-        d="M101.141 53H136.632C151.023 53 162.689 64.6662 162.689 79.0573V112.904H148.112V79.0573C148.112 78.7105 148.098 78.3662 148.072 78.0251L112.581 112.898C112.701 112.902 112.821 112.904 112.941 112.904H148.112V126.672H112.941C98.5504 126.672 86.5638 114.891 86.5638 100.5V66.7434H101.141V100.5C101.141 101.15 101.191 101.792 101.289 102.422L137.56 66.7816C137.255 66.7563 136.945 66.7434 136.632 66.7434H101.141V53Z" />
-      <path class="foreground"
-        d="M65.2926 124.136L14 66.7372H34.6355L64.7495 100.436V66.7372H80.1365V118.47C80.1365 126.278 70.4953 129.958 65.2926 124.136Z" />
-    </g>
+  <rect width="180" height="180" rx="40" fill="#07080a" />
+  <g transform="translate(26 26) scale(2)">
+    <defs>
+      <linearGradient id="ring" x1="12" y1="52" x2="50" y2="8" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="#ffc9c9" />
+        <stop offset="0.45" stop-color="#ff6363" />
+        <stop offset="1" stop-color="#ff9a9a" />
+      </linearGradient>
+      <linearGradient id="leg" x1="30" y1="18" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="#ff8a8a" />
+        <stop offset="1" stop-color="#e5484d" />
+      </linearGradient>
+      <linearGradient id="fold" x1="18" y1="48" x2="34" y2="22" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="#ff4f4f" />
+        <stop offset="1" stop-color="#ff7a7a" />
+      </linearGradient>
+    </defs>
+    <path d="M44.6 46.2A21 21 0 1 1 49 30" stroke="url(#ring)" stroke-width="6.5" stroke-linecap="round" />
+    <path d="M33.5 18 37.4 24.4 25.6 44.6H17.8Z" fill="url(#fold)" />
+    <path d="M30 18.2c1.4-2.3 4.7-2.3 6.1 0L57 54.6h-8.2L33.5 28.4Z" fill="url(#leg)" />
+    <path d="M54 4.5 55.6 9 60 10.5 55.6 12 54 16.5 52.4 12 48 10.5 52.4 9Z" fill="#ff6363" />
   </g>
-  <defs>
-    <clipPath id="clip0_7960_43945">
-      <rect width="180" height="180" fill="white" />
-    </clipPath>
-  </defs>
 </svg>

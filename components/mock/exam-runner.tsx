@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, useTransition } from 'react'
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, useTransition, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { AlarmClock, Loader2, Send } from 'lucide-react'
 import { submitMock } from '@/app/(app)/mock/actions'
@@ -10,6 +10,7 @@ import { DifficultyStars } from '@/components/difficulty-stars'
 import { createDraftStore } from '@/lib/session-draft'
 import { cardClass, cn } from '@/lib/utils'
 import type { MockPaper } from '@/lib/supabase/queries'
+import { useT } from '@/components/i18n-provider'
 
 const MIN_ANSWER_LENGTH = 20
 
@@ -32,7 +33,16 @@ function formatClock(seconds: number) {
  * runs out and the work still gets graded, because a hard cut-off loses honest
  * effort to a slow connection.
  */
-export function ExamRunner({ paper }: { paper: MockPaper }) {
+export function ExamRunner({
+  paper,
+  statements,
+}: {
+  paper: MockPaper
+  /** Each question's statement, typeset on the server (components/math-text.tsx). */
+  statements: Record<string, ReactNode>
+}) {
+  const t = useT()
+
   const router = useRouter()
   const drafts = useMemo(
     () => createDraftStore<Answers>(`olympai:mock:${paper.id}`, () => ({})),
@@ -73,7 +83,7 @@ export function ExamRunner({ paper }: { paper: MockPaper }) {
         drafts.clear()
         router.refresh()
       } else {
-        setError(result.error ?? 'The paper could not be submitted.')
+        setError(result.error ?? t('The paper could not be submitted.'))
       }
     })
   }
@@ -86,41 +96,39 @@ export function ExamRunner({ paper }: { paper: MockPaper }) {
         className={cn(
           cardClass,
           'sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 p-4 backdrop-blur',
-          overtime && 'ring-amber-500/40',
+          overtime && 'ring-warning/40',
         )}
       >
         <div className="flex items-center gap-2">
-          <AlarmClock className={cn('size-4', overtime ? 'text-amber-500' : 'text-primary')} />
+          <AlarmClock className={cn('size-4', overtime ? 'text-warning' : 'text-primary')} />
           <span className="font-semibold tabular-nums">
-            {remaining === null ? '—' : overtime ? 'Time is up' : formatClock(remaining)}
+            {remaining === null ? '—' : overtime ? t('Time is up') : formatClock(remaining)}
           </span>
           <span className="text-sm text-muted-foreground">
-            · {answered} of {paper.questions.length} answered
+            · {answered} {t('of')} {paper.questions.length} {t('answered')}
           </span>
         </div>
         <Button onClick={submit} disabled={pending || answered === 0}>
           {pending ? (
             <>
-              <Loader2 className="size-4 animate-spin" /> Grading {answered} answer
-              {answered === 1 ? '' : 's'}…
+              <Loader2 className="size-4 animate-spin" /> {t('Grading {n} {n|answer|answers}…', { n: answered })}
             </>
           ) : (
             <>
-              <Send className="size-4" /> Submit paper
+              <Send className="size-4" /> {t('Submit paper')}
             </>
           )}
         </Button>
       </div>
 
       {overtime ? (
-        <p className="rounded-lg bg-amber-500/10 p-3 text-sm text-amber-500">
-          The clock has run out. You can still submit — anything written after time is recorded
-          the same way.
+        <p className="rounded-lg bg-warning/10 p-3 text-sm text-warning">
+          {t('The clock has run out. You can still submit — anything written after time is recorded the same way.')}
         </p>
       ) : null}
 
       {error ? (
-        <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+        <p role="alert" className="rounded-lg bg-ember/60 p-3 text-sm text-[#ffb3b3] shadow-key">
           {error}
         </p>
       ) : null}
@@ -129,13 +137,13 @@ export function ExamRunner({ paper }: { paper: MockPaper }) {
         {paper.questions.map((question, index) => (
           <li key={question.id} className={cn(cardClass, 'p-5 sm:p-6')}>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="font-semibold">
-                Question {index + 1}. {question.title}
+              <h2 className="font-medium">
+                {t('Question')} {index + 1}. {question.title}
               </h2>
               <DifficultyStars level={question.difficulty} />
             </div>
 
-            <p className="mt-3 leading-relaxed">{question.problem}</p>
+            <div className="mt-3">{statements[question.id] ?? <p className="leading-relaxed">{question.problem}</p>}</div>
 
             {question.given.length ? (
               <ul className="mt-3 space-y-1.5">
@@ -157,7 +165,7 @@ export function ExamRunner({ paper }: { paper: MockPaper }) {
             <Textarea
               value={answers[question.id] ?? ''}
               onChange={(event) => update(question.id, event.target.value)}
-              placeholder="Your full derivation…"
+              placeholder={t('Your full derivation…')}
               className="mt-4 min-h-40 resize-y font-mono text-base leading-relaxed"
             />
           </li>
@@ -168,11 +176,11 @@ export function ExamRunner({ paper }: { paper: MockPaper }) {
         <Button size="lg" onClick={submit} disabled={pending || answered === 0}>
           {pending ? (
             <>
-              <Loader2 className="size-4 animate-spin" /> Grading…
+              <Loader2 className="size-4 animate-spin" /> {t('Grading…')}
             </>
           ) : (
             <>
-              <Send className="size-4" /> Submit paper
+              <Send className="size-4" /> {t('Submit paper')}
             </>
           )}
         </Button>

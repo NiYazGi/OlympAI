@@ -2,6 +2,7 @@ import { BookOpen, ExternalLink, Link2 } from 'lucide-react'
 import { YouTubeEmbed } from '@/components/resources/youtube-embed'
 import { LICENCES, type Licence } from '@/lib/licence'
 import { cardClass, cn } from '@/lib/utils'
+import { getT } from '@/lib/i18n/server'
 
 export type Resource = {
   id: string
@@ -21,13 +22,15 @@ export type Resource = {
  * the licence, not a courtesy, and a condition that depends on someone
  * remembering is a condition that will be missed.
  */
-export function ResourceList({ resources }: { resources: Resource[] }) {
+export async function ResourceList({ resources }: { resources: Resource[] }) {
+  const t = await getT()
+
   if (resources.length === 0) return null
 
   return (
     <section className="space-y-4">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-        Material
+      <h2 className="eyebrow">
+        {t('Material')}
       </h2>
       <ul className="space-y-4">
         {resources.map((resource) => (
@@ -67,7 +70,7 @@ export function ResourceList({ resources }: { resources: Resource[] }) {
   )
 }
 
-export function Attribution({
+export async function Attribution({
   licence,
   attribution,
   url,
@@ -76,6 +79,8 @@ export function Attribution({
   attribution: string | null
   url?: string | null
 }) {
+  const t = await getT()
+
   const info = LICENCES[licence]
   // Original material needs no credit line and no disclaimer.
   if (licence === 'original' && !attribution) return null
@@ -84,15 +89,15 @@ export function Attribution({
     <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
       {attribution ? <span>{attribution}</span> : null}
       <span
-        title={info.note}
+        title={t(info.note)}
         className={cn(
           'rounded-full border px-2 py-0.5',
           licence === 'unknown'
-            ? 'border-amber-500/40 text-amber-500'
+            ? 'border-warning/40 text-warning'
             : 'border-border text-muted-foreground',
         )}
       >
-        {info.label}
+        {t(info.label)}
       </span>
       {url ? (
         <a
@@ -101,7 +106,7 @@ export function Attribution({
           rel="noopener noreferrer"
           className="hover:text-foreground hover:underline"
         >
-          source
+          {t('source')}
         </a>
       ) : null}
     </p>

@@ -1,8 +1,6 @@
 import 'server-only'
 
-import { unstable_cache } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { hasSupabaseSecretKey } from '@/lib/supabase/secret-env'
 import { createClient } from '@/lib/supabase/server'
 
 export type ReferenceTask = {
@@ -21,21 +19,58 @@ export type ReferenceTask = {
   source_url: string | null
   licence: string
   attribution: string | null
+  grade_min: number | null
+  grade_max: number | null
+  /** Which stage the problem was written for. Null until classified. */
+  level: string | null
+  /** The sitting it came from, when it came from a real one. */
+  paper: string | null
 }
 
 export type ReferenceSubject = { id: string; name: string; slug: string }
-export type ReferenceTopic = { id: string; subject_id: string; name: string; slug: string }
+export type ReferenceTopic = {
+  id: string
+  subject_id: string
+  name: string
+  slug: string
+  /** Syllabus order within the subject (topics.position). */
+  position: number
+}
 
 export type Reference = {
   tasks: ReferenceTask[]
   subjectById: Record<string, string>
   topicById: Record<string, string>
+  /** Syllabus order, by topic id. */
+  topicPositionById: Record<string, number>
   /** The rows themselves, for callers that need a slug rather than a name. */
   subjects: ReferenceSubject[]
   topics: ReferenceTopic[]
 }
 
-const EMPTY: Reference = { tasks: [], subjectById: {}, topicById: {}, subjects: [], topics: [] }
+/**
+ * Process-lifetime memo for content that only migrations change. A failed load
+ * is not kept, so the next request tries again. Call `forgetReferenceContent()`
+ * after writing tasks, topics, subjects or study content at runtime.
+ */
+const memos: { clear: () => void }[] = []
+function memo<T>(load: () => Promise<T>): () => Promise<T> {
+  let pending: Promise<T> | null = null
+  memos.push({ clear: () => (pending = null) })
+  return () => {
+    pending ??= load().catch((error) => {
+      pending = null
+      throw error
+    })
+    return pending
+  }
+}
+
+export function forgetReferenceContent() {
+  for (const entry of memos) entry.clear()
+}
+
+const EMPTY: Reference = { tasks: [], subjectById: {}, topicById: {}, topicPositionById: {}, subjects: [], topics: [] }
 
 /**
  * Subjects, topics and the task catalogue are the same rows for everyone: the
@@ -43,78 +78,61 @@ const EMPTY: Reference = { tasks: [], subjectById: {}, topicById: {}, subjects: 
  * were nonetheless refetched per user per page — three round trips of about
  * half a second each, repeated in the layout and again in the page.
  *
- * They are read once with the service role and cached across requests. That is
- * not a privilege escalation: it returns exactly what any signed-in user is
- * already entitled to read, and callers still establish a session first.
+ * They are read once per server process with the service role and kept in
+ * memory (`memo` below): the library is nearly two thousand problems, and the
+ * rows only change through migrations, which run when the process starts and
+ * before the first read. That is not a privilege escalation: it returns exactly
+ * what any signed-in user is already entitled to read, and callers still
+ * establish a session first.
  *
  * `official_solution` is excluded here on purpose. It is the one column that is
  * not for the student's eyes, and a shared cache is the last place it belongs;
  * the grader reads it separately, per attempt, on the server.
  */
-const loadReference = unstable_cache(
+const loadReference = memo(
   async (): Promise<Reference> => {
     const admin = createAdminClient()
     const [{ data: tasks }, { data: subjects }, { data: topics }] = await Promise.all([
       admin
         .from('tasks')
         .select(
-          'id, subject_id, topic_id, title, problem, difficulty, hints, source, estimated_minutes, given, find_prompt, diagram_url, source_url, licence, attribution',
+          'id, subject_id, topic_id, title, problem, difficulty, hints, source, estimated_minutes, given, find_prompt, diagram_url, source_url, licence, attribution, grade_min, grade_max, level, paper',
         )
-        .order('difficulty', { ascending: true }),
-      admin.from('subjects').select('id, name, slug'),
-      admin.from('topics').select('id, subject_id, name, slug'),
+        // A class's own problems are for that class, never the shared list.
+        .is('class_id', null)
+        // Taken out of circulation from the admin panel; history keeps them.
+        .eq('hidden', false)
+        .order('difficulty', { ascending: true })
+        .order('id', { ascending: true }),
+      admin.from('subjects').select('id, name, slug').eq('active', true),
+      admin.from('topics').select('id, subject_id, name, slug, position').order('position'),
     ])
 
+    // A hidden subject takes its topics and problems with it, so one place
+    // decides what exists rather than every caller filtering on its own.
+    const liveSubjects = (subjects ?? []) as ReferenceSubject[]
+    const visible = new Set(liveSubjects.map((row) => row.id))
+    const liveTopics = ((topics ?? []) as ReferenceTopic[]).filter((row) => visible.has(row.subject_id))
+    const liveTopicIds = new Set(liveTopics.map((row) => row.id))
+    const liveTasks = ((tasks ?? []) as ReferenceTask[]).filter(
+      (row) => visible.has(row.subject_id) && liveTopicIds.has(row.topic_id),
+    )
+
     return {
-      tasks: (tasks ?? []) as ReferenceTask[],
-      subjectById: Object.fromEntries((subjects ?? []).map((row) => [row.id, row.name])),
-      topicById: Object.fromEntries((topics ?? []).map((row) => [row.id, row.name])),
-      subjects: (subjects ?? []) as ReferenceSubject[],
-      topics: (topics ?? []) as ReferenceTopic[],
+      tasks: liveTasks,
+      subjectById: Object.fromEntries(liveSubjects.map((row) => [row.id, row.name])),
+      topicById: Object.fromEntries(liveTopics.map((row) => [row.id, row.name])),
+      topicPositionById: Object.fromEntries(liveTopics.map((row) => [row.id, row.position])),
+      subjects: liveSubjects,
+      topics: liveTopics,
     }
   },
-  // The suffix is the manual bust. Nothing in the app writes this content —
-  // it arrives by migration, which Next cannot know about — so bumping the key
-  // is how you invalidate it everywhere at once.
-  ['olympai-reference-content-v2'],
-  // An hour was too long for content that only changes when someone publishes
-  // it. A stale entry survives both a server restart and deleting .next/cache,
-  // so an hour of "where is my new task" is an hour with no way out of it. A
-  // minute keeps what the cache was for — collapsing the repeated reads inside
-  // a render and across a burst of requests — and costs one round trip a
-  // minute at worst.
-  { revalidate: 60, tags: ['reference-content'] },
 )
 
-/**
- * Falls back to the caller's own session when no service key is configured, so
- * the app still works — just without the shared cache.
- */
-async function loadReferenceAsUser(): Promise<Reference> {
-  const supabase = await createClient()
-  const [{ data: tasks }, { data: subjects }, { data: topics }] = await Promise.all([
-    supabase
-      .from('tasks')
-      .select(
-        'id, subject_id, topic_id, title, problem, difficulty, hints, source, estimated_minutes, given, find_prompt, diagram_url, source_url, licence, attribution',
-      )
-      .order('difficulty', { ascending: true }),
-    supabase.from('subjects').select('id, name, slug'),
-    supabase.from('topics').select('id, subject_id, name, slug'),
-  ])
-
-  return {
-    tasks: (tasks ?? []) as ReferenceTask[],
-    subjectById: Object.fromEntries((subjects ?? []).map((row) => [row.id, row.name])),
-    topicById: Object.fromEntries((topics ?? []).map((row) => [row.id, row.name])),
-    subjects: (subjects ?? []) as ReferenceSubject[],
-    topics: (topics ?? []) as ReferenceTopic[],
-  }
-}
 
 export async function getReference(): Promise<Reference> {
   try {
-    return hasSupabaseSecretKey() ? await loadReference() : await loadReferenceAsUser()
+    return await loadReference()
   } catch (cause) {
     // Falling back to nothing is right — an empty catalogue is better than a
     // crashed page — but doing it silently is not. An empty library and a
@@ -197,8 +215,8 @@ const STUDY_COLUMNS = {
  * Lessons, quiz questions and the shared card decks.
  *
  * Same rows for everyone, same reasoning as the task catalogue above: read once
- * with the service role, cached across requests, and identical to what any
- * signed-in student may already read. Kept separate from the task cache so the
+ * per process with the service role, and identical to what any signed-in
+ * student may already read. Kept separate from the task cache so the
  * two can be invalidated apart — study content changes when someone writes a
  * lesson, the catalogue when someone adds a problem.
  *
@@ -206,7 +224,7 @@ const STUDY_COLUMNS = {
  * is fetched through their own session, under RLS, like every other personal
  * row in the app.
  */
-const loadStudyReference = unstable_cache(
+const loadStudyReference = memo(
   async (): Promise<StudyReference> => {
     const admin = createAdminClient()
     const [{ data: lessons }, { data: blocks }, { data: questions }, { data: cards }] =
@@ -224,31 +242,12 @@ const loadStudyReference = unstable_cache(
       cards: (cards ?? []) as ReferenceFlashcard[],
     }
   },
-  ['olympai-study-content-v2'],
-  { revalidate: 60, tags: ['study-content'] },
 )
 
-async function loadStudyReferenceAsUser(): Promise<StudyReference> {
-  const supabase = await createClient()
-  const [{ data: lessons }, { data: blocks }, { data: questions }, { data: cards }] =
-    await Promise.all([
-      supabase.from('lessons').select(STUDY_COLUMNS.lessons).order('position'),
-      supabase.from('lesson_blocks').select(STUDY_COLUMNS.blocks).order('position'),
-      supabase.from('quiz_questions').select(STUDY_COLUMNS.questions).order('position'),
-      supabase.from('flashcards').select(STUDY_COLUMNS.cards).is('user_id', null).order('position'),
-    ])
-
-  return {
-    lessons: (lessons ?? []) as ReferenceLesson[],
-    blocks: (blocks ?? []) as ReferenceLessonBlock[],
-    questions: (questions ?? []) as ReferenceQuizQuestion[],
-    cards: (cards ?? []) as ReferenceFlashcard[],
-  }
-}
 
 export async function getStudyReference(): Promise<StudyReference> {
   try {
-    return hasSupabaseSecretKey() ? await loadStudyReference() : await loadStudyReferenceAsUser()
+    return await loadStudyReference()
   } catch (cause) {
     console.error('[study] falling back to empty study content:', cause)
     return EMPTY_STUDY

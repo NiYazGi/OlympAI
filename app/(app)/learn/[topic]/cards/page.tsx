@@ -4,16 +4,20 @@ import { ArrowLeft } from 'lucide-react'
 import { PageHeader } from '@/components/page-header'
 import { CardDeck } from '@/components/learn/card-deck'
 import { getTopicCards } from '@/lib/supabase/study'
+import { getT } from '@/lib/i18n/server'
 
 export const dynamic = 'force-dynamic'
 
 export async function generateMetadata({ params }: { params: Promise<{ topic: string }> }) {
   const { topic } = await params
   const deck = await getTopicCards(topic)
-  return { title: deck ? `${deck.topicName} cards` : 'Cards' }
+  const t = await getT()
+  return { title: deck ? t('{topic} cards', { topic: deck.topicName }) : t('Cards') }
 }
 
 export default async function CardsPage({ params }: { params: Promise<{ topic: string }> }) {
+  const t = await getT()
+
   const { topic } = await params
   const deck = await getTopicCards(topic)
   if (!deck) notFound()
@@ -29,12 +33,17 @@ export default async function CardsPage({ params }: { params: Promise<{ topic: s
       </Link>
 
       <PageHeader
-        title="Recall"
-        description={`${deck.subjectName} · ${deck.topicName}`}
+        title={t('Recall')}
+        description={`${t(deck.subjectName)} · ${deck.topicName}`}
         note={
           deck.cards.length ? (
             <p className="pt-1 text-sm text-muted-foreground">
-              {deck.dueCount} due now · {deck.learnedCount} of {deck.cards.length} known
+              {t('{due} due now · {fresh} new · {learned} of {total} known', {
+                due: deck.dueCount,
+                fresh: deck.newCount,
+                learned: deck.learnedCount,
+                total: deck.cards.length,
+              })}
             </p>
           ) : null
         }

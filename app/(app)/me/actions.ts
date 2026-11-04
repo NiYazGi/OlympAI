@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { isAllowed, type ProfileField } from '@/lib/profile-options'
 import type { Database } from '@/lib/supabase/database.types'
+import { getT } from '@/lib/i18n/server'
 
 type ProfileUpdate = Database['public']['Tables']['profiles']['Update']
 
@@ -19,24 +20,25 @@ export type PreferencesResult = { ok: boolean; error?: string }
  * free text, because `level` reaches the model's system instructions.
  */
 export async function saveProfilePreferences(formData: FormData): Promise<PreferencesResult> {
+  const t = await getT()
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return { ok: false, error: 'Your session has expired. Please log in again.' }
+  if (!user) return { ok: false, error: t('Your session has expired. Please log in again.') }
 
   const fields = ['primary_subject', 'level', 'goal', 'training_intensity'] as const
   const update: ProfileUpdate = {}
   for (const field of fields satisfies readonly ProfileField[]) {
     const value = formData.get(field)
     if (!isAllowed(field, value)) {
-      return { ok: false, error: 'Please choose one option in each section.' }
+      return { ok: false, error: t('Please choose one option in each section.') }
     }
     update[field] = value
   }
 
   const { error } = await supabase.from('profiles').update(update).eq('id', user.id)
-  if (error) return { ok: false, error: 'Your preferences could not be saved. Please try again.' }
+  if (error) return { ok: false, error: t('Your preferences could not be saved. Please try again.') }
 
   revalidatePath('/me')
   revalidatePath('/path')

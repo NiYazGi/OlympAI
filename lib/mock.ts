@@ -1,3 +1,4 @@
+import { fitsGrade, gradeRange } from '@/lib/profile-options'
 import type { CatalogueTask } from '@/lib/types'
 
 /**
@@ -68,6 +69,19 @@ export function composeMock(tasks: CatalogueTask[]): MockBlueprint | null {
   }
 }
 
+/**
+ * The paper this student would get in this subject: their own grade's problems
+ * when there are enough to fill one, otherwise the whole subject. Shared by
+ * the start action and the page, so the length shown before starting is the
+ * length of the paper that starts.
+ */
+export function composeMockFor(catalogue: CatalogueTask[], subject: string, grade: string | null | undefined) {
+  const inSubject = catalogue.filter((task) => task.subject === subject)
+  const grades = gradeRange(grade)
+  const ownGrade = inSubject.filter((task) => fitsGrade(task, grades))
+  return composeMock(ownGrade.length >= 5 ? ownGrade : inSubject)
+}
+
 export type MockOutcome = {
   scorePercent: number
   level: string
@@ -119,3 +133,80 @@ export function scoreMock(
 
   return { scorePercent, level, headline, solved, total }
 }
+
+/**
+ * A paper as it was actually sat.
+ *
+ * `composeMock` builds a plausible paper out of the library: five problems
+ * across the difficulty range, a decent imitation and still an imitation.
+ * These are the real thing — the problems of one sitting, in the order they
+ * were printed — and for a student preparing for that round there is no
+ * substitute for sitting it. Sittings of fewer than three problems are left
+ * out: a score over two problems says nothing.
+ */
+export type RealPaper = {
+  paper: string
+  title: string
+  /** The olympiad the sitting belongs to, for grouping: "Областная олимпиада". */
+  olympiad: string
+  year: number | null
+  /** Physics sittings have two rounds, each its own paper. */
+  round: number | null
+  taskIds: string[]
+  difficulties: number[]
+  durationMinutes: number
+  /** How many of its problems this student has already solved. */
+  solved: number
+}
+
+/** Four hours, when the paper's own problems carry no estimate. */
+const DEFAULT_PAPER_MINUTES = 240
+
+/**
+ * Every sitting in the archive.
+ *
+ * Sittings used to need three problems to be listed, which silently dropped
+ * the physics rounds of one or two problems (2020, the 2023 experimental
+ * rounds): they are real papers too. A physics round was also titled like the
+ * other round of the same year, so the two could not be told apart; the round
+ * number now travels with the paper.
+ */
+export function realPapers(tasks: CatalogueTask[]): RealPaper[] {
+  const byPaper = new Map<string, CatalogueTask[]>()
+  for (const task of tasks) {
+    if (!task.paper) continue
+    byPaper.set(task.paper, [...(byPaper.get(task.paper) ?? []), task])
+  }
+
+  return [...byPaper]
+    .map(([paper, list]) => {
+      const ordered = [...list].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
+      const minutes = ordered.reduce((sum, task) => sum + (task.estimatedMinutes ?? 0), 0)
+      // Problems are titled "<olympiad> <year>, <grade> класс — задача N";
+      // everything before the dash names the sitting.
+      const title = (ordered[0]?.title ?? paper).split(' — ')[0]!.trim()
+      const yearMatch = title.match(/(.*?)\s*((?:19|20)\d{2})/)
+      const round = paper.match(/-t(\d)$/)
+      return {
+        paper,
+        title,
+        olympiad: (yearMatch?.[1] ?? title).replace(/[,\s]+$/, '') || title,
+        year: yearMatch ? Number(yearMatch[2]) : null,
+        round: round ? Number(round[1]) : null,
+        taskIds: ordered.map((task) => task.id),
+        difficulties: ordered.map((task) => task.difficulty),
+        durationMinutes: minutes > 0 ? Math.max(15, Math.min(360, minutes)) : DEFAULT_PAPER_MINUTES,
+        solved: ordered.filter((task) => task.solved).length,
+      }
+    })
+    .filter((paper) => paper.taskIds.length > 0 && paper.taskIds.length <= MAX_PAPER_TASKS)
+    .sort(
+      (a, b) =>
+        (b.year ?? 0) - (a.year ?? 0) ||
+        a.olympiad.localeCompare(b.olympiad) ||
+        a.paper.localeCompare(b.paper, undefined, { numeric: true }),
+    )
+}
+
+/** mock_tests.task_ids holds at most twelve. */
+const MAX_PAPER_TASKS = 12

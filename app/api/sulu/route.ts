@@ -3,40 +3,44 @@ import { createClient } from '@/lib/supabase/server'
 import { checkChatRateLimit } from '@/lib/rate-limit'
 import { buildCoachInstructions, type CoachContext } from '@/lib/sulu/prompt'
 import { SuluError, streamSuluResponse, type SuluMessage } from '@/lib/sulu/provider'
+import { LOCALE_NAMES_EN } from '@/lib/i18n/config'
+import { getLocale, getT } from '@/lib/i18n/server'
 
 export const runtime = 'nodejs'
 
 const MAX_MESSAGE_LENGTH = 4_000
+const MAX_DRAFT_LENGTH = 8_000
 const HISTORY_TURNS = 10
 
-type RequestBody = { message?: unknown; sessionId?: unknown; taskId?: unknown }
+type RequestBody = { message?: unknown; sessionId?: unknown; taskId?: unknown; draft?: unknown }
 
 function fail(message: string, status: number) {
   return NextResponse.json({ error: message }, { status })
 }
 
 export async function POST(request: Request) {
+  const t = await getT()
   let body: RequestBody
   try {
     body = (await request.json()) as RequestBody
   } catch {
-    return fail('Malformed request body.', 400)
+    return fail(t('Malformed request body.'), 400)
   }
 
   const message = typeof body.message === 'string' ? body.message.trim() : ''
-  if (!message) return fail('A message is required.', 400)
+  if (!message) return fail(t('A message is required.'), 400)
   if (message.length > MAX_MESSAGE_LENGTH) {
-    return fail(`Please keep your message under ${MAX_MESSAGE_LENGTH.toLocaleString('en')} characters.`, 400)
+    return fail(t('Please keep your message under {n} characters.', { n: MAX_MESSAGE_LENGTH }), 400)
   }
 
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return fail('Authentication is required.', 401)
+  if (!user) return fail(t('Authentication is required.'), 401)
 
   const limit = await checkChatRateLimit(supabase)
-  if (!limit.allowed) return fail(limit.message, 429)
+  if (!limit.allowed) return fail(t(limit.message, limit.vars), 429)
 
   // The coaching context is assembled here, from the database and the caller's
   // own profile. It used to arrive in the request body and land verbatim in the
@@ -49,7 +53,24 @@ export async function POST(request: Request) {
 
   const context: CoachContext = { studentLevel: profile?.level ?? null }
 
-  const taskId = typeof body.taskId === 'string' ? body.taskId : null
+  // Resolve the session first: a conversation started from a task keeps that
+  // task's context even when it is continued from the general Sulu page.
+  let sessionId: string | null = null
+  let sessionTaskId: string | null = null
+  if (typeof body.sessionId === 'string' && body.sessionId) {
+    const { data: owned } = await supabase
+      .from('chat_sessions')
+      .select('id, task_id')
+      .eq('id', body.sessionId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (!owned) return fail(t('Chat session not found.'), 404)
+    sessionId = owned.id
+    sessionTaskId = owned.task_id
+  }
+
+  const taskId = sessionTaskId ?? (typeof body.taskId === 'string' ? body.taskId : null)
+  let taskExists = false
   if (taskId) {
     const { data: task } = await supabase
       .from('tasks')
@@ -67,28 +88,38 @@ export async function POST(request: Request) {
       context.difficulty = task.difficulty
       context.taskTitle = task.title
       context.taskStatement = task.problem
+      taskExists = true
+
+      // The latest verdict, so "check my approach" can build on what the grader
+      // already said instead of contradicting it blind.
+      const { data: lastAttempt } = await supabase
+        .from('task_attempts')
+        .select('score, feedback')
+        .eq('user_id', user.id)
+        .eq('task_id', taskId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (lastAttempt) {
+        context.lastScore = lastAttempt.score
+        context.lastFeedback = lastAttempt.feedback
+      }
     }
   }
 
-  // Resolve the session. An id supplied by the client is only accepted after
-  // confirming the caller owns it.
-  let sessionId: string
-  if (typeof body.sessionId === 'string' && body.sessionId) {
-    const { data: owned } = await supabase
-      .from('chat_sessions')
-      .select('id')
-      .eq('id', body.sessionId)
-      .eq('user_id', user.id)
-      .maybeSingle()
-    if (!owned) return fail('Chat session not found.', 404)
-    sessionId = owned.id
-  } else {
+  // The student's current editor text, sent by "Check my approach" and any
+  // message from a task. It travels with the message and is stored with it, so
+  // later turns still see the version that was discussed.
+  const draft = typeof body.draft === 'string' ? body.draft.trim().slice(0, MAX_DRAFT_LENGTH) : ''
+  const content = draft ? `${message}\n\n<student_draft>\n${draft}\n</student_draft>` : message
+
+  if (!sessionId) {
     const { data: created, error } = await supabase
       .from('chat_sessions')
-      .insert({ user_id: user.id, title: message.slice(0, 72) })
+      .insert({ user_id: user.id, title: message.slice(0, 72), task_id: taskExists ? taskId : null })
       .select('id')
       .single()
-    if (error || !created) return fail('Unable to create chat session.', 500)
+    if (error || !created) return fail(t('Unable to create chat session.'), 500)
     sessionId = created.id
   }
 
@@ -106,23 +137,23 @@ export async function POST(request: Request) {
     ...(stored ?? [])
       .reverse()
       .map((row) => ({ role: row.role as 'user' | 'assistant', content: row.content })),
-    { role: 'user', content: message },
+    { role: 'user', content },
   ]
 
   let upstream: ReadableStream<Uint8Array>
   try {
-    upstream = await streamSuluResponse(buildCoachInstructions(context), history)
+    upstream = await streamSuluResponse(buildCoachInstructions(context, LOCALE_NAMES_EN[await getLocale()]), history)
   } catch (cause) {
     // The provider never answered, so nothing is persisted: the previous
     // version had already written the user's message and left it orphaned.
     if (cause instanceof SuluError) return fail(cause.message, cause.status)
-    return fail('Sulu AI is unavailable.', 502)
+    return fail(t('Sulu AI is unavailable.'), 502)
   }
 
   const { error: userInsertError } = await supabase
     .from('chat_messages')
-    .insert({ session_id: sessionId, role: 'user', content: message })
-  if (userInsertError) return fail('Unable to save your message.', 500)
+    .insert({ session_id: sessionId, role: 'user', content })
+  if (userInsertError) return fail(t('Unable to save your message.'), 500)
 
   const decoder = new TextDecoder()
   const encoder = new TextEncoder()

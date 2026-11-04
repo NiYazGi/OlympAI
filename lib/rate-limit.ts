@@ -3,7 +3,8 @@ import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/database.types'
 
-export type RateLimitResult = { allowed: true } | { allowed: false; message: string }
+/** `message` is an English key with `vars`, translated by the caller. */
+export type RateLimitResult = { allowed: true } | { allowed: false; message: string; vars: Record<string, number> }
 
 const CHAT_LIMIT_PER_HOUR = 60
 const ATTEMPT_LIMIT_PER_HOUR = 40
@@ -38,7 +39,8 @@ export async function checkChatRateLimit(
   if (count >= CHAT_LIMIT_PER_HOUR) {
     return {
       allowed: false,
-      message: `You have reached this hour's limit of ${CHAT_LIMIT_PER_HOUR} messages to Sulu. Try again a little later.`,
+      message: "You have reached this hour's limit of {n} messages to Sulu. Try again a little later.",
+      vars: { n: CHAT_LIMIT_PER_HOUR },
     }
   }
   return { allowed: true }
@@ -56,7 +58,8 @@ export async function checkAttemptRateLimit(
   if (count >= ATTEMPT_LIMIT_PER_HOUR) {
     return {
       allowed: false,
-      message: `You have reached this hour's limit of ${ATTEMPT_LIMIT_PER_HOUR} graded submissions. Try again a little later.`,
+      message: "You have reached this hour's limit of {n} graded submissions. Try again a little later.",
+      vars: { n: ATTEMPT_LIMIT_PER_HOUR },
     }
   }
   return { allowed: true }

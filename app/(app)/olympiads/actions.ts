@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { getT } from '@/lib/i18n/server'
 
 export type RegistrationResult = { ok: boolean; error?: string }
 
@@ -13,18 +14,19 @@ export async function setRegistration(
   competitionId: string,
   registered: boolean,
 ): Promise<RegistrationResult> {
+  const t = await getT()
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return { ok: false, error: 'Your session has expired. Please log in again.' }
+  if (!user) return { ok: false, error: t('Your session has expired. Please log in again.') }
 
   const { data: competition } = await supabase
     .from('competitions')
     .select('id')
     .eq('id', competitionId)
     .maybeSingle()
-  if (!competition) return { ok: false, error: 'This competition is no longer listed.' }
+  if (!competition) return { ok: false, error: t('This competition is no longer listed.') }
 
   const { error } = registered
     ? await supabase
@@ -36,7 +38,7 @@ export async function setRegistration(
         .eq('user_id', user.id)
         .eq('competition_id', competition.id)
 
-  if (error) return { ok: false, error: 'That did not go through. Please try again.' }
+  if (error) return { ok: false, error: t('That did not go through. Please try again.') }
 
   revalidatePath('/olympiads')
   return { ok: true }

@@ -6,6 +6,7 @@ import { saveProfilePreferences } from '@/app/(app)/me/actions'
 import { GOALS, INTENSITIES, LEVELS, SUBJECTS } from '@/lib/profile-options'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useT } from '@/components/i18n-provider'
 
 type Choice = { field: string; label: string; options: readonly string[] }
 
@@ -21,6 +22,8 @@ export function ProfilePreferences({
 }: {
   initial: Partial<Record<string, string | null>>
 }) {
+  const t = useT()
+
   const [values, setValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       SECTIONS.map((section) => [
@@ -43,7 +46,7 @@ export function ProfilePreferences({
         setError('')
       } else {
         setStatus('error')
-        setError(result.error ?? 'Your preferences could not be saved.')
+        setError(result.error ?? t('Your preferences could not be saved.'))
       }
     })
   }
@@ -52,9 +55,9 @@ export function ProfilePreferences({
     <section className="rounded-xl bg-card p-6 ring-1 ring-foreground/10">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="font-semibold">Training preferences</h2>
+          <h2 className="font-medium">{t('Training preferences')}</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            These drive your weekly plan and how Sulu pitches its hints.
+            {t('These drive your weekly plan and how Sulu pitches its hints.')}
           </p>
         </div>
         <Settings2 className="size-5 shrink-0 text-muted-foreground" />
@@ -63,8 +66,8 @@ export function ProfilePreferences({
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         {SECTIONS.map((section) => (
           <fieldset key={section.field}>
-            <legend className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {section.label}
+            <legend className="eyebrow">
+              {t(section.label)}
             </legend>
             <div className="mt-3 grid gap-2">
               {section.options.map((option) => {
@@ -82,18 +85,18 @@ export function ProfilePreferences({
                       'flex items-center gap-3 rounded-lg border p-3 text-left text-sm transition-colors',
                       active
                         ? 'border-primary/40 bg-accent text-primary'
-                        : 'border-border hover:border-primary/40',
+                        : 'border-border hover:border-white/20',
                     )}
                   >
                     <span
                       className={cn(
                         'flex size-5 shrink-0 items-center justify-center rounded-full border',
-                        active && 'border-primary bg-primary text-white',
+                        active && 'border-primary bg-primary text-primary-foreground',
                       )}
                     >
                       {active ? <Check className="size-3" /> : null}
                     </span>
-                    {option}
+                    {t(option)}
                   </button>
                 )
               })}
@@ -103,13 +106,13 @@ export function ProfilePreferences({
       </div>
 
       {status === 'error' ? (
-        <p role="alert" className="mt-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+        <p role="alert" className="mt-4 rounded-lg bg-ember/60 p-3 text-sm text-[#ffb3b3] shadow-key">
           {error}
         </p>
       ) : null}
 
       <Button className="mt-6 w-full sm:w-auto" onClick={save} disabled={pending}>
-        {pending ? 'Saving…' : status === 'saved' ? 'Preferences saved' : 'Save preferences'}
+        {pending ? t('Saving…') : status === 'saved' ? t('Preferences saved') : t('Save preferences')}
       </Button>
     </section>
   )

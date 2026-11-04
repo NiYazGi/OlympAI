@@ -6,11 +6,19 @@ import { ExamRunner } from '@/components/mock/exam-runner'
 import { DifficultyStars } from '@/components/difficulty-stars'
 import { getMockPaper } from '@/lib/supabase/queries'
 import { cardClass, cn } from '@/lib/utils'
+import { getLocale, getT } from '@/lib/i18n/server'
+import { formatDate } from '@/lib/i18n/config'
+import { MathText } from '@/components/math-text'
 
-export const metadata = { title: 'Mock test' }
+export async function generateMetadata() {
+  const t = await getT()
+  return { title: t('Mock test') }
+}
 export const dynamic = 'force-dynamic'
 
 export default async function MockTestPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getT()
+
   const { id } = await params
   const paper = await getMockPaper(id)
   if (!paper) notFound()
@@ -22,7 +30,7 @@ export default async function MockTestPage({ params }: { params: Promise<{ id: s
         className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
-        All mock tests
+        {t('All mock tests')}
       </Link>
 
       {paper.submittedAt ? <Results paper={paper} /> : <Sitting paper={paper} />}
@@ -30,27 +38,33 @@ export default async function MockTestPage({ params }: { params: Promise<{ id: s
   )
 }
 
-function Sitting({ paper }: { paper: NonNullable<Awaited<ReturnType<typeof getMockPaper>>> }) {
+async function Sitting({ paper }: { paper: NonNullable<Awaited<ReturnType<typeof getMockPaper>>> }) {
+  const t = await getT()
   return (
     <>
       <PageHeader
-        title={`${paper.subject} mock`}
-        description={`${paper.questions.length} questions · ${paper.durationMinutes} minutes · no hints, no Sulu`}
+        title={t('{subject} mock', { subject: t(paper.subject) })}
+        description={t('{q} questions · {m} minutes · no hints, no Sulu', { q: paper.questions.length, m: paper.durationMinutes })}
       />
-      <ExamRunner paper={paper} />
+      <ExamRunner
+        paper={paper}
+        statements={Object.fromEntries(paper.questions.map((question) => [question.id, <MathText key={question.id} text={question.problem} />]))}
+      />
     </>
   )
 }
 
-function Results({ paper }: { paper: NonNullable<Awaited<ReturnType<typeof getMockPaper>>> }) {
+async function Results({ paper }: { paper: NonNullable<Awaited<ReturnType<typeof getMockPaper>>> }) {
+  const t = await getT()
+
   const score = paper.scorePercent ?? 0
   const answered = paper.questions.filter((question) => question.answer !== null).length
 
   return (
     <>
       <PageHeader
-        title={`${paper.subject} mock — result`}
-        description={new Date(paper.submittedAt!).toLocaleDateString('en', {
+        title={t('{subject} mock — result', { subject: paper.subject })}
+        description={formatDate(new Date(paper.submittedAt!), await getLocale(), {
           day: 'numeric',
           month: 'long',
           year: 'numeric',
@@ -60,7 +74,7 @@ function Results({ paper }: { paper: NonNullable<Awaited<ReturnType<typeof getMo
       <section className={cn(cardClass, 'p-5 sm:p-6')}>
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
           <span className="text-4xl font-semibold tabular-nums">{score}%</span>
-          <span className="text-lg font-medium text-primary">{paper.level}</span>
+          <span className="text-lg font-medium text-primary">{paper.level ? t(paper.level) : null}</span>
         </div>
         <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
           <div
@@ -69,9 +83,7 @@ function Results({ paper }: { paper: NonNullable<Awaited<ReturnType<typeof getMo
           />
         </div>
         <p className="mt-3 text-sm text-muted-foreground">
-          {answered} of {paper.questions.length} questions answered. The score weights each
-          question by its difficulty, so the hard ones count for more. This level now sits on your
-          profile.
+          {answered} {t('of')} {paper.questions.length} {t('questions answered. The score weights each question by its difficulty, so the hard ones count for more. This level now sits on your profile.')}
         </p>
       </section>
 
@@ -82,15 +94,15 @@ function Results({ paper }: { paper: NonNullable<Awaited<ReturnType<typeof getMo
           return (
             <li key={question.id} className={cn(cardClass, 'p-5')}>
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="flex items-center gap-2 font-semibold">
+                <h2 className="flex items-center gap-2 font-medium">
                   {skipped ? (
                     <Clock className="size-4 shrink-0 text-muted-foreground" />
                   ) : correct ? (
-                    <CheckCircle2 className="size-4 shrink-0 text-emerald-500" />
+                    <CheckCircle2 className="size-4 shrink-0 text-success" />
                   ) : (
                     <TrendingUp className="size-4 shrink-0 text-primary" />
                   )}
-                  Question {index + 1}. {question.title}
+                  {t('Question')} {index + 1}. {question.title}
                 </h2>
                 <div className="flex items-center gap-3">
                   <DifficultyStars level={question.difficulty} />
@@ -111,7 +123,7 @@ function Results({ paper }: { paper: NonNullable<Awaited<ReturnType<typeof getMo
                 </p>
               ) : (
                 <p className="mt-3 text-sm text-muted-foreground">
-                  Left blank. Open the task to work through it without the clock.
+                  {t('Left blank. Open the task to work through it without the clock.')}
                 </p>
               )}
 
@@ -120,7 +132,7 @@ function Results({ paper }: { paper: NonNullable<Awaited<ReturnType<typeof getMo
                 prefetch
                 className="mt-3 inline-block text-sm font-medium text-primary hover:underline"
               >
-                Practise this one →
+                {t('Practise this one →')}
               </Link>
             </li>
           )

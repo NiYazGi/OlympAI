@@ -6,15 +6,16 @@ import { WORKLOAD_COPY, type GoalPlan, type Readiness } from '@/lib/goal'
 import { cardClass, cn } from '@/lib/utils'
 import type { CompetitionOption, Goal } from '@/lib/types'
 import type { PathTask } from '@/lib/path'
+import { getT } from '@/lib/i18n/server'
 
 const WORKLOAD_TONE: Record<GoalPlan['workload'], string> = {
-  light: 'text-emerald-500',
+  light: 'text-success',
   steady: 'text-primary',
-  demanding: 'text-amber-500',
+  demanding: 'text-warning',
   unrealistic: 'text-destructive',
 }
 
-export function GoalSummary({
+export async function GoalSummary({
   goal,
   plan,
   ready,
@@ -29,27 +30,29 @@ export function GoalSummary({
   subjects: { id: string; name: string; taskCount: number }[]
   next: PathTask | null
 }) {
+  const t = await getT()
+
   const workload = WORKLOAD_COPY[plan.workload]
 
   return (
     <section className={cn(cardClass, 'p-5 sm:p-6')}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Preparing for
+          <p className="eyebrow">
+            {t('Preparing for')}
           </p>
-          <h2 className="mt-1 text-2xl font-semibold text-balance">
+          <h2 className="mt-1 text-2xl font-medium text-balance">
             {goal.competition?.name ?? goal.subjectName}
           </h2>
           <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
             <span className="inline-flex items-center gap-1.5">
               <BookOpen className="size-3.5" />
               {goal.subjectName}
-              {goal.subjectLocked ? ' (set by the competition)' : ''}
+              {goal.subjectLocked ? t(' (set by the competition)') : ''}
             </span>
             <span className="inline-flex items-center gap-1.5">
               <CalendarDays className="size-3.5" />
-              {plan.daysLeft} day{plan.daysLeft === 1 ? '' : 's'} left
+              {t('{n} {n|day|days} left', { n: plan.daysLeft })}
             </span>
           </p>
         </div>
@@ -77,16 +80,16 @@ export function GoalSummary({
 
         <div className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-3">
-            <Figure label="Per week" value={`${plan.tasksPerWeek} task${plan.tasksPerWeek === 1 ? '' : 's'}`} />
-            <Figure label="Time" value={`~${plan.minutesPerWeek} min`} />
+            <Figure label={t('Per week')} value={t('{n} {n|task|tasks}', { n: plan.tasksPerWeek })} />
+            <Figure label={t('Time')} value={t('~{n} min', { n: plan.minutesPerWeek })} />
             <Figure
-              label="Load"
-              value={workload.label}
+              label={t('Load')}
+              value={t(workload.label)}
               className={WORKLOAD_TONE[plan.workload]}
             />
           </div>
 
-          <p className="text-sm leading-6 text-muted-foreground">{workload.note}</p>
+          <p className="text-sm leading-6 text-muted-foreground">{t(workload.note)}</p>
 
           {plan.remaining > 0 ? (
             <p
@@ -94,7 +97,7 @@ export function GoalSummary({
                 'flex items-start gap-2 rounded-lg p-3 text-sm',
                 plan.onTrack
                   ? 'bg-accent text-accent-foreground'
-                  : 'bg-amber-500/10 text-amber-500',
+                  : 'bg-warning/10 text-warning',
               )}
             >
               {plan.onTrack ? (
@@ -104,8 +107,8 @@ export function GoalSummary({
               )}
               <span>
                 {plan.onTrack
-                  ? `On track — ${plan.currentPace} attempt${plan.currentPace === 1 ? '' : 's'} in the last week against a target of ${plan.tasksPerWeek}.`
-                  : `Behind pace — ${plan.currentPace} attempt${plan.currentPace === 1 ? '' : 's'} last week against a target of ${plan.tasksPerWeek}.`}
+                  ? t('On track — {currentPace} attempts in the last week against a target of {tasksPerWeek}.', { currentPace: plan.currentPace, tasksPerWeek: plan.tasksPerWeek })
+                  : t('Behind pace — {currentPace} attempts last week against a target of {tasksPerWeek}.', { currentPace: plan.currentPace, tasksPerWeek: plan.tasksPerWeek })}
               </span>
             </p>
           ) : null}
@@ -116,19 +119,19 @@ export function GoalSummary({
         <Link
           href={`/tasks/${next.id}`}
           prefetch
-          className="mt-6 flex items-center justify-between gap-3 rounded-xl bg-primary p-4 text-primary-foreground transition-opacity hover:opacity-95"
+          className="spotlight lift mt-6 flex items-center justify-between gap-3 rounded-xl surface-ember p-4 text-white"
         >
           <span className="min-w-0">
-            <span className="block text-xs uppercase tracking-wide text-primary-foreground/70">
-              Next up
+            <span className="eyebrow block text-[#ffb3b3]">
+              {t('Next up')}
             </span>
-            <span className="mt-0.5 block truncate font-medium">{next.title}</span>
+            <span className="mt-1.5 block truncate font-medium">{next.title}</span>
           </span>
           <ArrowRight className="size-4 shrink-0" />
         </Link>
       ) : (
-        <p className="mt-6 rounded-xl bg-accent p-4 text-sm text-accent-foreground">
-          Every task in this subject is solved. Move the date forward, or pick a harder target.
+        <p className="mt-6 rounded-xl bg-white/[0.04] p-4 text-sm text-ash shadow-key">
+          {t('Every task in this subject is solved. Move the date forward, or pick a harder target.')}
         </p>
       )}
     </section>
@@ -155,7 +158,9 @@ function Figure({
 const RING = 2 * Math.PI * 52
 
 /** Shows the two components as well as the score, so it is not a black box. */
-export function ReadinessRing({ ready, size = 'size-32' }: { ready: Readiness; size?: string }) {
+export async function ReadinessRing({ ready, size = 'size-32' }: { ready: Readiness; size?: string }) {
+  const t = await getT()
+
   return (
     <div className="mx-auto sm:mx-0">
       <div className={cn('relative', size)}>
@@ -175,12 +180,12 @@ export function ReadinessRing({ ready, size = 'size-32' }: { ready: Readiness; s
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-2xl font-semibold tabular-nums">{ready.percent}%</span>
-          <span className="text-xs text-muted-foreground">ready</span>
+          <span className="text-xs text-muted-foreground">{t('ready')}</span>
         </div>
       </div>
       <p className="mt-2 text-center text-xs text-muted-foreground">
-        {ready.coverage}% covered
-        {ready.quality !== null ? ` · ${ready.quality}% accurate` : ''}
+        {ready.coverage}{t('% covered')}
+        {ready.quality !== null ? t(' · {quality}% accurate', { quality: ready.quality }) : ''}
       </p>
     </div>
   )

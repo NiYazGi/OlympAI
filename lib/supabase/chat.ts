@@ -2,7 +2,6 @@ import 'server-only'
 
 import { getSessionUserId } from '@/lib/supabase/auth'
 import { createClient } from '@/lib/supabase/server'
-import { hasSupabaseEnv } from '@/lib/supabase/env'
 
 import type { ChatSessionSummary, StoredMessage } from '@/lib/types'
 
@@ -17,14 +16,13 @@ const MAX_MESSAGES = 100
  * conversations and every reload started an empty thread.
  */
 export async function getChatSessions(): Promise<ChatSessionSummary[]> {
-  if (!hasSupabaseEnv()) return []
   const userId = await getSessionUserId()
   if (!userId) return []
 
   const supabase = await createClient()
   const { data: sessions } = await supabase
     .from('chat_sessions')
-    .select('id, title, created_at')
+    .select('id, title, task_id, created_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(MAX_SESSIONS)
@@ -55,12 +53,12 @@ export async function getChatSessions(): Promise<ChatSessionSummary[]> {
       createdAt: session.created_at,
       lastMessageAt: last?.created_at ?? null,
       preview: last ? last.content.replace(/\s+/g, ' ').slice(0, 80) : null,
+      taskId: session.task_id,
     }
   })
 }
 
 export async function getChatMessages(sessionId: string): Promise<StoredMessage[]> {
-  if (!hasSupabaseEnv()) return []
   const userId = await getSessionUserId()
   if (!userId) return []
 
@@ -88,4 +86,25 @@ export async function getChatMessages(sessionId: string): Promise<StoredMessage[
     role: row.role as 'user' | 'assistant',
     content: row.content,
   }))
+}
+
+/**
+ * The most recent conversation started from this task, so the panel on the task
+ * page and "Ask Sulu AI" pick up the same thread instead of starting blank.
+ */
+export async function getTaskChat(taskId: string): Promise<{ sessionId: string; messages: StoredMessage[] } | null> {
+  const userId = await getSessionUserId()
+  if (!userId) return null
+
+  const supabase = await createClient()
+  const { data: session } = await supabase
+    .from('chat_sessions')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('task_id', taskId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (!session) return null
+  return { sessionId: session.id, messages: await getChatMessages(session.id) }
 }

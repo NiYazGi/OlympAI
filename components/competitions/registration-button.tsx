@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useT } from '@/components/i18n-provider'
 import { setRegistration } from '@/app/(app)/olympiads/actions'
 import { Button } from '@/components/ui/button'
 
@@ -21,6 +22,7 @@ export function RegistrationButton({
   competitionId: string
   registered: boolean
 }) {
+  const t = useT()
   const [error, setError] = useState('')
   const [pending, startTransition] = useTransition()
 
@@ -28,7 +30,7 @@ export function RegistrationButton({
     setError('')
     startTransition(async () => {
       const result = await setRegistration(competitionId, !registered)
-      if (!result.ok) setError(result.error ?? 'That did not go through.')
+      if (!result.ok) setError(result.error ?? t('That did not go through.'))
     })
   }
 
@@ -40,7 +42,7 @@ export function RegistrationButton({
         onClick={toggle}
         disabled={pending}
       >
-        {pending ? 'Saving…' : registered ? 'Stop tracking' : 'Track this one'}
+        {pending ? t('Saving…') : registered ? t('Stop tracking') : t('Track this one')}
       </Button>
       {error ? (
         <p role="alert" className="text-xs text-destructive">

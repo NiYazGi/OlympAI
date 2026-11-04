@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { cardClass, cn } from '@/lib/utils'
 
 const pulse = 'animate-pulse rounded-lg bg-muted'
@@ -42,5 +43,33 @@ export function PendingRegion({ label }: { label: string }) {
     <span className="sr-only" role="status" aria-live="polite">
       {label}
     </span>
+  )
+}
+
+/** A page header while its data streams in: the fixed title can be real text. */
+export function HeaderSkeleton({
+  title,
+  titleWidth = 'w-56',
+  description = true,
+  aside,
+}: {
+  title?: string
+  titleWidth?: string
+  description?: boolean
+  note?: boolean
+  aside?: ReactNode
+}) {
+  return (
+    <div className="flex flex-col gap-3 border-b border-white/[0.06] pb-6 sm:flex-row sm:items-end sm:justify-between">
+      <div className="space-y-2">
+        {title ? (
+          <h1 className="text-[28px] leading-[1.15] font-normal text-balance text-white sm:text-[32px]">{title}</h1>
+        ) : (
+          <div className={cn(pulse, 'h-8 max-w-full', titleWidth)} />
+        )}
+        {description ? <div className={cn(pulse, 'h-4 w-40')} /> : null}
+      </div>
+      {aside}
+    </div>
   )
 }

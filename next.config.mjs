@@ -9,7 +9,10 @@ const nextConfig = {
   // only — it never shipped to visitors — but it sits on top of the UI while
   // you are looking at the app.
   devIndicators: false,
-  // `images.unoptimized` was left over from the v0 sandbox. The app runs on a
+  // The embedded database ships WebAssembly and data files that must be loaded
+  // from node_modules at runtime, not bundled.
+  serverExternalPackages: ['@electric-sql/pglite'],
+  // The app runs on a
   // Node server, so the built-in optimiser works and the diagram no longer
   // ships at full size to every visitor.
   images: {

@@ -4,9 +4,9 @@ import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getVerifiedUser } from '@/lib/supabase/auth'
 import { createClient } from '@/lib/supabase/server'
-import { hasSupabaseSecretKey } from '@/lib/supabase/secret-env'
 import type { Rating } from '@/lib/srs'
 import { quizAnswerXp } from '@/lib/xp'
+import { getT } from '@/lib/i18n/server'
 
 export type ActionResult = { ok: boolean; error?: string }
 
@@ -39,15 +39,13 @@ export async function answerQuizQuestion(
   questionId: string,
   chosenIndex: number,
 ): Promise<QuizAnswer> {
+  const t = await getT()
   if (!Number.isInteger(chosenIndex) || chosenIndex < 0) {
-    return { ok: false, error: 'Choose one of the options.' }
+    return { ok: false, error: t('Choose one of the options.') }
   }
 
   const user = await getVerifiedUser()
-  if (!user) return { ok: false, error: 'Your session has expired. Please log in again.' }
-  if (!hasSupabaseSecretKey()) {
-    return { ok: false, error: 'Quizzes are not configured on this server.' }
-  }
+  if (!user) return { ok: false, error: t('Your session has expired. Please log in again.') }
 
   // Service role, because the answer key is not readable by `authenticated`:
   // correct_index and explanation were revoked from the browser's role in
@@ -59,10 +57,10 @@ export async function answerQuizQuestion(
     .select('id, options, correct_index, explanation, topic_id')
     .eq('id', questionId)
     .maybeSingle()
-  if (!question) return { ok: false, error: 'That question is no longer available.' }
+  if (!question) return { ok: false, error: t('That question is no longer available.') }
 
   if (chosenIndex >= question.options.length) {
-    return { ok: false, error: 'Choose one of the options.' }
+    return { ok: false, error: t('Choose one of the options.') }
   }
 
   const isCorrect = chosenIndex === question.correct_index
@@ -87,7 +85,7 @@ export async function answerQuizQuestion(
     chosen_index: chosenIndex,
     is_correct: isCorrect,
   })
-  if (error) return { ok: false, error: 'Your answer could not be saved. Please try again.' }
+  if (error) return { ok: false, error: t('Your answer could not be saved. Please try again.') }
 
   revalidatePath('/learn')
 
@@ -108,11 +106,12 @@ export async function answerQuizQuestion(
  * than through the service role.
  */
 export async function markLessonOpened(lessonId: string): Promise<ActionResult> {
+  const t = await getT()
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return { ok: false, error: 'Your session has expired. Please log in again.' }
+  if (!user) return { ok: false, error: t('Your session has expired. Please log in again.') }
 
   // onConflict keeps the original opened_at: the first time is the interesting
   // one, and overwriting it would turn "started this a week ago" into "just now".
@@ -122,7 +121,7 @@ export async function markLessonOpened(lessonId: string): Promise<ActionResult> 
       { user_id: user.id, lesson_id: lessonId },
       { onConflict: 'user_id,lesson_id', ignoreDuplicates: true },
     )
-  if (error) return { ok: false, error: 'Could not record that you opened this lesson.' }
+  if (error) return { ok: false, error: t('Could not record that you opened this lesson.') }
   return { ok: true }
 }
 
@@ -130,11 +129,12 @@ export async function setLessonComplete(
   lessonId: string,
   complete: boolean,
 ): Promise<ActionResult> {
+  const t = await getT()
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return { ok: false, error: 'Your session has expired. Please log in again.' }
+  if (!user) return { ok: false, error: t('Your session has expired. Please log in again.') }
 
   const { error } = await supabase.from('lesson_views').upsert(
     {
@@ -144,7 +144,7 @@ export async function setLessonComplete(
     },
     { onConflict: 'user_id,lesson_id' },
   )
-  if (error) return { ok: false, error: 'Could not save that. Please try again.' }
+  if (error) return { ok: false, error: t('Could not save that. Please try again.') }
 
   revalidatePath('/learn')
   revalidatePath(`/learn`)
@@ -160,25 +160,26 @@ export async function setLessonComplete(
  * filed against a card they cannot see.
  */
 export async function reviewCard(cardId: string, rating: Rating): Promise<ActionResult> {
-  if (![0, 1, 2, 3].includes(rating)) return { ok: false, error: 'Unknown rating.' }
+  const t = await getT()
+  if (![0, 1, 2, 3].includes(rating)) return { ok: false, error: t('Unknown rating.') }
 
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return { ok: false, error: 'Your session has expired. Please log in again.' }
+  if (!user) return { ok: false, error: t('Your session has expired. Please log in again.') }
 
   const { data: card } = await supabase
     .from('flashcards')
     .select('id')
     .eq('id', cardId)
     .maybeSingle()
-  if (!card) return { ok: false, error: 'That card is no longer available.' }
+  if (!card) return { ok: false, error: t('That card is no longer available.') }
 
   const { error } = await supabase
     .from('flashcard_reviews')
     .insert({ user_id: user.id, card_id: card.id, rating })
-  if (error) return { ok: false, error: 'Your review could not be saved.' }
+  if (error) return { ok: false, error: t('Your review could not be saved.') }
 
   revalidatePath('/learn')
   return { ok: true }
@@ -190,18 +191,19 @@ export async function createCard(
   front: string,
   back: string,
 ): Promise<ActionResult> {
+  const t = await getT()
   const cleanFront = front.trim()
   const cleanBack = back.trim()
-  if (!cleanFront || !cleanBack) return { ok: false, error: 'Both sides need something on them.' }
+  if (!cleanFront || !cleanBack) return { ok: false, error: t('Both sides need something on them.') }
   if (cleanFront.length > MAX_FRONT || cleanBack.length > MAX_BACK) {
-    return { ok: false, error: 'That is longer than a card should be. Split it into two.' }
+    return { ok: false, error: t('That is longer than a card should be. Split it into two.') }
   }
 
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return { ok: false, error: 'Your session has expired. Please log in again.' }
+  if (!user) return { ok: false, error: t('Your session has expired. Please log in again.') }
 
   const { error } = await supabase.from('flashcards').insert({
     topic_id: topicId,
@@ -213,23 +215,24 @@ export async function createCard(
     // means the row does not depend on that to be correct.
     licence: 'original',
   })
-  if (error) return { ok: false, error: 'The card could not be saved. Please try again.' }
+  if (error) return { ok: false, error: t('The card could not be saved. Please try again.') }
 
   revalidatePath('/learn')
   return { ok: true }
 }
 
 export async function deleteCard(cardId: string): Promise<ActionResult> {
+  const t = await getT()
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return { ok: false, error: 'Your session has expired. Please log in again.' }
+  if (!user) return { ok: false, error: t('Your session has expired. Please log in again.') }
 
   // The RLS delete policy is scoped to own cards, so a shared card or someone
   // else's is simply not matched.
   const { error } = await supabase.from('flashcards').delete().eq('id', cardId).eq('user_id', user.id)
-  if (error) return { ok: false, error: 'The card could not be removed.' }
+  if (error) return { ok: false, error: t('The card could not be removed.') }
 
   revalidatePath('/learn')
   return { ok: true }
