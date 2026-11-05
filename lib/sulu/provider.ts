@@ -143,12 +143,24 @@ export async function streamSuluResponse(
  * free-text answer would have to be parsed heuristically — which is how the
  * previous keyword-matching evaluator came about in the first place.
  */
+export type SuluUsage = { input: number; cached: number; output: number }
+
 export async function requestSuluJson<T>(
   instructions: string,
   input: string,
   schema: { name: string; schema: Record<string, unknown> },
   images: ModelImage[] = [],
 ): Promise<T> {
+  return (await requestSuluJsonWithUsage<T>(instructions, input, schema, images)).data
+}
+
+/** The same call, also returning the tokens it cost, for the usage ledger. */
+export async function requestSuluJsonWithUsage<T>(
+  instructions: string,
+  input: string,
+  schema: { name: string; schema: Record<string, unknown> },
+  images: ModelImage[] = [],
+): Promise<{ data: T; usage: SuluUsage }> {
   const response = await post({
     model: SULU_MODEL,
     instructions,
@@ -170,6 +182,7 @@ export async function requestSuluJson<T>(
   const payload = (await response.json()) as {
     output_text?: string
     output?: Array<{ content?: Array<{ type?: string; text?: string }> }>
+    usage?: { input_tokens?: number; output_tokens?: number; input_tokens_details?: { cached_tokens?: number } }
   }
 
   const text =
@@ -182,8 +195,14 @@ export async function requestSuluJson<T>(
 
   if (!text) throw new SuluError('Sulu AI returned an empty response.')
 
+  const usage: SuluUsage = {
+    input: payload.usage?.input_tokens ?? 0,
+    cached: payload.usage?.input_tokens_details?.cached_tokens ?? 0,
+    output: payload.usage?.output_tokens ?? 0,
+  }
+
   try {
-    return JSON.parse(text) as T
+    return { data: JSON.parse(text) as T, usage }
   } catch {
     throw new SuluError('Sulu AI returned a malformed response.')
   }

@@ -107,7 +107,13 @@ export type ChatSessionSummary = {
   taskId: string | null
 }
 
-export type StoredMessage = { id: string; role: 'user' | 'assistant'; content: string }
+/** `meta` is set on Opora's turns: which ladder level a reply gave and where it came from. */
+export type StoredMessage = {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  meta?: { level?: number; source?: 'model' | 'card'; guarded?: boolean; action?: string } | null
+}
 
 export type CompetitionSource = { title: string; url: string }
 

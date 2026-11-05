@@ -81,7 +81,8 @@ export async function Attribution({
 }) {
   const t = await getT()
 
-  const info = LICENCES[licence]
+  // A licence added in the database before it is described here reads as unknown instead of breaking the page.
+  const info = LICENCES[licence] ?? LICENCES.unknown
   // Original material needs no credit line and no disclaimer.
   if (licence === 'original' && !attribution) return null
 

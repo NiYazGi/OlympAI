@@ -4,6 +4,7 @@ export type Licence =
   | 'cc-by'
   | 'cc-by-sa'
   | 'cc-by-nc'
+  | 'cc-by-nc-sa'
   | 'permission-granted'
   | 'fair-quotation'
   | 'original'
@@ -41,6 +42,11 @@ export const LICENCES: Record<Licence, Info> = {
   'cc-by-nc': {
     label: 'CC BY-NC',
     note: 'Credit required, and non-commercial use only — check this before charging for access.',
+    requiresAttribution: true,
+  },
+  'cc-by-nc-sa': {
+    label: 'CC BY-NC-SA',
+    note: 'Credit required, non-commercial use only, and anything derived from it must carry the same licence.',
     requiresAttribution: true,
   },
   'permission-granted': {

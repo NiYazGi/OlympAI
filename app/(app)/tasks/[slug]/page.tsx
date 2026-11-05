@@ -183,7 +183,7 @@ export default async function TaskPage({ params }: { params: Promise<{ slug: str
 
         <div className="min-w-0 lg:col-span-2">
           <div className="flex flex-col gap-6">
-            <SolutionPanel hints={task.hints} taskId={task.id} />
+            <SolutionPanel taskId={task.id} />
             <AttemptHistory taskId={task.id} attempts={history} reports={reports} />
             {shortcut ? <TopicShortcutPanel shortcut={shortcut} /> : null}
             <SuluAssistantPanel taskId={task.id} />

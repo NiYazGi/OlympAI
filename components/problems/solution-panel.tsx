@@ -11,13 +11,14 @@ import { cn } from '@/lib/utils'
 import { useT } from '@/components/i18n-provider'
 import { ReportIssue } from '@/components/problems/report-issue'
 import { readDraft, saveDraft, subscribeDraft } from '@/lib/task-draft'
+import { OPORA_HINT_EVENT } from '@/lib/opora/events'
 
 type Graded = Extract<AttemptResult, { ok: true }>
 
 /** The grader's own floor, mirrored here so the rejection is not a round trip. */
 const MIN_ANSWER_LENGTH = 20
 
-export function SolutionPanel({ hints, taskId }: { hints: string[]; taskId: string }) {
+export function SolutionPanel({ taskId }: { taskId: string }) {
   const t = useT()
 
   const subscribe = useCallback((onChange: () => void) => subscribeDraft(taskId, onChange), [taskId])
@@ -30,7 +31,6 @@ export function SolutionPanel({ hints, taskId }: { hints: string[]; taskId: stri
   // The protocol stands where the editor was; fixing the solution brings the
   // editor back with the same text in it, and the protocol stays one click away.
   const [reviewing, setReviewing] = useState(false)
-  const [hintIndex, setHintIndex] = useState(-1)
   const [error, setError] = useState('')
   const protocolRef = useRef<HTMLDivElement>(null)
 
@@ -70,7 +70,6 @@ export function SolutionPanel({ hints, taskId }: { hints: string[]; taskId: stri
     protocolRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' })
   }, [result, reviewing])
 
-  const revealedHint = hintIndex >= 0 ? hints[Math.min(hintIndex, hints.length - 1)] : null
   const askSulu = (
     <Button
       variant="outline"
@@ -193,22 +192,15 @@ export function SolutionPanel({ hints, taskId }: { hints: string[]; taskId: stri
         </p>
       ) : null}
 
-      {hints.length ? (
-        <div className="space-y-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setHintIndex((index) => Math.min(index + 1, hints.length - 1))}
-            disabled={hintIndex >= hints.length - 1}
-          >
-            <Lightbulb className="size-3.5" />
-            {hintIndex < 0 ? t('Show a hint') : t('Next hint ({n}/{length})', { n: hintIndex + 1, length: hints.length })}
-          </Button>
-          {revealedHint ? (
-            <p className="rounded-lg bg-muted/60 p-3 text-sm leading-relaxed text-muted-foreground">{revealedHint}</p>
-          ) : null}
-        </div>
-      ) : null}
+      {/* Hints come from Opora in the Sulu panel: a verified card first, the model only when needed. */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="self-start"
+        onClick={() => window.dispatchEvent(new Event(OPORA_HINT_EVENT))}
+      >
+        <Lightbulb className="size-3.5" /> {t('Get a hint')}
+      </Button>
 
       <div className="sticky bottom-0 -mx-1 flex flex-col gap-2 bg-card px-1 pt-2 pb-1 sm:static sm:mx-0 sm:flex-row sm:bg-transparent sm:p-0">
         <Button

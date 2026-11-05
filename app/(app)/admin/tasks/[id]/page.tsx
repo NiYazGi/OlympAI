@@ -4,6 +4,8 @@ import { ExternalLink } from 'lucide-react'
 import { BackLink } from '@/components/back-link'
 import { PageHeader } from '@/components/page-header'
 import { TaskEditor, type EditableTask } from '@/components/admin/task-editor'
+import { CardEditor } from '@/components/admin/card-editor'
+import { getCard } from '@/lib/opora/cards'
 import { requireAdminPage } from '@/lib/supabase/admin-guard'
 import { getDb } from '@/lib/db'
 import { ago } from '@/lib/admin/format'
@@ -47,11 +49,12 @@ export default async function AdminTaskPage({ params }: { params: Promise<{ id: 
     .maybeSingle()
   if (!task || task.class_id) notFound()
 
-  const [topics, { count: attempts }, { data: recent }, { data: reports }] = await Promise.all([
+  const [topics, { count: attempts }, { data: recent }, { data: reports }, card] = await Promise.all([
     loadTopics(t),
     admin.from('task_attempts').select('id', { count: 'exact', head: true }).eq('task_id', id),
     admin.from('task_attempts').select('id, user_id, score, created_at').eq('task_id', id).order('created_at', { ascending: false }).limit(8),
     admin.from('task_reports').select('id, kind, status, message, created_at').eq('task_id', id).order('created_at', { ascending: false }).limit(10),
+    getCard(id),
   ])
 
   return (
@@ -83,6 +86,8 @@ export default async function AdminTaskPage({ params }: { params: Promise<{ id: 
       </PageHeader>
 
       <TaskEditor task={task as EditableTask} topics={topics} attempts={attempts ?? 0} />
+
+      <CardEditor taskId={task.id} card={card} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <section className={cn(cardClass, 'p-5')}>

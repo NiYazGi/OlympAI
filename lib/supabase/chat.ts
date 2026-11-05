@@ -75,7 +75,7 @@ export async function getChatMessages(sessionId: string): Promise<StoredMessage[
 
   const { data } = await supabase
     .from('chat_messages')
-    .select('id, role, content')
+    .select('id, role, content, meta')
     .eq('session_id', sessionId)
     .in('role', ['user', 'assistant'])
     .order('created_at', { ascending: true })
@@ -85,6 +85,7 @@ export async function getChatMessages(sessionId: string): Promise<StoredMessage[
     id: row.id,
     role: row.role as 'user' | 'assistant',
     content: row.content,
+    meta: row.meta && typeof row.meta === 'object' && !Array.isArray(row.meta) ? (row.meta as StoredMessage['meta']) : null,
   }))
 }
 

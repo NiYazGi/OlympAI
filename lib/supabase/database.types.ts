@@ -110,9 +110,9 @@ export type Database = {
         Relationships: []
       }
       chat_messages: {
-        Row: { id: string; session_id: string; role: string; content: string; created_at: string }
-        Insert: { id?: string; session_id: string; role: string; content: string; created_at?: string }
-        Update: { role?: string; content?: string }
+        Row: { id: string; session_id: string; role: string; content: string; created_at: string; meta: Json | null }
+        Insert: { id?: string; session_id: string; role: string; content: string; created_at?: string; meta?: Json | null }
+        Update: { role?: string; content?: string; meta?: Json | null }
         Relationships: []
       }
       competitions: {

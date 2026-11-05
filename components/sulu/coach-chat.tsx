@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { ArrowUp, FileText, RotateCcw } from 'lucide-react'
+import { ArrowUp, BookOpenCheck, FileText, Lightbulb, ListChecks, RotateCcw, ZoomIn } from 'lucide-react'
 import { SuluGlyph } from '@/components/brand-mark'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -9,8 +9,11 @@ import { cardClass, cn } from '@/lib/utils'
 import { useT } from '@/components/i18n-provider'
 import { RichMessage } from '@/components/sulu/rich-message'
 import { readDraft, subscribeDraft } from '@/lib/task-draft'
+import { ACTION_TEXT, LEVEL_LABEL, type Level, type TutorAction } from '@/lib/opora/ladder'
+import { OPORA_HINT_EVENT } from '@/lib/opora/events'
+import type { StoredMessage } from '@/lib/types'
 
-export type ChatMessage = { id: string; role: 'user' | 'assistant'; content: string }
+export type ChatMessage = StoredMessage
 
 const prompts = ['Give me a hint', 'Explain the key idea', 'Check my approach']
 
@@ -36,6 +39,7 @@ export function CoachChat({
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
   const [input, setInput] = useState('')
   const [lastMessage, setLastMessage] = useState('')
+  const [lastAction, setLastAction] = useState<{ action: TutorAction; message: string } | null>(null)
   const [sessionId, setSessionId] = useState(initialSessionId)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -54,6 +58,74 @@ export function CoachChat({
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages, loading])
+
+  // The ladder level reached so far, read from the replies themselves.
+  const reached = messages.reduce(
+    (top, item) => (item.role === 'assistant' && item.meta?.level ? Math.max(top, item.meta.level) : top),
+    0,
+  )
+
+  /**
+   * A turn about a task goes through Opora: the server picks the card, the
+   * memory and the history, and answers once — from the card or from one
+   * model call.
+   */
+  async function ask(action: TutorAction, raw = '') {
+    const message = raw.trim()
+    if (loading || (action === 'ask' && !message)) return
+    const attached = sendsDraft ? draft.trim() : ''
+    const pendingId = crypto.randomUUID()
+    setLastAction({ action, message })
+    const shown = action === 'ask' ? message : t(ACTION_TEXT[action])
+    setMessages((current) => [
+      ...current,
+      {
+        id: pendingId,
+        role: 'user',
+        content: attached ? `${shown}\n\n<student_draft>\n${attached}\n</student_draft>` : shown,
+      },
+    ])
+    if (action === 'ask') setInput('')
+    setError('')
+    setLoading(true)
+    try {
+      const response = await fetch('/api/sulu/hint', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, message, sessionId, taskId, draft: attached || undefined }),
+      })
+      const payload = (await response.json().catch(() => null)) as
+        | { error?: string; sessionId?: string; reply?: string; meta?: ChatMessage['meta'] }
+        | null
+      if (!response.ok || !payload?.reply) throw new Error(payload?.error ?? t('Sulu AI could not respond.'))
+      const reply = payload.reply
+      setSessionId(payload.sessionId ?? sessionId)
+      setMessages((current) => [
+        ...current,
+        { id: crypto.randomUUID(), role: 'assistant', content: reply, meta: payload.meta ?? null },
+      ])
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : t('Sulu AI is unavailable.'))
+      setMessages((current) => current.filter((item) => item.id !== pendingId))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // "Hint" in the solution panel lands here.
+  const askRef = useRef(ask)
+  useEffect(() => {
+    askRef.current = ask
+  })
+  useEffect(() => {
+    if (!taskId) return
+    const onHint = () => {
+      scrollRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      void askRef.current('hint')
+    }
+    window.addEventListener(OPORA_HINT_EVENT, onHint)
+    return () => window.removeEventListener(OPORA_HINT_EVENT, onHint)
+  }, [taskId])
 
   async function send(raw: string) {
     const message = raw.trim()
@@ -142,10 +214,23 @@ export function CoachChat({
                 ) : loading ? (
                   <span className="text-shimmer">{t('Thinking…')}</span>
                 ) : null}
+                {message.role === 'assistant' && message.meta?.level ? (
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    {t(LEVEL_LABEL[message.meta.level as Level])}
+                    {message.meta.source === 'card' ? ` · ${t('verified hint')}` : ''}
+                  </p>
+                ) : null}
               </div>
             </div>
           ))
         )}
+        {taskId && loading ? (
+          <div className="flex justify-start">
+            <div className="rounded-2xl rounded-bl-md bg-foreground/[0.05] px-4 py-3 text-sm shadow-key">
+              <span className="text-shimmer">{t('Thinking…')}</span>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {error ? (
@@ -157,8 +242,8 @@ export function CoachChat({
           <Button
             size="sm"
             variant="outline"
-            onClick={() => send(lastMessage)}
-            disabled={!lastMessage || loading}
+            onClick={() => (taskId && lastAction ? ask(lastAction.action, lastAction.message) : send(lastMessage))}
+            disabled={(taskId ? !lastAction : !lastMessage) || loading}
           >
             <RotateCcw className="size-3.5" /> {t('Retry')}
           </Button>
@@ -178,6 +263,53 @@ export function CoachChat({
             {t('Sulu sees your draft ({n} {n|line|lines})', { n: draft.trim().split('\n').length })}
           </label>
         ) : null}
+        {taskId ? (
+          <div className="space-y-2">
+            <ol className="flex gap-1" aria-label={t('Hint ladder')}>
+              {([1, 2, 3, 4, 5] as Level[]).map((level) => (
+                <li key={level} className="min-w-0 flex-1">
+                  <div className={cn('h-1 rounded-full', level <= reached ? 'bg-primary' : 'bg-foreground/[0.08]')} />
+                  <p className={cn('mt-1 truncate text-[10px]', level <= reached ? 'text-foreground' : 'text-muted-foreground')}>
+                    {t(LEVEL_LABEL[level])}
+                  </p>
+                </li>
+              ))}
+            </ol>
+            <div className="flex gap-2 overflow-x-auto">
+              <Button className="min-h-10 shrink-0 rounded-full text-xs" onClick={() => ask('hint')} disabled={loading}>
+                <Lightbulb className="size-3.5" /> {reached ? t('Next hint') : t('Hint')}
+              </Button>
+              <Button
+                variant="outline"
+                className="min-h-10 shrink-0 rounded-full text-xs"
+                onClick={() => ask('more')}
+                disabled={loading || !reached}
+              >
+                <ZoomIn className="size-3.5" /> {t('More detail')}
+              </Button>
+              <Button
+                variant="outline"
+                className="min-h-10 shrink-0 rounded-full text-xs"
+                onClick={() => {
+                  if (window.confirm(t('Show the full solution? Try the hints first — it sticks better when you find it yourself.'))) {
+                    void ask('reveal')
+                  }
+                }}
+                disabled={loading}
+              >
+                <ListChecks className="size-3.5" /> {t('Solution')}
+              </Button>
+              <Button
+                variant="outline"
+                className="min-h-10 shrink-0 rounded-full text-xs"
+                onClick={() => ask('check')}
+                disabled={loading || reached < 3}
+              >
+                <BookOpenCheck className="size-3.5" /> {t('Check me')}
+              </Button>
+            </div>
+          </div>
+        ) : (
         <div className="flex gap-2 overflow-x-auto">
           {prompts.map((prompt) => (
             <Button
@@ -191,6 +323,7 @@ export function CoachChat({
             </Button>
           ))}
         </div>
+        )}
         <div className="flex items-end gap-2 rounded-2xl bg-ink p-2 shadow-key-strong transition-shadow focus-within:shadow-[rgba(255,255,255,0.08)_0_1px_0_inset,rgba(255,255,255,0.25)_0_0_0_1px]">
           <Textarea
             value={input}
@@ -198,7 +331,8 @@ export function CoachChat({
             onKeyDown={(event) => {
               if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault()
-                send(input)
+                if (taskId) void ask('ask', input)
+                else send(input)
               }
             }}
             placeholder={t('Ask Sulu about your approach…')}
@@ -208,7 +342,7 @@ export function CoachChat({
           />
           <Button
             size="icon-lg"
-            onClick={() => send(input)}
+            onClick={() => (taskId ? ask('ask', input) : send(input))}
             disabled={!input.trim() || loading}
             aria-label={t('Send message')}
           >

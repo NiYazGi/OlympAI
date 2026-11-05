@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { checkChatRateLimit } from '@/lib/rate-limit'
 import { buildCoachInstructions, type CoachContext } from '@/lib/sulu/prompt'
-import { SuluError, streamSuluResponse, type SuluMessage } from '@/lib/sulu/provider'
+import { SULU_MODEL, SuluError, streamSuluResponse, type SuluMessage } from '@/lib/sulu/provider'
+import { recordUsage } from '@/lib/opora/usage'
 import { LOCALE_NAMES_EN } from '@/lib/i18n/config'
 import { getLocale, getT } from '@/lib/i18n/server'
 
@@ -182,10 +183,24 @@ export async function POST(request: Request) {
           for (const line of lines) {
             if (!line.startsWith('data: ')) continue
             try {
-              const event = JSON.parse(line.slice(6)) as { type?: string; delta?: string }
+              const event = JSON.parse(line.slice(6)) as {
+                type?: string
+                delta?: string
+                response?: { usage?: { input_tokens?: number; output_tokens?: number; input_tokens_details?: { cached_tokens?: number } } }
+              }
               if (event.type === 'response.output_text.delta' && event.delta) {
                 answer += event.delta
                 controller.enqueue(encoder.encode(event.delta))
+              } else if (event.type === 'response.completed' && event.response?.usage) {
+                const usage = event.response.usage
+                void recordUsage({
+                  userId: user.id,
+                  taskId: taskExists ? taskId : null,
+                  kind: 'chat',
+                  source: 'model',
+                  model: SULU_MODEL,
+                  usage: { input: usage.input_tokens ?? 0, cached: usage.input_tokens_details?.cached_tokens ?? 0, output: usage.output_tokens ?? 0 },
+                })
               }
             } catch {
               // Non-JSON SSE control lines ("data: [DONE]") are expected.
