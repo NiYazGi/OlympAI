@@ -32,10 +32,10 @@ export default async function LessonPage({ params }: { params: Promise<{ topic: 
         className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
-        {lesson.topicName}
+        {t(lesson.topicName)}
       </Link>
 
-      <PageHeader title={lesson.title} description={`${t(lesson.subjectName)} · ${lesson.topicName}`}>
+      <PageHeader title={lesson.title} description={`${t(lesson.subjectName)} · ${t(lesson.topicName)}`}>
         {lesson.estimatedMinutes ? (
           <Badge variant="outline" className="gap-1.5">
             <Clock className="size-3" />

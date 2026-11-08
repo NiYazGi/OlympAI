@@ -60,7 +60,7 @@ export async function SuluWorkspace({
                 className={cn(
                   'block w-full rounded-xl px-3 py-3 text-left transition-colors',
                   session.id === activeSessionId
-                    ? 'bg-foreground/[0.07] text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]'
+                    ? 'bg-secondary text-foreground'
                     : 'hover:bg-foreground/[0.04]',
                 )}
               >
@@ -76,14 +76,9 @@ export async function SuluWorkspace({
 
       <section className="flex min-w-0 flex-1 flex-col">
         <header className="mb-3 flex flex-wrap items-center gap-3 border-b border-foreground/[0.06] pb-4 sm:mb-5 sm:pb-5">
-          <div className="relative flex size-11 items-center justify-center rounded-full bg-card shadow-key">
-            <span aria-hidden className="breathe absolute inset-0 rounded-full bg-coral/25 blur-lg" />
-            <SuluGlyph className="relative size-6" />
-          </div>
+          <SuluGlyph className="size-8" />
           <div className="min-w-0">
-            <h1 className="flex items-center gap-2 text-lg font-medium">
-              {t('Sulu')} <span className="rounded-md bg-coral px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">{t('AI')}</span>
-            </h1>
+            <h1 className="text-xl font-semibold">{t('Sulu')}</h1>
             <p className="text-sm text-muted-foreground">{t('Your olympiad reasoning partner')}</p>
           </div>
         </header>
@@ -119,7 +114,7 @@ export async function SuluWorkspace({
         {task ? (
           <Link
             href={`/tasks/${task.id}`}
-            className="mb-3 flex items-center gap-2 rounded-lg bg-foreground/[0.04] px-3 py-2 text-sm shadow-key transition-colors hover:bg-foreground/[0.07]"
+            className="mb-3 flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm transition-colors hover:bg-secondary"
           >
             <ArrowLeft className="size-3.5 shrink-0 text-muted-foreground" />
             <span className="text-muted-foreground">{t('About the task')}</span>

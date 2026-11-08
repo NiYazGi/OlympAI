@@ -92,7 +92,7 @@ export async function generateCardsBatch(count: number): Promise<AdminResult> {
       await draftCard(row.id, gate.userId)
       done += 1
     } catch (cause) {
-      if (cause instanceof SuluError && done === 0) return { ok: false, error: cause.message }
+      if (cause instanceof SuluError && done === 0) return { ok: false, error: t(cause.message) }
       break
     }
   }

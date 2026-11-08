@@ -9,9 +9,9 @@ import {
   ClipboardCheck,
   GraduationCap,
   LayoutDashboard,
+  MessageCircle,
   Settings,
   ShieldCheck,
-  Sparkles,
   Trophy,
   Users,
 } from 'lucide-react'
@@ -42,7 +42,7 @@ const studentItems: NavItem[] = [
   { href: '/learn', label: 'Learn', icon: GraduationCap, also: ['/plan', '/path', '/study-plan', '/method'] },
   { href: '/tasks', label: 'Problems', icon: BookOpen },
   { href: '/mock', label: 'Mock tests', icon: ClipboardCheck },
-  { href: '/sulu-ai', label: 'Sulu AI', icon: Sparkles },
+  { href: '/sulu-ai', label: 'Sulu AI', icon: MessageCircle },
   { href: '/olympiads', label: 'Olympiads', icon: Trophy },
 ]
 
@@ -87,13 +87,13 @@ export function AppSidebar({
       <Link
         href={role === 'teacher' ? '/class' : '/dashboard'}
         aria-label={t('OlympAI dashboard')}
-        className="flex h-24 shrink-0 items-center px-7 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        className="flex h-20 shrink-0 items-center px-6 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
       >
         <BrandMark large />
       </Link>
 
-      <nav aria-label={t('Main')} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-5 pt-3">
-        <div className="flex flex-col gap-1.5">
+      <nav aria-label={t('Main')} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-3 pb-5 pt-2">
+        <div className="flex flex-col gap-0.5">
           {navItemsFor(role, inClass).map((item) => (
             <SidebarLink
               key={item.href}
@@ -106,14 +106,14 @@ export function AppSidebar({
           ))}
         </div>
 
-        <div className="mt-auto flex flex-col gap-1.5 pt-8">
+        <div className="mt-auto flex flex-col gap-0.5 pt-8">
           {admin}
           <SidebarLink href="/settings" label={t('Settings')} active={isActive('/settings')}>
             <Settings className="size-5" strokeWidth={1.75} />
           </SidebarLink>
         </div>
       </nav>
-      <div className="shrink-0 border-t border-sidebar-border px-4 py-5">{identity}</div>
+      <div className="shrink-0 border-t border-sidebar-border px-3 py-4">{identity}</div>
     </aside>
   )
 }
@@ -172,23 +172,20 @@ function SidebarLink({
       data-tour={`nav:${href}`}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'group relative flex min-h-12 w-full items-center gap-3 rounded-2xl px-3.5 py-3 outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar',
-        active ? 'text-sidebar-primary-foreground' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground',
+        'group relative flex min-h-10 w-full items-center gap-3 rounded-lg px-3 py-2 outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring',
+        active ? 'bg-sidebar-accent text-foreground' : 'text-muted-foreground hover:bg-sidebar-accent/70 hover:text-foreground',
         account && 'gap-3 px-3',
       )}
     >
-      {active ? (
+      {active && !account ? (
         <ViewTransition name="rail-active" share="morph" default="none">
-          <span
-            aria-hidden
-            className="absolute inset-0 rounded-2xl bg-sidebar-primary shadow-[0_3px_10px_-4px_var(--sidebar-primary)]"
-          />
+          <span aria-hidden className="absolute top-2 bottom-2 left-0 w-[3px] rounded-full bg-coral" />
         </ViewTransition>
       ) : null}
       <span className="relative flex shrink-0 items-center justify-center" aria-hidden>{children}</span>
-      <span className="relative min-w-0 flex-1 text-left text-[14px] leading-5 font-medium lg:text-[15px]">
+      <span className="relative min-w-0 flex-1 text-left text-[15px] leading-5 font-medium">
         {label}
-        {description ? <span className={cn('mt-0.5 block truncate text-xs font-normal', active ? 'opacity-80' : 'text-muted-foreground')}>{description}</span> : null}
+        {description ? <span className="mt-0.5 block truncate text-xs font-normal text-muted-foreground">{description}</span> : null}
       </span>
       {account ? <ChevronRight className="relative size-4 shrink-0 opacity-60" aria-hidden /> : null}
     </Link>

@@ -28,7 +28,7 @@ export type Database = {
         Relationships: []
       }
       lessons: {
-        Row: { id: string; topic_id: string; title: string; summary: string | null; estimated_minutes: number | null; position: number; source_url: string | null; licence: string; attribution: string | null; created_at: string }
+        Row: { id: string; topic_id: string; title: string; summary: string | null; estimated_minutes: number | null; position: number; source_url: string | null; licence: string; attribution: string | null; created_at: string; i18n: Json }
         Insert: { id: string; topic_id: string; title: string; summary?: string | null; estimated_minutes?: number | null; position?: number; source_url?: string | null; licence?: string; attribution?: string | null; created_at?: string }
         Update: { topic_id?: string; title?: string; summary?: string | null; estimated_minutes?: number | null; position?: number; source_url?: string | null; licence?: string; attribution?: string | null }
         Relationships: []
@@ -36,7 +36,7 @@ export type Database = {
       lesson_blocks: {
         // visual is figure parameters, never markup. lib/figures.ts narrows it
         // before anything is drawn; see the note at the top of that file.
-        Row: { id: string; lesson_id: string; kind: 'concept' | 'explanation' | 'example' | 'key_facts'; heading: string | null; body: string | null; items: string[]; position: number; visual_kind: string | null; visual: Json | null }
+        Row: { id: string; lesson_id: string; kind: 'concept' | 'explanation' | 'example' | 'key_facts'; heading: string | null; body: string | null; items: string[]; position: number; visual_kind: string | null; visual: Json | null; i18n: Json }
         Insert: { id?: string; lesson_id: string; kind: 'concept' | 'explanation' | 'example' | 'key_facts'; heading?: string | null; body?: string | null; items?: string[]; position?: number; visual_kind?: string | null; visual?: Json | null }
         Update: { kind?: 'concept' | 'explanation' | 'example' | 'key_facts'; heading?: string | null; body?: string | null; items?: string[]; position?: number; visual_kind?: string | null; visual?: Json | null }
         Relationships: []
@@ -53,7 +53,7 @@ export type Database = {
         // `correct_index` and `explanation` are the answer key. They are to a
         // quiz what tasks.official_solution is to a task: never selected into
         // anything the browser receives before the student has answered.
-        Row: { id: string; topic_id: string; lesson_id: string | null; prompt: string; options: string[]; correct_index: number; explanation: string; position: number; source_url: string | null; licence: string; attribution: string | null; created_at: string }
+        Row: { id: string; topic_id: string; lesson_id: string | null; prompt: string; options: string[]; correct_index: number; explanation: string; position: number; source_url: string | null; licence: string; attribution: string | null; created_at: string; i18n: Json }
         Insert: { id: string; topic_id: string; lesson_id?: string | null; prompt: string; options: string[]; correct_index: number; explanation: string; position?: number; source_url?: string | null; licence?: string; attribution?: string | null; created_at?: string }
         Update: { topic_id?: string; lesson_id?: string | null; prompt?: string; options?: string[]; correct_index?: number; explanation?: string; position?: number; source_url?: string | null; licence?: string; attribution?: string | null }
         Relationships: []
@@ -69,7 +69,7 @@ export type Database = {
       flashcards: {
         // user_id null is a shared card; set, it is private to that student and
         // only they can read or write it.
-        Row: { id: string; topic_id: string; user_id: string | null; front: string; back: string; position: number; source_url: string | null; licence: string; attribution: string | null; created_at: string }
+        Row: { id: string; topic_id: string; user_id: string | null; front: string; back: string; position: number; source_url: string | null; licence: string; attribution: string | null; created_at: string; i18n: Json }
         Insert: { id?: string; topic_id: string; user_id?: string | null; front: string; back: string; position?: number; source_url?: string | null; licence?: string; attribution?: string | null; created_at?: string }
         Update: { front?: string; back?: string; position?: number }
         Relationships: []

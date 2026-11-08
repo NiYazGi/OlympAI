@@ -9,6 +9,7 @@ import { getSessionUser } from '@/lib/db/auth'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentProfile } from '@/lib/supabase/queries'
 import { LanguageSwitcher } from '@/components/language-switcher'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { FlameGate } from '@/components/flame/flame-gate'
 import { TourGate } from '@/components/tour/tour-gate'
 import { AnnouncementBar } from '@/components/announcement-bar'
@@ -55,6 +56,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             <Suspense fallback={null}>
               <TourGate />
             </Suspense>
+            <ThemeToggle />
             <LanguageSwitcher />
           </header>
           <MobileNav role={role} inClass={inClass} />

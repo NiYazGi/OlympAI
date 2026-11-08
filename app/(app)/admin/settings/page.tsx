@@ -13,19 +13,21 @@ export async function generateMetadata() {
   return { title: t('Settings · Admin') }
 }
 
+import { resolveActiveProfile } from '@/lib/ai/profiles'
+
 export const dynamic = 'force-dynamic'
 
 /** The switches that affect everyone: the banner, sign-ups, and what is running. */
 export default async function AdminSettingsPage() {
   const t = await getT()
   await requireAdminPage()
-  const [settings, system] = await Promise.all([getSiteSettings(), getSystemInfo()])
+  const [settings, system, ai] = await Promise.all([getSiteSettings(), getSystemInfo(), resolveActiveProfile()])
 
   const info: [string, string][] = [
     [t('Database size'), system?.db_size ?? '—'],
     [t('Migrations applied'), String(system?.migrations ?? '—')],
     [t('Latest migration'), system?.last_migration ?? '—'],
-    [t('Grader'), process.env.OPENAI_API_KEY ? `${t('configured')} · ${process.env.SULU_MODEL ?? 'gpt-5.4-mini'}` : t('not configured')],
+    [t('AI'), ai.key ? `${ai.name} · ${ai.model}` : t('not configured')],
     [t('Mail'), process.env.MAIL_API_URL ? t('configured') : t('not configured — codes go to the server log')],
     [t('Telegram bot'), process.env.TELEGRAM_BOT_TOKEN ? t('configured') : t('not configured')],
   ]

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Activity, BookOpen, Layers, Flag, GraduationCap, LayoutGrid, Library, ScrollText, Settings, Trophy, Users } from 'lucide-react'
+import { Activity, BookOpen, Cpu, Layers, Flag, GraduationCap, LayoutGrid, Library, ScrollText, Settings, Trophy, Users } from 'lucide-react'
 import { RollText } from '@/components/motion'
 import { cn } from '@/lib/utils'
 import { useT } from '@/components/i18n-provider'
@@ -12,6 +12,7 @@ const items = [
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/tasks', label: 'Problems', icon: Library },
   { href: '/admin/opora', label: 'Opora', icon: Layers },
+  { href: '/admin/ai', label: 'AI', icon: Cpu },
   { href: '/admin/attempts', label: 'Attempts', icon: Activity },
   { href: '/admin/reports', label: 'Reports', icon: Flag },
   { href: '/admin/olympiads', label: 'Olympiads', icon: Trophy },

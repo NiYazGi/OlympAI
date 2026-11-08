@@ -6,7 +6,9 @@ import {
   type GraderContext,
 } from '@/lib/sulu/prompt'
 import { imagesFor } from '@/lib/sulu/images'
-import { SULU_MODEL, requestSuluJson } from '@/lib/sulu/provider'
+import { requestSuluJsonWithUsage } from '@/lib/sulu/provider'
+import { getPrompt } from '@/lib/ai/prompts'
+import { scrubIdentity } from '@/lib/ai/identity'
 import { redactAnswer } from '@/lib/sulu/redact'
 import { VERDICTS, type Verdict } from '@/lib/sulu/types'
 import { figuresIn } from '@/lib/statement-figures'
@@ -75,11 +77,13 @@ export function numberedAttempt(answer: string) {
  */
 export async function gradeAttempt(task: GraderContext, answer: string): Promise<Grade> {
   const lineCount = solutionLines(answer).length
-  const raw = await requestSuluJson<RawGrade>(
-    buildGraderInstructions(task),
+  const { data: raw, model } = await requestSuluJsonWithUsage<RawGrade>(
+    buildGraderInstructions(task, await getPrompt('grader')),
     `<student_attempt>\n${numberedAttempt(answer)}\n</student_attempt>`,
     GRADE_SCHEMA as unknown as { name: string; schema: Record<string, unknown> },
     await imagesFor([...figuresIn(task.problem), task.diagramUrl]),
+    // A student is waiting on the verdict: the profile's quick reasoning setting.
+    { fast: true },
   )
 
   const claimed = VERDICTS.includes(raw.verdict) ? raw.verdict : 'incorrect'
@@ -89,7 +93,7 @@ export async function gradeAttempt(task: GraderContext, answer: string): Promise
   let redacted = false
   const guard = (value: unknown) => {
     const result = redactAnswer(
-      typeof value === 'string' && value.trim() ? value.trim() : null,
+      typeof value === 'string' && value.trim() ? scrubIdentity(value.trim()) : null,
       task.officialSolution,
     )
     if (result.redacted) redacted = true
@@ -174,7 +178,7 @@ export async function gradeAttempt(task: GraderContext, answer: string): Promise
     marks,
     criteria: schemeAddsUp ? criteria : [],
     breakPoint,
-    model: SULU_MODEL,
+    model,
     redacted,
   }
 }

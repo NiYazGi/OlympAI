@@ -7,7 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // Shared surface for custom cards: the keyboard-key stack on Ink, 16px radius.
-export const cardClass = 'spotlight rounded-2xl bg-card shadow-key'
+export const cardClass = 'rounded-xl bg-card shadow-key'
 
 /** Up to two uppercase initials for an avatar fallback. */
 export function initials(fullName: string | null | undefined) {
@@ -30,7 +30,7 @@ export function riseDelay(index: number, step = 40, cap = 6): CSSProperties {
 
 /** An inset well for hand-rolled form fields, matching components/ui/input. */
 export const fieldClass =
-  'h-11 w-full rounded-lg bg-foreground/[0.05] px-3 text-sm text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none transition-colors placeholder:text-smoke hover:bg-foreground/[0.07] focus:bg-foreground/[0.07] focus:ring-2 focus:ring-foreground/10'
+  'h-11 w-full rounded-lg border border-input bg-card px-3 text-[15px] text-foreground outline-none transition-colors placeholder:text-muted-foreground hover:border-iron focus:border-foreground/50 focus:ring-3 focus:ring-foreground/10'
 
 /** Inline style for a staggered scroll reveal (`data-reveal`) or entrance (`.enter`). */
 export function delay(ms: number): CSSProperties {

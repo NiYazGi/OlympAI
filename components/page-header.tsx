@@ -18,11 +18,11 @@ export function PageHeader({
   children?: ReactNode
 }) {
   return (
-    <div className="flex flex-col gap-4 border-b border-foreground/[0.06] pb-6 sm:flex-row sm:items-end sm:justify-between">
+    <div className="flex flex-col gap-4 pb-2 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0 space-y-2">
-        <h1 className="text-[28px] leading-[1.15] font-normal text-balance break-words text-foreground sm:text-[32px]">{title}</h1>
+        <h1 className="text-[28px] leading-[1.15] font-semibold tracking-[-0.015em] text-balance break-words text-foreground sm:text-[32px]">{title}</h1>
         {description ? (
-          <p className="max-w-2xl text-[15px] text-pretty text-ash">{description}</p>
+          <p className="max-w-2xl text-[15px] leading-6 text-pretty text-muted-foreground">{description}</p>
         ) : null}
         {note}
       </div>

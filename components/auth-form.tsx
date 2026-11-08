@@ -34,16 +34,16 @@ export function AuthForm({
 
   return (
     <AuthShell
-      eyebrow={isSignup ? t('Start your journey') : t('Welcome back')}
-      title={isSignup ? t('Create your OlympAI account') : t('Log in to your training space')}
+      eyebrow={isSignup ? t('Sign up') : t('Log in')}
+      title={isSignup ? t('Create an account') : t('Welcome back')}
     >
       {error ? (
-        <p role="alert" className="mb-4 rounded-lg bg-ember/60 p-3 text-sm text-destructive shadow-key">
+        <p role="alert" className="mb-4 rounded-lg bg-ember p-3 text-sm text-destructive">
           {t(error)}
         </p>
       ) : null}
       {message ? (
-        <p role="status" className="mb-4 rounded-lg bg-foreground/[0.05] p-3 text-sm text-foreground shadow-key">
+        <p role="status" className="mb-4 rounded-lg bg-secondary p-3 text-sm text-foreground">
           {t(message)}
         </p>
       ) : null}
@@ -62,7 +62,7 @@ export function AuthForm({
           <>
             <input type="hidden" name="role" value={role} />
             <fieldset>
-              <legend className="text-[13px] font-medium text-ash">{t('I am')}</legend>
+              <legend className="text-[14px] font-medium text-foreground">{t('I am')}</legend>
               <div className="mt-2 grid gap-2 sm:grid-cols-2">
                 <RoleCard
                   icon={GraduationCap}
@@ -84,7 +84,7 @@ export function AuthForm({
         ) : null}
 
         {isSignup ? (
-          <label className="block text-[13px] font-medium text-ash">
+          <label className="block text-[14px] font-medium text-foreground">
             {t('Your name')}
             <input
               name="full_name"
@@ -97,7 +97,7 @@ export function AuthForm({
           </label>
         ) : null}
 
-        <label className="block text-[13px] font-medium text-ash">
+        <label className="block text-[14px] font-medium text-foreground">
           {isSignup ? t('Email address') : t('Email or username')}
           <input
             name="email"
@@ -109,7 +109,7 @@ export function AuthForm({
           />
         </label>
 
-        <label className="block text-[13px] font-medium text-ash">
+        <label className="block text-[14px] font-medium text-foreground">
           {t('Password')}
           <input
             name="password"
@@ -124,7 +124,7 @@ export function AuthForm({
         </label>
 
         {isSignup && role === 'student' ? (
-          <label className="block text-[13px] font-medium text-ash">
+          <label className="block text-[14px] font-medium text-foreground">
             {t('Telegram')} <span className="font-normal text-muted-foreground">({t('optional')})</span>
             <input
               name="telegram_username"

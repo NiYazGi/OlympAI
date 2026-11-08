@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { checkChatRateLimit } from '@/lib/rate-limit'
 import { buildCoachInstructions, type CoachContext } from '@/lib/sulu/prompt'
-import { SULU_MODEL, SuluError, streamSuluResponse, type SuluMessage } from '@/lib/sulu/provider'
+import { SuluError, streamSuluResponse, type SuluMessage } from '@/lib/sulu/provider'
+import { getPrompt } from '@/lib/ai/prompts'
+import { identityScrubber } from '@/lib/ai/identity'
 import { recordUsage } from '@/lib/opora/usage'
 import { LOCALE_NAMES_EN } from '@/lib/i18n/config'
 import { getLocale, getT } from '@/lib/i18n/server'
@@ -142,12 +144,18 @@ export async function POST(request: Request) {
   ]
 
   let upstream: ReadableStream<Uint8Array>
+  let model = ''
   try {
-    upstream = await streamSuluResponse(buildCoachInstructions(context, LOCALE_NAMES_EN[await getLocale()]), history)
+    const opened = await streamSuluResponse(
+      buildCoachInstructions(context, LOCALE_NAMES_EN[await getLocale()], await getPrompt('chat')),
+      history,
+    )
+    upstream = opened.body
+    model = opened.model
   } catch (cause) {
     // The provider never answered, so nothing is persisted: the previous
     // version had already written the user's message and left it orphaned.
-    if (cause instanceof SuluError) return fail(cause.message, cause.status)
+    if (cause instanceof SuluError) return fail(t(cause.message), cause.status)
     return fail(t('Sulu AI is unavailable.'), 502)
   }
 
@@ -160,6 +168,7 @@ export async function POST(request: Request) {
   const encoder = new TextEncoder()
   let answer = ''
   let persisted = false
+  const scrubber = identityScrubber()
 
   const persist = async () => {
     if (persisted || !answer.trim()) return
@@ -189,8 +198,12 @@ export async function POST(request: Request) {
                 response?: { usage?: { input_tokens?: number; output_tokens?: number; input_tokens_details?: { cached_tokens?: number } } }
               }
               if (event.type === 'response.output_text.delta' && event.delta) {
-                answer += event.delta
-                controller.enqueue(encoder.encode(event.delta))
+                // The model's name never reaches the student, even mid-stream.
+                const clean = scrubber.push(event.delta)
+                if (clean) {
+                  answer += clean
+                  controller.enqueue(encoder.encode(clean))
+                }
               } else if (event.type === 'response.completed' && event.response?.usage) {
                 const usage = event.response.usage
                 void recordUsage({
@@ -198,7 +211,7 @@ export async function POST(request: Request) {
                   taskId: taskExists ? taskId : null,
                   kind: 'chat',
                   source: 'model',
-                  model: SULU_MODEL,
+                  model,
                   usage: { input: usage.input_tokens ?? 0, cached: usage.input_tokens_details?.cached_tokens ?? 0, output: usage.output_tokens ?? 0 },
                 })
               }
@@ -206,6 +219,11 @@ export async function POST(request: Request) {
               // Non-JSON SSE control lines ("data: [DONE]") are expected.
             }
           }
+        }
+        const tail = scrubber.flush()
+        if (tail) {
+          answer += tail
+          controller.enqueue(encoder.encode(tail))
         }
         controller.close()
       } catch {

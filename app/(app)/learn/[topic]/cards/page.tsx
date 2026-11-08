@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: { params: Promise<{ topic: st
   const { topic } = await params
   const deck = await getTopicCards(topic)
   const t = await getT()
-  return { title: deck ? t('{topic} cards', { topic: deck.topicName }) : t('Cards') }
+  return { title: deck ? t('{topic} cards', { topic: t(deck.topicName) }) : t('Cards') }
 }
 
 export default async function CardsPage({ params }: { params: Promise<{ topic: string }> }) {
@@ -29,12 +29,12 @@ export default async function CardsPage({ params }: { params: Promise<{ topic: s
         className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
-        {deck.topicName}
+        {t(deck.topicName)}
       </Link>
 
       <PageHeader
         title={t('Recall')}
-        description={`${t(deck.subjectName)} · ${deck.topicName}`}
+        description={`${t(deck.subjectName)} · ${t(deck.topicName)}`}
         note={
           deck.cards.length ? (
             <p className="pt-1 text-sm text-muted-foreground">

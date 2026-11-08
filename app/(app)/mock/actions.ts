@@ -144,7 +144,7 @@ export async function submitMock(testId: string, answers: Record<string, string>
       ok: false,
       error:
         cause instanceof SuluError
-          ? cause.message
+          ? t(cause.message)
           : t('The grader is unavailable right now. Your answers are still here — try submitting again.'),
     }
   }

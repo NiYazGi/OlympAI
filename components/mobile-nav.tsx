@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
-  Sparkles,
+  MessageCircle,
   BookOpen,
   ClipboardCheck,
   Settings,
@@ -19,13 +19,14 @@ import { BrandMark } from '@/components/brand-mark'
 import { cn } from '@/lib/utils'
 import { useT } from '@/components/i18n-provider'
 import { LanguageSwitcher } from '@/components/language-switcher'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 const studentNav = [
   { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
   { href: '/learn', label: 'Learn', icon: GraduationCap, also: ['/plan', '/path', '/study-plan', '/method'] },
   { href: '/tasks', label: 'Problems', icon: BookOpen },
   { href: '/mock', label: 'Papers', icon: ClipboardCheck },
-  { href: '/sulu-ai', label: 'Sulu', icon: Sparkles },
+  { href: '/sulu-ai', label: 'Sulu', icon: MessageCircle },
 ]
 
 // Plan opens from Learn; Class only for a student who is in one (see the rail).
@@ -62,7 +63,8 @@ export function MobileNav({ role = 'student', inClass = false }: { role?: 'stude
     <>
       <header className="glass sticky top-0 z-20 flex items-center gap-2.5 border-b border-foreground/[0.06] px-4 py-3 md:hidden">
         <BrandMark />
-        <LanguageSwitcher className="ml-auto" />
+        <ThemeToggle className="ml-auto" />
+        <LanguageSwitcher />
       </header>
 
       <nav className="glass fixed inset-x-0 bottom-0 z-30 flex min-h-16 items-stretch justify-around border-t border-foreground/[0.06] px-1 pb-[env(safe-area-inset-bottom)] md:hidden">

@@ -1,6 +1,6 @@
 import { Reveal } from '@/components/reveal'
 import Link from 'next/link'
-import { Languages, LogOut, Plus, ShieldCheck, User } from 'lucide-react'
+import { Languages, LogOut, Plus, ShieldCheck, SunMoon, User } from 'lucide-react'
 import { PageHeader } from '@/components/page-header'
 import { BlockSkeleton, PendingRegion } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
@@ -9,6 +9,7 @@ import { getCurrentProfile } from '@/lib/supabase/queries'
 import { cardClass, cn } from '@/lib/utils'
 import { getT } from '@/lib/i18n/server'
 import { LanguageSwitcher } from '@/components/language-switcher'
+import { ThemePicker } from '@/components/theme-toggle'
 import { TelegramLink } from '@/app/(app)/settings/telegram'
 
 export async function generateMetadata() {
@@ -66,6 +67,13 @@ async function Account() {
             {t('The interface language. Problems are shown in the language they were published in — the olympiad archive is in Russian, the short lessons are in English. Sulu replies in this language.')}
           </p>
           <LanguageSwitcher full className="shadow-key" />
+        </div>
+      </Section>
+
+      <Section icon={SunMoon} title={t('Theme')}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">{t('Light or dark. Remembered on this device.')}</p>
+          <ThemePicker />
         </div>
       </Section>
 

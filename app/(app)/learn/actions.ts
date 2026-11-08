@@ -6,7 +6,7 @@ import { getVerifiedUser } from '@/lib/supabase/auth'
 import { createClient } from '@/lib/supabase/server'
 import type { Rating } from '@/lib/srs'
 import { quizAnswerXp } from '@/lib/xp'
-import { getT } from '@/lib/i18n/server'
+import { getLocale, getT } from '@/lib/i18n/server'
 
 export type ActionResult = { ok: boolean; error?: string }
 
@@ -54,7 +54,7 @@ export async function answerQuizQuestion(
   const admin = createAdminClient()
   const { data: question } = await admin
     .from('quiz_questions')
-    .select('id, options, correct_index, explanation, topic_id')
+    .select('id, options, correct_index, explanation, topic_id, i18n')
     .eq('id', questionId)
     .maybeSingle()
   if (!question) return { ok: false, error: t('That question is no longer available.') }
@@ -93,7 +93,10 @@ export async function answerQuizQuestion(
     ok: true,
     isCorrect,
     correctIndex: question.correct_index,
-    explanation: question.explanation,
+    // The explanation in the student's language, when it has been translated.
+    explanation:
+      (((question.i18n ?? {}) as Record<string, { explanation?: string } | undefined>)[await getLocale()]?.explanation ?? '').trim() ||
+      question.explanation,
     xpEarned,
   }
 }

@@ -2,6 +2,7 @@ import 'server-only'
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { getLocale } from '@/lib/i18n/server'
 
 export type ReferenceTask = {
   id: string
@@ -200,15 +201,15 @@ const EMPTY_STUDY: StudyReference = { lessons: [], blocks: [], questions: [], ca
 
 const STUDY_COLUMNS = {
   lessons:
-    'id, topic_id, title, summary, estimated_minutes, position, source_url, licence, attribution',
-  blocks: 'id, lesson_id, kind, heading, body, items, position, visual_kind, visual',
+    'id, topic_id, title, summary, estimated_minutes, position, source_url, licence, attribution, i18n',
+  blocks: 'id, lesson_id, kind, heading, body, items, position, visual_kind, visual, i18n',
   // The answer key is missing from this list on purpose, and this is the only
   // place the list is written. `correct_index` decides whether an answer was
   // right and `explanation` gives the reasoning away before the student has
   // committed to one; both are read on the server, per answer, when marking.
   // A shared cross-user cache is the last place either belongs.
-  questions: 'id, topic_id, lesson_id, prompt, options, position',
-  cards: 'id, topic_id, front, back, position, source_url, licence, attribution',
+  questions: 'id, topic_id, lesson_id, prompt, options, position, i18n',
+  cards: 'id, topic_id, front, back, position, source_url, licence, attribution, i18n',
 } as const
 
 /**
@@ -245,11 +246,49 @@ const loadStudyReference = memo(
 )
 
 
+/**
+ * Study content is written once, in English, with translations stored beside
+ * each row in `i18n` ({"ru": {...}, "kk": {...}}). A field missing from the
+ * translation keeps the original, so a half-translated lesson still reads.
+ */
+type Translations = Record<string, Record<string, unknown> | undefined>
+
+function overlay<T extends object>(row: T, locale: string, fields: (keyof T)[]): T {
+  const own = ((row as { i18n?: unknown }).i18n ?? {}) as Translations
+  const tr = own[locale]
+  if (!tr) return row
+  const out = { ...row }
+  for (const field of fields) {
+    const value = tr[field as string]
+    if (typeof value === 'string' ? value.trim() !== '' : Array.isArray(value) && value.length > 0) {
+      ;(out as Record<string, unknown>)[field as string] = value
+    }
+  }
+  return out
+}
+
+const translated = new Map<string, StudyReference>()
+
 export async function getStudyReference(): Promise<StudyReference> {
+  let study: StudyReference
   try {
-    return await loadStudyReference()
+    study = await loadStudyReference()
   } catch (cause) {
     console.error('[study] falling back to empty study content:', cause)
     return EMPTY_STUDY
   }
+  const locale = await getLocale()
+  if (locale === 'en') return study
+  // Keyed by the loaded object too, so a reload of the content drops stale translations.
+  const cached = translated.get(locale)
+  if (cached && (cached as StudyReference & { from?: StudyReference }).from === study) return cached
+  const result: StudyReference & { from?: StudyReference } = {
+    lessons: study.lessons.map((row) => overlay(row, locale, ['title', 'summary'])),
+    blocks: study.blocks.map((row) => overlay(row, locale, ['heading', 'body', 'items'])),
+    questions: study.questions.map((row) => overlay(row, locale, ['prompt', 'options'])),
+    cards: study.cards.map((row) => overlay(row, locale, ['front', 'back'])),
+    from: study,
+  }
+  translated.set(locale, result)
+  return result
 }

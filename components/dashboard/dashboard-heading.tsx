@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useSyncExternalStore } from 'react'
-import { Sparkles } from 'lucide-react'
+import { MessageCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useLocale, useT } from '@/components/i18n-provider'
 import { formatDate } from '@/lib/i18n/config'
@@ -55,7 +55,7 @@ export function DashboardHeading() {
         nativeButton={false}
         render={
           <Link href="/sulu-ai" prefetch>
-            <Sparkles className="size-4" /> {t('Ask Sulu AI')}
+            <MessageCircle className="size-4" /> {t('Ask Sulu AI')}
           </Link>
         }
       />

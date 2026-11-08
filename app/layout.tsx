@@ -1,13 +1,25 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-import { Geist_Mono, Inter } from 'next/font/google'
+import { Geist_Mono, Golos_Text, Literata } from 'next/font/google'
 import { MotionRuntime, MotionScript } from '@/components/motion'
 import { I18nProvider } from '@/components/i18n-provider'
 import { MESSAGES } from '@/lib/i18n/messages'
 import { getLocale } from '@/lib/i18n/server'
+import { cookies } from 'next/headers'
+import { DEFAULT_THEME, isTheme, THEME_COLOR, THEME_COOKIE, type Theme } from '@/lib/theme'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin', 'cyrillic', 'cyrillic-ext'], variable: '--font-inter', display: 'swap' })
+// Golos Text was drawn for Russian interfaces; it keeps Cyrillic and Kazakh
+// letters even and readable at small sizes.
+const golos = Golos_Text({ subsets: ['latin', 'cyrillic', 'cyrillic-ext'], variable: '--font-sans-ui', display: 'swap' })
+// A book serif for large headings only, so the pages read like a textbook.
+const literata = Literata({
+  subsets: ['latin', 'cyrillic', 'cyrillic-ext'],
+  variable: '--font-literata',
+  display: 'swap',
+  weight: ['500', '600'],
+  preload: false,
+})
 // Mono only sets small labels, so it is not worth a preload that competes with
 // the body font and the page's own requests on first paint.
 const geistMono = Geist_Mono({
@@ -29,18 +41,24 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 }
 
-export const viewport: Viewport = {
-  colorScheme: 'light',
-  themeColor: '#f7f8fb',
+async function getTheme(): Promise<Theme> {
+  const chosen = (await cookies()).get(THEME_COOKIE)?.value
+  return isTheme(chosen) ? chosen : DEFAULT_THEME
+}
+
+export async function generateViewport(): Promise<Viewport> {
+  const theme = await getTheme()
+  return { colorScheme: theme, themeColor: THEME_COLOR[theme] }
 }
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const locale = await getLocale()
+  const [locale, theme] = await Promise.all([getLocale(), getTheme()])
 
   return (
     <html
       lang={locale}
-      className={`${inter.variable} ${geistMono.variable} bg-background`}
+      className={`${golos.variable} ${literata.variable} ${geistMono.variable} bg-background${theme === 'dark' ? ' dark' : ''}`}
+      style={{ colorScheme: theme }}
       suppressHydrationWarning
     >
       <head>

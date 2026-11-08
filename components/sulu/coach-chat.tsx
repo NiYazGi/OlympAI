@@ -187,10 +187,8 @@ export function CoachChat({
       <div ref={scrollRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto px-1 py-2">
         {messages.length === 0 ? (
           <div className="flex h-full min-h-56 flex-col items-center justify-center text-center">
-            <div className="flex size-12 items-center justify-center rounded-full bg-card shadow-key">
-              <SuluGlyph className="size-7" />
-            </div>
-            <h2 className="mt-4 font-medium text-foreground">{t('Start a focused conversation')}</h2>
+            <SuluGlyph className="size-8" />
+            <h2 className="mt-3 text-base font-semibold text-foreground">{t('Ask about a problem')}</h2>
             <p className="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">
               {t('Show Sulu what you have tried, or ask for one small hint.')}
             </p>

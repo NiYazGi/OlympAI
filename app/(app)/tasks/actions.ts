@@ -101,7 +101,7 @@ export async function submitTaskAttempt(
       ok: false,
       error:
         cause instanceof SuluError
-          ? cause.message
+          ? t(cause.message)
           : t('The grader is unavailable right now. Your work has not been lost — try submitting again in a moment.'),
     }
   }

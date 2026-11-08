@@ -98,7 +98,7 @@ export async function POST(request: Request) {
       },
     })
   } catch (cause) {
-    if (cause instanceof SuluError) return fail(cause.message, cause.status)
+    if (cause instanceof SuluError) return fail(t(cause.message), cause.status)
     console.error('[opora]', cause)
     return fail(t('Sulu AI is unavailable.'), 502)
   }

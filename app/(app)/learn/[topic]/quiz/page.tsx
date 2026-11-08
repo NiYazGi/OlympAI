@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: { params: Promise<{ topic: st
   const { topic } = await params
   const quiz = await getTopicQuiz(topic)
   const t = await getT()
-  return { title: quiz ? t('{topic} quiz', { topic: quiz.topicName }) : t('Quiz') }
+  return { title: quiz ? t('{topic} quiz', { topic: t(quiz.topicName) }) : t('Quiz') }
 }
 
 export default async function QuizPage({ params }: { params: Promise<{ topic: string }> }) {
@@ -30,12 +30,12 @@ export default async function QuizPage({ params }: { params: Promise<{ topic: st
         className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
-        {quiz.topicName}
+        {t(quiz.topicName)}
       </Link>
 
       <PageHeader
         title={t('Check yourself')}
-        description={`${t(quiz.subjectName)} · ${quiz.topicName}`}
+        description={`${t(quiz.subjectName)} · ${t(quiz.topicName)}`}
       />
 
       {quiz.questions.length === 0 ? (

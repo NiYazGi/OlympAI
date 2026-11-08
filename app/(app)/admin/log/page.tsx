@@ -21,6 +21,7 @@ function targetHref(action: string, target: string | null) {
   if (!target) return null
   if (action.startsWith('user.') || action.startsWith('admin.')) return `/admin/users/${target}`
   if (action.startsWith('task.')) return action === 'task.delete' ? null : `/admin/tasks/${target}`
+  if (action.startsWith('ai.')) return '/admin/ai'
   if (action.startsWith('card.')) return `/admin/tasks/${target}#card`
   if (action.startsWith('olympiad.')) return '/admin/olympiads'
   if (action.startsWith('report.')) return '/admin/reports'

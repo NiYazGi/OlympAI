@@ -2,57 +2,38 @@
 
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-import { BrandGlyph, BrandMark } from '@/components/brand-mark'
-import { delay } from '@/lib/utils'
+import { BrandMark } from '@/components/brand-mark'
 import { useT } from '@/components/i18n-provider'
 import { LanguageSwitcher } from '@/components/language-switcher'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 /**
- * Auth pages sit on the same atmosphere as the hero: a quiet blue wash and one
- * coral streak, with the form in a single key-cap card in the middle.
+ * Login, sign-up and the other account pages: the name at the top, a heading,
+ * and the form on a plain card. Nothing else competes with the form.
  */
 export function AuthShell({ children, title, eyebrow }: { children: React.ReactNode; title: string; eyebrow: string }) {
   const t = useT()
 
   return (
-    <main className="relative flex min-h-dvh flex-col overflow-hidden bg-void">
-      <div className="hero-atmosphere opacity-70" aria-hidden>
-        <div className="hero-grid" />
-        <span className="hero-bar hero-bar--blue" />
-        <span className="hero-bar hero-bar--coral-2" />
-      </div>
-
-      <header className="relative z-10 flex items-center justify-between px-5 py-5 sm:px-8">
+    <main className="flex min-h-dvh flex-col bg-background">
+      <header className="flex items-center justify-between px-5 py-5 sm:px-8">
         <Link href="/" aria-label={t('OlympAI home')}>
           <BrandMark />
         </Link>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
           <LanguageSwitcher />
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-[13px] text-ash transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="size-3.5" /> {t('Back home')}
+          <Link href="/" className="ml-2 hidden items-center gap-1.5 text-[14px] text-muted-foreground transition-colors hover:text-foreground sm:inline-flex">
+            <ArrowLeft className="size-4" /> {t('Back home')}
           </Link>
         </div>
       </header>
 
-      <div className="relative z-10 flex flex-1 items-center justify-center px-4 py-10">
-        <div className="enter w-full max-w-[400px]">
-          <div className="mb-8 flex flex-col items-center text-center">
-            <span className="relative mb-6 flex size-14 items-center justify-center rounded-2xl bg-card shadow-key-strong">
-              <span aria-hidden className="breathe absolute inset-0 rounded-2xl bg-coral/20 blur-xl" />
-              <BrandGlyph className="relative size-7" />
-            </span>
-            <p className="eyebrow">{eyebrow}</p>
-            <h1 className="mt-3 text-2xl font-normal text-foreground" style={delay(80)}>
-              {title}
-            </h1>
-          </div>
-          <div className="rounded-[20px] bg-ink/80 p-6 shadow-window backdrop-blur-xl sm:p-8">{children}</div>
-          <p className="mt-6 text-center font-mono text-[11px] text-smoke">
-            {t('Train with intent')} <span className="mx-1.5 text-iron">|</span> {t('Compete with confidence')}
-          </p>
+      <div className="flex flex-1 items-start justify-center px-4 pt-6 pb-16 sm:items-center sm:pt-0">
+        <div className="enter w-full max-w-[420px]">
+          <p className="text-[14px] font-medium text-muted-foreground">{eyebrow}</p>
+          <h1 className="font-display mt-2 text-[30px] leading-tight font-semibold">{title}</h1>
+          <div className="mt-6 rounded-xl border border-border bg-card p-6 sm:p-7">{children}</div>
         </div>
       </div>
     </main>

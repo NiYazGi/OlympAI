@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import Link from 'next/link'
-import { Camera, Check, CheckCircle2, CloudOff, FileText, Lightbulb, Loader2, PenLine, Sparkles, Zap } from 'lucide-react'
+import { Camera, Check, CheckCircle2, CloudOff, FileText, Lightbulb, Loader2, MessageCircle, PenLine, Zap } from 'lucide-react'
 import { readSolutionPhoto, submitTaskAttempt, type AttemptResult } from '@/app/(app)/tasks/actions'
 import { AttemptProtocol } from '@/components/problems/attempt-protocol'
 import { Button } from '@/components/ui/button'
@@ -77,7 +77,7 @@ export function SolutionPanel({ taskId }: { taskId: string }) {
       nativeButton={false}
       render={
         <Link href={`/sulu-ai?task=${encodeURIComponent(taskId)}`}>
-          <Sparkles className="size-4" /> {t('Ask Sulu AI')}
+          <MessageCircle className="size-4" /> {t('Ask Sulu AI')}
         </Link>
       }
     />

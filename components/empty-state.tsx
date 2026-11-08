@@ -28,18 +28,16 @@ export function EmptyState({
     <section
       className={cn(
         cardClass,
-        'spotlight flex flex-col items-center px-6 py-14 text-center sm:py-20',
+        'flex flex-col items-start gap-1 px-6 py-8 sm:px-8 sm:py-10',
         className,
       )}
     >
-      <div className="flex size-14 items-center justify-center rounded-full bg-graphite text-mist shadow-key-strong">
-        <Icon className="size-6" />
-      </div>
-      <h2 className="mt-6 text-xl font-normal text-foreground">{title}</h2>
-      <p className="mt-2 max-w-md text-sm leading-6 text-pretty text-ash">{body}</p>
+      <Icon className="mb-3 size-6 text-muted-foreground" />
+      <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+      <p className="max-w-lg text-[15px] leading-6 text-pretty text-muted-foreground">{body}</p>
       {action ? (
         <Button
-          className="mt-6"
+          className="mt-5"
           nativeButton={false}
           render={
             <Link href={action.href} prefetch>

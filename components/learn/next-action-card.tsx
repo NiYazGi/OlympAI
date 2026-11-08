@@ -42,51 +42,21 @@ export async function NextActionCard({
   const hero = tone === 'hero'
 
   return (
-    <section
-      className={cn(
-        cardClass,
-        'rise spotlight relative overflow-hidden p-6',
-        hero && 'surface-ember rounded-[20px] sm:p-8',
-      )}
-    >
-      <div className="relative z-10 flex items-start gap-4">
-        <div
-          className={cn(
-            'flex size-11 shrink-0 items-center justify-center rounded-full',
-            hero ? 'bg-coral text-primary-foreground' : 'bg-graphite text-mist',
-          )}
-        >
-          <Icon className="size-5" />
-        </div>
-
+    <section className={cn(cardClass, 'rise p-6', hero && 'sm:p-8')}>
+      <div className="flex items-start gap-4">
+        <Icon className={cn('mt-1 shrink-0 text-muted-foreground', hero ? 'size-6' : 'size-5')} />
         <div className="min-w-0 flex-1">
-          <p
-            className={cn(
-              'eyebrow',
-              hero && 'text-destructive',
-            )}
-          >
-            {t('Do this now')}
-          </p>
+          <p className="text-[13px] font-medium text-coral">{t('Next step')}</p>
           <h2
             className={cn(
-              'mt-2 leading-tight text-balance text-foreground',
-              hero ? 'text-[28px] font-normal' : 'text-lg font-medium',
+              'mt-1 leading-tight text-balance text-foreground',
+              hero ? 'text-[26px] font-semibold tracking-[-0.015em]' : 'text-lg font-semibold',
             )}
           >
             {action.label}
           </h2>
-          <p className={cn('mt-1 text-sm', hero ? 'text-foreground/70' : 'text-muted-foreground')}>
-            {action.detail}
-          </p>
-          <p
-            className={cn(
-              'mt-3 border-l-2 pl-3 text-sm leading-6 text-pretty',
-              hero ? 'border-coral/40 text-foreground/70' : 'border-foreground/10 text-muted-foreground',
-            )}
-          >
-            {action.why}
-          </p>
+          <p className="mt-1.5 text-[15px] text-muted-foreground">{action.detail}</p>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-pretty text-muted-foreground">{action.why}</p>
 
           <Button
             className="mt-5"
@@ -100,13 +70,6 @@ export async function NextActionCard({
           />
         </div>
       </div>
-
-      {hero ? (
-        <div
-          aria-hidden
-          className="breathe pointer-events-none absolute -top-24 -right-16 size-72 rounded-full bg-[radial-gradient(closest-side,rgba(255,99,99,0.25),transparent)]"
-        />
-      ) : null}
     </section>
   )
 }
