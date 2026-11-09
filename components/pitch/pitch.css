@@ -209,7 +209,7 @@
   color: var(--muted-foreground);
 }
 .pt-ink {
-  background: linear-gradient(100deg, var(--brand) 0%, #ff9a8c 45%, var(--brand) 90%);
+  background: linear-gradient(100deg, var(--brand) 0%, var(--brand-highlight) 45%, var(--brand) 90%);
   background-size: 200% 100%;
   -webkit-background-clip: text;
   background-clip: text;
@@ -489,7 +489,7 @@
   left: 0;
   bottom: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--brand), #ff9a8c);
+  background: linear-gradient(90deg, var(--brand), var(--brand-highlight));
   box-shadow: 0 0 18px var(--brand);
   transition: width 0.9s var(--ease);
 }

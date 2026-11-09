@@ -41,7 +41,7 @@ export class ParticleField {
   private t = 0
   private formation: Formation = { kind: 'drift' }
   private mouse = { x: -9999, y: -9999 }
-  private colors = ['#ef6b5d', '#ffb3a8', '#f1efea']
+  private colors = ['#112b51', '#aeb5c2', '#fff']
   private dark = true
 
   constructor(private canvas: HTMLCanvasElement) {
@@ -55,9 +55,9 @@ export class ParticleField {
     cancelAnimationFrame(this.raf)
   }
 
-  setTheme(dark: boolean, brand: string, ink: string) {
+  setTheme(dark: boolean, brand: string, highlight: string, ink: string) {
     this.dark = dark
-    this.colors = [brand, dark ? '#ffb3a8' : '#f08a7e', ink]
+    this.colors = [brand, highlight, ink]
   }
 
   pointer(x: number, y: number) {

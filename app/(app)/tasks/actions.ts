@@ -158,6 +158,7 @@ export async function submitTaskAttempt(
   revalidatePath(`/tasks/${task.id}`)
   revalidatePath('/me')
   revalidatePath('/dashboard')
+  revalidatePath('/plan')
   revalidatePath('/path')
 
   return {

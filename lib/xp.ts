@@ -3,7 +3,7 @@ import type { Verdict } from '@/lib/sulu/types'
 /**
  * XP is derived, never stored.
  *
- * Every figure below is recomputed from task_attempts on read, exactly like the
+ * Every figure below is recomputed from activity records on read, like the
  * streak and topic mastery. There is no counter to drift, nothing for a client
  * to write, and no way for a stale value to disagree with the attempts it was
  * supposed to summarise. It also means the rules here can change and every
@@ -17,6 +17,9 @@ export type XpAttempt = {
   score: number
   createdAt: string
 }
+
+/** A lesson earns this once, on its first completion. */
+export const LESSON_XP = 5
 
 /** A wrong answer still earns something: showing up is the habit being built. */
 const VERDICT_SHARE: Record<'solved' | 'partial' | 'poor', number> = {
@@ -151,11 +154,6 @@ export function xpForVerdict(difficulty: number, verdict: Verdict): number {
  * repeated solve at a tenth. And it pays far less than a problem does: getting
  * six questions right is worth about one two-star derivation, because it is
  * worth about that much.
- *
- * Card reviews and "mark as read" deliberately pay nothing. Both are the
- * student's own claim about their own work, and both are written by the client
- * under RLS; paying for them would make the level a measure of clicking. They
- * move the topic's progress instead, where a self-report belongs.
  */
 export type XpQuizAnswer = {
   questionId: string

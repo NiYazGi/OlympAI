@@ -1,24 +1,24 @@
 <svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="180" height="180" rx="40" fill="#07080a" />
+  <rect width="180" height="180" rx="40" fill="#000000" />
   <g transform="translate(26 26) scale(2)">
     <defs>
       <linearGradient id="ring" x1="12" y1="52" x2="50" y2="8" gradientUnits="userSpaceOnUse">
-        <stop offset="0" stop-color="#ffc9c9" />
-        <stop offset="0.45" stop-color="#ff6363" />
-        <stop offset="1" stop-color="#ff9a9a" />
+        <stop offset="0" stop-color="#cfd5dc" />
+        <stop offset="0.45" stop-color="#aab5c2" />
+        <stop offset="1" stop-color="#acb5c2" />
       </linearGradient>
       <linearGradient id="leg" x1="30" y1="18" x2="56" y2="58" gradientUnits="userSpaceOnUse">
-        <stop offset="0" stop-color="#ff8a8a" />
-        <stop offset="1" stop-color="#e5484d" />
+        <stop offset="0" stop-color="#acb5c2" />
+        <stop offset="1" stop-color="#708097" />
       </linearGradient>
       <linearGradient id="fold" x1="18" y1="48" x2="34" y2="22" gradientUnits="userSpaceOnUse">
-        <stop offset="0" stop-color="#ff4f4f" />
-        <stop offset="1" stop-color="#ff7a7a" />
+        <stop offset="0" stop-color="#8895a8" />
+        <stop offset="1" stop-color="#b8c0cb" />
       </linearGradient>
     </defs>
     <path d="M44.6 46.2A21 21 0 1 1 49 30" stroke="url(#ring)" stroke-width="6.5" stroke-linecap="round" />
     <path d="M33.5 18 37.4 24.4 25.6 44.6H17.8Z" fill="url(#fold)" />
     <path d="M30 18.2c1.4-2.3 4.7-2.3 6.1 0L57 54.6h-8.2L33.5 28.4Z" fill="url(#leg)" />
-    <path d="M54 4.5 55.6 9 60 10.5 55.6 12 54 16.5 52.4 12 48 10.5 52.4 9Z" fill="#ff6363" />
+    <path d="M54 4.5 55.6 9 60 10.5 55.6 12 54 16.5 52.4 12 48 10.5 52.4 9Z" fill="#aab5c2" />
   </g>
 </svg>

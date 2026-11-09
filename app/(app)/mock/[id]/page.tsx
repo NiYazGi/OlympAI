@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft, CheckCircle2, Clock, TrendingUp, XCircle } from 'lucide-react'
 import { PageHeader } from '@/components/page-header'
+import { PreparationMockReview } from '@/components/preparation/mock-review'
 import { ExamRunner } from '@/components/mock/exam-runner'
 import { DifficultyStars } from '@/components/difficulty-stars'
 import { getMockPaper } from '@/lib/supabase/queries'
@@ -26,11 +27,11 @@ export default async function MockTestPage({ params }: { params: Promise<{ id: s
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-5 p-4 sm:gap-6 sm:p-8">
       <Link
-        href="/mock"
+        href={paper.preparation ? '/dashboard' : '/mock'}
         className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
-        {t('All mock tests')}
+        {t(paper.preparation ? 'Back to preparation route' : 'All mock tests')}
       </Link>
 
       {paper.submittedAt ? <Results paper={paper} /> : <Sitting paper={paper} />}
@@ -63,7 +64,7 @@ async function Results({ paper }: { paper: NonNullable<Awaited<ReturnType<typeof
   return (
     <>
       <PageHeader
-        title={t('{subject} mock — result', { subject: paper.subject })}
+        title={t('{subject} mock — result', { subject: t(paper.subject) })}
         description={formatDate(new Date(paper.submittedAt!), await getLocale(), {
           day: 'numeric',
           month: 'long',
@@ -83,7 +84,9 @@ async function Results({ paper }: { paper: NonNullable<Awaited<ReturnType<typeof
           />
         </div>
         <p className="mt-3 text-sm text-muted-foreground">
-          {answered} {t('of')} {paper.questions.length} {t('questions answered. The score weights each question by its difficulty, so the hard ones count for more. This level now sits on your profile.')}
+          {answered} {t('of')} {paper.questions.length} {t(paper.preparation
+            ? 'questions answered. Review the feedback before your next session.'
+            : 'questions answered. The score weights each question by its difficulty, so the hard ones count for more. This level now sits on your profile.')}
         </p>
       </section>
 
@@ -138,6 +141,9 @@ async function Results({ paper }: { paper: NonNullable<Awaited<ReturnType<typeof
           )
         })}
       </ol>
+      {paper.preparation ? (
+        <PreparationMockReview id={paper.id} reviewed={paper.reviewed} hasMistakes={paper.questions.some((question) => !question.isCorrect)} />
+      ) : null}
     </>
   )
 }

@@ -13,13 +13,15 @@ import {
 import { PageHeader } from '@/components/page-header'
 import { EmptyState } from '@/components/empty-state'
 import { ProfilePreferences } from '@/components/profile-preferences'
+import { ProfileAvatarUpload } from '@/components/profile-avatar-upload'
 import { AccuracyTrendChart, ActivityChart, TopicBarChart } from '@/components/charts-lazy'
 import { BlockSkeleton, PendingRegion, StatCardsSkeleton } from '@/components/skeletons'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { signOut } from '@/app/auth/actions'
 import { buildAchievements } from '@/lib/achievements'
+import { getAvatarSrc } from '@/lib/supabase/avatar'
 import { getCurrentProfile, getProgressAnalytics } from '@/lib/supabase/queries'
 import { cardClass, cn, initials } from '@/lib/utils'
 import { getT } from '@/lib/i18n/server'
@@ -66,7 +68,7 @@ export default async function MePage() {
 async function MeBody() {
   const t = await getT()
 
-  const [profile, analytics] = await Promise.all([getCurrentProfile(), getProgressAnalytics()])
+  const [profile, analytics, avatarSrc] = await Promise.all([getCurrentProfile(), getProgressAnalytics(), getAvatarSrc()])
   const achievements = buildAchievements(analytics)
   const earned = achievements.filter((achievement) => achievement.earned).length
   const ordered = [...achievements].sort((a, b) => {
@@ -96,6 +98,7 @@ async function MeBody() {
       <section className={`${cardClass} p-6`}>
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
           <Avatar className="size-16 shrink-0 rounded-2xl ring-1 ring-foreground/10">
+            {avatarSrc ? <AvatarImage src={avatarSrc} alt="" className="rounded-2xl" /> : null}
             <AvatarFallback className="rounded-2xl text-lg">
               {initials(profile?.full_name ?? null)}
             </AvatarFallback>
@@ -125,6 +128,7 @@ async function MeBody() {
                 </span>
               ) : null}
             </div>
+            <ProfileAvatarUpload hasAvatar={Boolean(avatarSrc)} />
           </div>
 
           <div className="shrink-0 text-center sm:text-right">

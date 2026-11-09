@@ -8,10 +8,9 @@ import { cardClass, cn } from '@/lib/utils'
 
 /** One coach's rules, the reasons the day is scored the way it is. */
 const RULES = [
-  { title: 'Two to three hours a day', body: 'Every day, including the ones where nothing is due. The habit is what carries you through the fortnight that is coming, and a week of nothing costs more than the hours it took.', where: 'Theory and Solving, on the day\'s score' },
-  { title: 'Ten to twelve hours in the last two weeks', body: 'The final stretch is a different kind of work, not more of the same. Two weeks is short enough to survive at that load and long enough to change the result.', where: 'The same two axes, in the last fortnight' },
-  { title: 'Lights out by 22:30, from two weeks out', body: 'Not for the rest. You cannot decide to fall asleep the night before the paper — you can only have been falling asleep at that hour for a fortnight already. That night is the one being rehearsed.', where: 'Sleep, in the last fortnight' },
-  { title: 'The last two days: nothing', body: 'Stop completely. Two days of rest costs nothing you could have learnt in them, and it is what makes you arrive hungry for the paper rather than sick of the subject.', where: 'Theory and Solving invert in the taper' },
+  { title: 'Your study schedule', body: 'Follow the study days and time you chose for your plan.', where: 'Preparation program' },
+  { title: 'Final two weeks', body: 'Use your study time for timed practice and reviewing mistakes.', where: 'Mock tests' },
+  { title: 'Last two days', body: 'Final two days for light review and rest.', where: 'Preparation program' },
   { title: 'Do not prepare alone', body: 'Alone it is a grind, and a grind stops. Other people are where the problems you would never have picked come from, and where the reason to keep going comes from when the score is flat.', where: 'No axis of its own — but working alone hits Head first' },
   { title: 'One thing at a time', body: 'An olympiad takes the whole of your attention. Run a startup or a side project in the same season and the olympiad is the thing that gives way — which is why the app scores a split day at nought rather than at half.', where: 'Taken: the more the rest of life took, the fewer points' },
   { title: 'More than 15 out of 25, every day', body: 'Five axes, 5 points each, and they are interchangeable on purpose. Short of the bar by five, you can solve another problem — or you can go to bed, which is worth the same five and is usually the one you were not going to spend. Reading the diagram that way is the point of having one.', where: 'The diagram on the dashboard' },

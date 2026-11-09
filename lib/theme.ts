@@ -14,4 +14,4 @@ export function isTheme(value: unknown): value is Theme {
 }
 
 /** The browser chrome colour for each theme: the page background. */
-export const THEME_COLOR: Record<Theme, string> = { light: '#f6f5f1', dark: '#151413' }
+export const THEME_COLOR: Record<Theme, string> = { light: '#ffffff', dark: '#000000' }

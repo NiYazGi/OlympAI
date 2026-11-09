@@ -75,111 +75,78 @@
   --shadow-pop: var(--popover-shadow);
 }
 
-/* Light, the default: warm paper, black ink, red only as an accent. */
+/* All interface colours are based on white, black, and navy. */
 :root {
   color-scheme: light;
-  --background: #f6f5f1;
-  --foreground: #1d1c1a;
-  --card: #ffffff;
-  --card-foreground: #1d1c1a;
-  --popover: #ffffff;
-  --popover-foreground: #1d1c1a;
-  /* Actions are ink, not brand red: a page full of red buttons reads as an ad. */
-  --primary: #1d1c1a;
-  --primary-foreground: #ffffff;
-  --secondary: #efede8;
-  --secondary-foreground: #1d1c1a;
-  --muted: #efede8;
-  --muted-foreground: #66625b;
-  --accent: #efede8;
-  --accent-foreground: #1d1c1a;
-  --destructive: #c4372b;
-  --border: #e4e1da;
-  --border-strong: #d2cec5;
-  --input: #d9d5cd;
-  --ring: #1d1c1a;
-  --brand: #d23f31;
-  --brand-soft: #fbece9;
-  --info: #2a5db0;
-  --cobalt: #244c9c;
-  --blue-soft: #eaf0fa;
-  --success: #1d7a4e;
-  --warning: #8f5d0a;
-  --chart-1: #2a5db0;
-  --chart-2: #1d7a4e;
-  --chart-3: #7a5fb8;
-  --chart-4: #a87414;
-  --chart-5: #d23f31;
+  --navy: #112b51;
+  --background: #fff;
+  --foreground: #000;
+  --card: var(--background);
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --primary: var(--foreground);
+  --primary-foreground: var(--background);
+  --secondary: color-mix(in srgb, var(--foreground) 5%, var(--background));
+  --secondary-foreground: var(--foreground);
+  --muted: var(--secondary);
+  --muted-foreground: color-mix(in srgb, var(--foreground) 65%, var(--background));
+  --accent: var(--brand-soft);
+  --accent-foreground: var(--brand);
+  --destructive: color-mix(in srgb, var(--foreground) 82%, var(--background));
+  --border: color-mix(in srgb, var(--foreground) 12%, var(--background));
+  --border-strong: color-mix(in srgb, var(--foreground) 22%, var(--background));
+  --input: var(--border-strong);
+  --ring: var(--brand);
+  --brand: var(--navy);
+  --brand-soft: color-mix(in srgb, var(--navy) 6%, var(--background));
+  --brand-highlight: color-mix(in srgb, var(--navy) 72%, var(--background));
+  --brand-contrast: var(--background);
+  --info: var(--brand-highlight);
+  --cobalt: var(--brand);
+  --blue-soft: var(--brand-soft);
+  --success: var(--brand);
+  --warning: var(--brand-highlight);
+  --chart-1: var(--brand);
+  --chart-2: var(--foreground);
+  --chart-3: var(--brand-highlight);
+  --chart-4: var(--muted-foreground);
+  --chart-5: color-mix(in srgb, var(--brand) 55%, var(--background));
   --radius: 0.625rem;
-  --sidebar: #fbfaf7;
-  --sidebar-foreground: #1d1c1a;
-  --sidebar-primary: #1d1c1a;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #efede8;
-  --sidebar-accent-foreground: #1d1c1a;
-  --sidebar-border: #e4e1da;
-  --sidebar-ring: #1d1c1a;
+  --sidebar: var(--card);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
   /* Edges, not glow: a hairline is enough to say where a card ends. */
-  --surface-shadow: 0 0 0 1px #e4e1da;
-  --surface-shadow-strong: 0 0 0 1px #d2cec5;
+  --surface-shadow: 0 0 0 1px var(--border);
+  --surface-shadow-strong: 0 0 0 1px var(--border-strong);
   --button-shadow: none;
-  --window-shadow: 0 0 0 1px #e4e1da, 0 12px 32px -16px rgb(29 28 26 / 0.18);
-  --popover-shadow: 0 0 0 1px #e4e1da, 0 10px 28px -12px rgb(29 28 26 / 0.2);
-  --glass: rgb(246 245 241 / 0.94);
-  --hero-wash: #eaf0fa;
+  --window-shadow: var(--surface-shadow), 0 12px 32px -16px rgb(0 0 0 / 0.18);
+  --popover-shadow: var(--surface-shadow), 0 10px 28px -12px rgb(0 0 0 / 0.2);
+  --glass: color-mix(in srgb, var(--background) 94%, transparent);
+  --hero-wash: var(--brand-soft);
   --hero-coral-opacity: 0.18;
 }
 
-/* Dark: warm charcoal rather than pure black, the same ink-and-accent logic. */
 .dark {
   color-scheme: dark;
-  --background: #151413;
-  --foreground: #f1efea;
-  --card: #1d1c1a;
-  --card-foreground: #f1efea;
-  --popover: #232220;
-  --popover-foreground: #f1efea;
-  --primary: #f1efea;
-  --primary-foreground: #1d1c1a;
-  --secondary: #262523;
-  --secondary-foreground: #f1efea;
-  --muted: #262523;
-  --muted-foreground: #a8a39a;
-  --accent: #262523;
-  --accent-foreground: #f1efea;
-  --destructive: #f07063;
-  --border: #2e2d2a;
-  --border-strong: #403e3a;
-  --input: #3a3835;
-  --ring: #f1efea;
-  --brand: #ef6b5d;
-  --brand-soft: #3a2421;
-  --info: #7fa8ea;
-  --cobalt: #3b64b8;
-  --blue-soft: #1c2433;
-  --success: #5fc993;
-  --warning: #e3b45a;
-  --chart-1: #7fa8ea;
-  --chart-2: #5fc993;
-  --chart-3: #a990e0;
-  --chart-4: #e3b45a;
-  --chart-5: #ef6b5d;
-  --radius: 0.625rem;
-  --sidebar: #181716;
-  --sidebar-foreground: #f1efea;
-  --sidebar-primary: #f1efea;
-  --sidebar-primary-foreground: #1d1c1a;
-  --sidebar-accent: #262523;
-  --sidebar-accent-foreground: #f1efea;
-  --sidebar-border: #2a2927;
-  --sidebar-ring: #f1efea;
-  --surface-shadow: 0 0 0 1px #2e2d2a;
-  --surface-shadow-strong: 0 0 0 1px #403e3a;
-  --button-shadow: none;
-  --window-shadow: 0 0 0 1px #2e2d2a, 0 16px 40px -16px rgb(0 0 0 / 0.6);
-  --popover-shadow: 0 0 0 1px #34322f, 0 12px 32px -12px rgb(0 0 0 / 0.6);
-  --glass: rgb(21 20 19 / 0.94);
-  --hero-wash: #1c2433;
+  --background: #000;
+  --foreground: #fff;
+  --card: color-mix(in srgb, var(--foreground) 6%, var(--background));
+  --popover: var(--secondary);
+  --secondary: color-mix(in srgb, var(--foreground) 12%, var(--background));
+  --border: color-mix(in srgb, var(--foreground) 18%, var(--background));
+  --border-strong: color-mix(in srgb, var(--foreground) 28%, var(--background));
+  --brand: color-mix(in srgb, var(--navy) 35%, var(--foreground));
+  --brand-soft: color-mix(in srgb, var(--navy) 65%, var(--background));
+  --brand-highlight: color-mix(in srgb, var(--navy) 20%, var(--foreground));
+  --brand-contrast: var(--navy);
+  --window-shadow: var(--surface-shadow), 0 16px 40px -16px rgb(0 0 0 / 0.6);
+  --popover-shadow: var(--surface-shadow), 0 12px 32px -12px rgb(0 0 0 / 0.6);
   --hero-coral-opacity: 0.5;
 }
 
@@ -205,7 +172,7 @@
   }
 
   ::selection {
-    background: rgba(255, 99, 99, 0.28);
+    background: color-mix(in srgb, var(--brand) 28%, transparent);
     color: var(--foreground);
   }
 
@@ -251,7 +218,6 @@
     border: 1px solid var(--border);
   }
 
-  /* Warm tint for the few surfaces anchored to the brand colour. */
   .surface-ember {
     background: var(--card);
     box-shadow: var(--surface-shadow);
@@ -596,7 +562,7 @@
   height: 120px;
   left: -10%;
   top: 34%;
-  background: linear-gradient(90deg, transparent, rgba(255, 99, 99, 0.85) 35%, rgba(255, 99, 99, 0.4) 65%, transparent);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand) 85%, transparent) 35%, color-mix(in srgb, var(--brand) 40%, transparent) 65%, transparent);
   transform: rotate(-14deg);
   animation: drift-a 16s var(--ease-in-out-soft) infinite alternate;
 }
@@ -606,7 +572,7 @@
   height: 60px;
   left: 20%;
   top: 52%;
-  background: linear-gradient(90deg, transparent, rgba(255, 99, 99, 0.55), transparent);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand) 55%, transparent), transparent);
   transform: rotate(-14deg);
   animation: drift-b 19s var(--ease-in-out-soft) infinite alternate;
 }
@@ -616,7 +582,7 @@
   height: 220px;
   left: -5%;
   top: 8%;
-  background: radial-gradient(closest-side, rgba(99, 161, 255, 0.6), rgba(20, 60, 163, 0.3), transparent);
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--brand-highlight) 60%, transparent), color-mix(in srgb, var(--brand) 30%, transparent), transparent);
   animation: drift-c 22s var(--ease-in-out-soft) infinite alternate;
 }
 
@@ -823,7 +789,7 @@
   background: conic-gradient(
     from var(--beam-angle),
     transparent 0deg,
-    rgba(255, 99, 99, 0.8) 40deg,
+    color-mix(in srgb, var(--brand) 80%, transparent) 40deg,
     transparent 90deg,
     transparent 360deg
   );

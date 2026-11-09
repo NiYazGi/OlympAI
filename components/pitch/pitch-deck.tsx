@@ -75,15 +75,15 @@ function DrawnLogo() {
     <svg viewBox="0 0 64 64" className="pt-draw size-[120px] overflow-visible" fill="none" aria-hidden>
       <defs>
         <linearGradient id="pt-g" x1="12" y1="52" x2="56" y2="8" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#ffc9c9" />
-          <stop offset="0.45" stopColor="#ff6363" />
-          <stop offset="1" stopColor="#e5484d" />
+          <stop offset="0" stopColor="var(--brand-highlight)" />
+          <stop offset="0.45" stopColor="var(--brand)" />
+          <stop offset="1" stopColor="var(--brand)" />
         </linearGradient>
       </defs>
       <path d="M44.6 46.2A21 21 0 1 1 49 30" stroke="url(#pt-g)" strokeWidth="6.5" strokeLinecap="round" fillOpacity="0" />
-      <path d="M33.5 18 37.4 24.4 25.6 44.6H17.8Z" stroke="#ff6363" strokeWidth="1" fill="url(#pt-g)" fillOpacity="0" />
-      <path d="M30 18.2c1.4-2.3 4.7-2.3 6.1 0L57 54.6h-8.2L33.5 28.4Z" stroke="#ff6363" strokeWidth="1" fill="url(#pt-g)" fillOpacity="0" />
-      <path d="M54 4.5 55.6 9 60 10.5 55.6 12 54 16.5 52.4 12 48 10.5 52.4 9Z" stroke="#ff6363" strokeWidth="1" fill="#ff6363" fillOpacity="0" />
+      <path d="M33.5 18 37.4 24.4 25.6 44.6H17.8Z" stroke="var(--brand)" strokeWidth="1" fill="url(#pt-g)" fillOpacity="0" />
+      <path d="M30 18.2c1.4-2.3 4.7-2.3 6.1 0L57 54.6h-8.2L33.5 28.4Z" stroke="var(--brand)" strokeWidth="1" fill="url(#pt-g)" fillOpacity="0" />
+      <path d="M54 4.5 55.6 9 60 10.5 55.6 12 54 16.5 52.4 12 48 10.5 52.4 9Z" stroke="var(--brand)" strokeWidth="1" fill="var(--brand)" fillOpacity="0" />
     </svg>
   )
 }
@@ -468,7 +468,12 @@ export function PitchDeck({ tasks, olympiads }: Props) {
   const syncColors = useCallback(() => {
     const css = getComputedStyle(document.documentElement)
     const isDark = document.documentElement.classList.contains('dark')
-    fieldRef.current?.setTheme(isDark, css.getPropertyValue('--brand').trim(), css.getPropertyValue('--foreground').trim())
+    fieldRef.current?.setTheme(
+      isDark,
+      css.getPropertyValue('--brand').trim(),
+      css.getPropertyValue('--brand-highlight').trim(),
+      css.getPropertyValue('--foreground').trim(),
+    )
   }, [])
 
   // Particles, stage scale, pointer.

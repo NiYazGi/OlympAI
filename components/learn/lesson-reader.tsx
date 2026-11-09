@@ -10,6 +10,7 @@ import { Figure } from '@/components/learn/figure'
 import type { Lesson, LessonBlock } from '@/lib/types'
 import { cardClass, cn, riseDelay } from '@/lib/utils'
 import { useT } from '@/components/i18n-provider'
+import { LESSON_XP } from '@/lib/xp'
 
 const BLOCK: Record<
   LessonBlock['kind'],
@@ -124,7 +125,7 @@ export function LessonReader({ lesson }: { lesson: Lesson }) {
         <div>
           <p className="font-medium">{completed ? t('Marked as read.') : t('Finished reading?')}</p>
           <p className="text-sm text-muted-foreground">
-            {t('Your own note to yourself — it is not a score, and nothing checks it.')}
+            {t('The first completion earns {n} XP.', { n: LESSON_XP })}
           </p>
         </div>
         <div className="flex gap-2">

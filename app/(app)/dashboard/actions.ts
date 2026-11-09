@@ -57,5 +57,6 @@ export async function saveDay(formData: FormData): Promise<DayResult> {
   if (error) return { ok: false, error: 'That did not save. Please try again.' }
 
   revalidatePath('/dashboard')
+  revalidatePath('/plan')
   return { ok: true }
 }

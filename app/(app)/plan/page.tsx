@@ -1,4 +1,7 @@
 import { Reveal } from '@/components/reveal'
+import { PreparationRoadmap } from '@/components/preparation/roadmap'
+import { PreparationSchedule } from '@/components/preparation/schedule-form'
+import { getPreparation } from '@/lib/supabase/preparation'
 import Link from 'next/link'
 import { ArrowRight, CalendarRange, Check, Flag, Lock } from 'lucide-react'
 import { PageHeader } from '@/components/page-header'
@@ -42,7 +45,9 @@ export default async function PlanPage() {
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-5 p-4 sm:gap-6 sm:p-8">
-      <PageHeader title={t('Your plan')} description={t('What the next weeks look like, and what today is for.')} />
+      <PageHeader title={t('Your plan')} description={t('What the next weeks look like, and what today is for.')}>
+        <Link href="/learn" className="text-sm text-muted-foreground underline underline-offset-2">{t('Change target')}</Link>
+      </PageHeader>
       <Reveal
         fallback={
           <>
@@ -59,6 +64,41 @@ export default async function PlanPage() {
 }
 
 async function Plan() {
+  const [preparation, t, track] = await Promise.all([getPreparation(), getT(), getStudentTrack()])
+  if (!preparation) {
+    return (
+      <EmptyState
+        icon={Flag}
+        title={t('Set a target first')}
+        body={t('A plan is a route to somewhere. Choose what you are preparing for and by when, and this page fills in.')}
+        action={{ href: '/learn', label: t('Choose a target') }}
+      />
+    )
+  }
+  const { preferences } = preparation
+  return (
+    <>
+      <PreparationRoadmap
+        key={preparation.mockPrefix}
+        plan={preparation.plan} name={preparation.name} subject={preparation.subject}
+        targetDate={preparation.targetDate} competitionSlug={preparation.competitionSlug}
+        mockPrefix={preparation.mockPrefix} variant="schedule"
+      />
+      <PreparationSchedule
+        key={`${preferences.weekdays.join(',')}:${preferences.sessionMinutes}:${preferences.schoolGrade}`}
+        preferences={preferences} grade={preparation.currentGrade} intensity={preparation.intensity} custom={preparation.customSchedule}
+      />
+      {track.from ? (
+        <details className={cn(cardClass, 'p-4')}>
+          <summary className="cursor-pointer font-medium">{t('Class plan')} · {track.from.name}</summary>
+          <div className="mt-4 grid gap-4"><TeacherPlan /></div>
+        </details>
+      ) : null}
+    </>
+  )
+}
+
+async function TeacherPlan() {
   const [goal, tasks, analytics, track, profile, t, locale] = await Promise.all([
     getGoal(),
     getTaskCatalogue(),

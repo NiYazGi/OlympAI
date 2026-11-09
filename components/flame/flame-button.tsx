@@ -28,7 +28,7 @@ function recordOnce(day: string) {
  * day. The first visit of a day lights the flame, swells it once and says how
  * long the run is now; every later visit that day changes nothing.
  *
- * Orange when today is counted, grey until it is. Clicking opens the week
+ * Highlighted when today is counted, grey until it is. Clicking opens the week
  * and the record, and the one rule there is.
  */
 export function FlameButton({ initial }: { initial: Flame }) {

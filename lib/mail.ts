@@ -107,7 +107,7 @@ export function codeLetter(purpose: CodePurpose, code: string, minutes: number, 
   const html = `<!doctype html><html><body style="margin:0;background:#f4f4f5;padding:24px 12px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#18181b">
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center">
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:460px;background:#ffffff;border-radius:14px;padding:28px">
-<tr><td style="font-size:18px;font-weight:600;padding-bottom:18px">Olymp<span style="color:#ff6363">AI</span></td></tr>
+<tr><td style="font-size:18px;font-weight:600;padding-bottom:18px">Olymp<span style="color:#112b51">AI</span></td></tr>
 <tr><td style="font-size:15px;line-height:1.55;padding-bottom:18px">${letter.lead}</td></tr>
 <tr><td align="center" style="padding-bottom:18px"><div style="display:inline-block;font-family:SFMono-Regular,Consolas,Menlo,monospace;font-size:32px;font-weight:600;letter-spacing:8px;background:#f4f4f5;border-radius:10px;padding:14px 22px">${code}</div></td></tr>
 <tr><td style="font-size:13px;line-height:1.55;color:#52525b">${fill(copy.valid, vars)} ${letter.ignore}</td></tr>

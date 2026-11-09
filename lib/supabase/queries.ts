@@ -2,11 +2,13 @@ import 'server-only'
 
 import { cache } from 'react'
 import { getSessionUserId } from '@/lib/supabase/auth'
+import { defaultPreparationPreferences } from '@/lib/preparation'
 import { getReference } from '@/lib/supabase/reference'
 import { getFlame } from '@/lib/supabase/visits'
 import { pointsFromScore, protocolFromRow, verdictOf, type Protocol } from '@/lib/protocol'
 import { createClient } from '@/lib/supabase/server'
 import {
+  LESSON_XP,
   levelFromXp,
   quizXp,
   quizXpOnDay,
@@ -86,15 +88,28 @@ export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
   return data
 })
 
+export const getPreparationSettings = cache(async () => {
+  const profile = await getCurrentProfile()
+  const defaults = defaultPreparationPreferences(profile?.training_intensity)
+  if (!profile) return { preferences: defaults, custom: false }
+
+  const supabase = await createClient()
+  const { data } = await supabase.from('preparation_preferences')
+    .select('weekdays, session_minutes, school_grade').eq('user_id', profile.id).maybeSingle()
+  return data
+    ? { preferences: { weekdays: data.weekdays, sessionMinutes: data.session_minutes, schoolGrade: data.school_grade }, custom: true }
+    : { preferences: defaults, custom: false }
+})
+
 /** Every attempt this user has made. One query, shared by the whole render. */
-const getAttempts = cache(async () => {
+export const getAttempts = cache(async () => {
   const userId = await getSessionUserId()
   if (!userId) return []
 
   const supabase = await createClient()
   const { data } = await supabase
     .from('task_attempts')
-    .select('task_id, is_correct, score, created_at')
+    .select('task_id, is_correct, score, created_at, mock_test_id')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
   return data ?? []
@@ -116,6 +131,16 @@ const getQuizAnswers = cache(async (): Promise<XpQuizAnswer[]> => {
     createdAt: row.created_at,
   }))
 })
+
+async function getFirstLessonCompletions() {
+  const userId = await getSessionUserId()
+  if (!userId) return []
+
+  const supabase = await createClient()
+  const { data } = await supabase.from('lesson_views').select('first_completed_at')
+    .eq('user_id', userId).not('first_completed_at', 'is', null)
+  return (data ?? []).flatMap(({ first_completed_at }) => first_completed_at ? [first_completed_at] : [])
+}
 
 /**
  * The task catalogue.
@@ -406,19 +431,20 @@ export const getGoal = cache(async (): Promise<Goal> => {
 
 export const getProgressAnalytics = cache(async (): Promise<ProgressAnalytics> => {
 
-  const [attemptsList, reference, profile, quizAnswers, flame] = await Promise.all([
+  const [attemptsList, reference, profile, quizAnswers, flame, lessonCompletions] = await Promise.all([
     getAttempts(),
     getReference(),
     getCurrentProfile(),
     getQuizAnswers(),
     getFlame(),
+    getFirstLessonCompletions(),
   ])
   const goal = profile?.daily_xp_goal ?? 50
 
   // A student who has read lessons and answered questions but not yet submitted
   // a derivation used to fall through here with a blank profile: zero XP, zero
   // streak, and a dashboard that had just told them to do exactly that.
-  if (attemptsList.length === 0 && quizAnswers.length === 0) {
+  if (attemptsList.length === 0 && quizAnswers.length === 0 && lessonCompletions.length === 0) {
     return {
       ...emptyAnalytics,
       currentLevel: profile?.level ?? null,
@@ -506,11 +532,9 @@ export const getProgressAnalytics = cache(async (): Promise<ProgressAnalytics> =
     score: attempt.score,
     createdAt: attempt.created_at,
   }))
-  // Both halves of the ladder that produce evidence: solved problems and
-  // answered questions. Card reviews and "mark as read" are the student's own
-  // claim about their own work and are written by the client, so they move the
-  // topic's progress and not the level.
-  const xpTotal = totalXp(xpAttempts) + quizXp(quizAnswers)
+  const today = utcDay(new Date())
+  const xpTotal = totalXp(xpAttempts) + quizXp(quizAnswers) + lessonCompletions.length * LESSON_XP
+  const lessonXpToday = lessonCompletions.filter((date) => utcDay(date) === today).length * LESSON_XP
   const progress = levelFromXp(xpTotal)
 
   const correctAnswers = attemptsList.filter((attempt) => attempt.is_correct).length
@@ -546,9 +570,7 @@ export const getProgressAnalytics = cache(async (): Promise<ProgressAnalytics> =
     ].slice(0, 3),
     xp: {
       total: xpTotal,
-      today:
-        xpOnDay(xpAttempts, utcDay(new Date())) +
-        quizXpOnDay(quizAnswers, utcDay(new Date())),
+      today: xpOnDay(xpAttempts, today) + quizXpOnDay(quizAnswers, today) + lessonXpToday,
       goal,
       level: progress.level,
       intoLevel: progress.into,
@@ -578,6 +600,8 @@ export type MockPaper = {
   submittedAt: string | null
   scorePercent: number | null
   level: string | null
+  preparation: boolean
+  reviewed: boolean
   questions: {
     id: string
     title: string
@@ -633,7 +657,7 @@ export const getMockPaper = cache(async (id: string): Promise<MockPaper | null> 
   const supabase = await createClient()
   const { data: test } = await supabase
     .from('mock_tests')
-    .select('id, subject_id, task_ids, duration_minutes, started_at, submitted_at, score_percent, level')
+    .select('id, subject_id, task_ids, duration_minutes, started_at, submitted_at, score_percent, level, preparation_key, preparation_reviewed_at')
     .eq('id', id)
     .eq('user_id', userId)
     .maybeSingle()
@@ -659,6 +683,8 @@ export const getMockPaper = cache(async (id: string): Promise<MockPaper | null> 
     submittedAt: test.submitted_at,
     scorePercent: test.score_percent,
     level: test.level,
+    preparation: Boolean(test.preparation_key),
+    reviewed: Boolean(test.preparation_reviewed_at),
     questions: test.task_ids.flatMap((taskId) => {
       const task = taskById.get(taskId)
       if (!task) return []

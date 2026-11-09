@@ -4,23 +4,18 @@ import { ViewTransition } from 'react'
 import { CalendarRange, GraduationCap } from 'lucide-react'
 import { PageHeader } from '@/components/page-header'
 import { EmptyState } from '@/components/empty-state'
-import { NextActionCard, ScopeNote } from '@/components/learn/next-action-card'
+import { ScopeNote } from '@/components/learn/next-action-card'
 import { GoalSetup } from '@/components/path/goal-setup'
 import { GoalSummary } from '@/components/path/goal-summary'
 import { TargetPicker } from '@/components/path/target-picker'
-import { WeekRhythm } from '@/components/path/week-rhythm'
 import { BlockSkeleton, PendingRegion } from '@/components/skeletons'
-import { getNextAction, getStudyOverview } from '@/lib/supabase/study'
+import { getStudyOverview } from '@/lib/supabase/study'
 import {
   getCompetitionOptions,
   getCurrentProfile,
   getGoal,
-  getProgressAnalytics,
   getSubjectSummary,
-  getTaskCatalogue,
 } from '@/lib/supabase/queries'
-import { buildPath } from '@/lib/path'
-import { planForGoal, readiness } from '@/lib/goal'
 import { cardClass, cn, riseDelay } from '@/lib/utils'
 import { getT } from '@/lib/i18n/server'
 
@@ -45,13 +40,12 @@ export default async function LearnPage({
         title={t('Learn')}
         description={t('Your target, and the route to it: read it, check you followed it, remember it, then solve with it.')}
       >
-        {/* The plan left the navigation; it opens from here. */}
         <Link
           href="/plan"
           prefetch
           className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-foreground/[0.03] px-3 text-sm text-foreground shadow-key hover:bg-foreground/[0.07]"
         >
-          <CalendarRange className="size-4" /> {t('Week-by-week plan')}
+          <CalendarRange className="size-4" /> {t('Preparation program')}
         </Link>
       </PageHeader>
       <Reveal
@@ -71,15 +65,12 @@ export default async function LearnPage({
 async function Plan({ showAll }: { showAll: boolean }) {
   const t = await getT()
 
-  const [action, surface, goal, competitions, subjects, analytics, tasks, profile] =
+  const [surface, goal, competitions, subjects, profile] =
     await Promise.all([
-      getNextAction(),
       getStudyOverview(showAll),
       getGoal(),
       getCompetitionOptions(),
       getSubjectSummary(),
-      getProgressAnalytics(),
-      getTaskCatalogue(),
       getCurrentProfile(),
     ])
 
@@ -109,23 +100,13 @@ async function Plan({ showAll }: { showAll: boolean }) {
     )
   }
 
-  const path = buildPath(tasks, goal.subjectName)
-  const attemptsLastWeek = analytics.recentActivity.reduce((sum, day) => sum + day.problems, 0)
-  const plan = planForGoal(path, goal.targetDate, attemptsLastWeek, profile?.training_intensity ?? null, goal.goalSetAt)
-  const ready = readiness(path, analytics.hasData ? analytics.accuracy : null)
-
   return (
     <>
       <GoalSummary
         goal={goal}
-        plan={plan}
-        ready={ready}
         competitions={competitions}
         subjects={subjects}
-        next={path.next}
       />
-
-      <NextActionCard action={action} />
 
       <div className="flex flex-col gap-4">
         <ScopeNote
@@ -213,7 +194,6 @@ async function Plan({ showAll }: { showAll: boolean }) {
         )}
       </div>
 
-      <WeekRhythm analytics={analytics} intensity={profile?.training_intensity ?? null} />
     </>
   )
 }

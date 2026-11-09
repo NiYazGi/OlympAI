@@ -1,20 +1,7 @@
 /**
- * The day, scored on five axes that can be traded against each other.
- *
- * The rest of the app measures output — problems solved, questions answered,
- * papers sat. That is half of a day. The other half is what the day was made
- * of: what was read, what was attempted, how the head was, how the night went,
- * and how much of the day was never yours to begin with.
- *
- * Five axes, five points each, and the bar is more than fifteen out of
- * twenty-five. That is deliberately reachable in several ways. A student four
- * points short can solve another problem, or they can go to bed — and seeing
- * those two priced the same is the whole reason the diagram exists. It is not
- * a scoreboard; it is a way of noticing that the cheapest four points tonight
- * are usually not the ones you were about to spend three hours on.
- *
- * Pure, and every figure is passed in already measured. Nothing here reads a
- * database, so the rules can be argued with, and changed, on their own.
+ * The day, scored across theory, problem solving, energy, sleep and workload.
+ * Study thresholds follow the student's session length. The final two days
+ * use the rest bands. The planner reads the raw check-in when it adjusts today.
  */
 import type { Translate } from '@/lib/i18n/config'
 
@@ -44,7 +31,6 @@ function dayCopy(t: Translate) {
       loadNone: t('The day was yours'),
     },
     gap: {
-      lightsOut: (at: string) => t('In bed by {at}: +1', { at }),
       sleep: (n: number) => t('Eight hours tonight: +{n}', { n }),
       stop: (n: number) => t('Stop for the day: +{n}', { n }),
       more: (time: string, n: number) => t('{time} more: +{n}', { time, n }),
@@ -56,16 +42,15 @@ function dayCopy(t: Translate) {
     phase: {
       base: {
         label: t('Base'),
-        rule: t('Two to three hours a day, every day. The days you do not feel like it are the ones being counted.'),
+        rule: t('Follow the study days and time you chose for your plan.'),
       },
       crunch: {
         label: t('Final two weeks'),
-        rule: (at: string) =>
-          t('Ten to twelve hours a day, and lights out by {at} — the night before the paper is the one you are rehearsing.', { at }),
+        rule: t('Use your study time for timed practice and reviewing mistakes.'),
       },
       taper: {
         label: t('Last two days'),
-        rule: t('Nothing. Rest completely, so you arrive hungry for it rather than sick of it.'),
+        rule: t('Final two days for light review and rest.'),
       },
     },
   }
@@ -74,9 +59,9 @@ function dayCopy(t: Translate) {
 /** Where in the run-up the student is. Everything below is scored differently. */
 export type Phase = 'base' | 'crunch' | 'taper'
 
-/** The last fortnight, when the load goes up and the bedtime starts to matter. */
+/** The last fortnight shifts the emphasis toward timed practice. */
 export const CRUNCH_DAYS = 14
-/** The last two days, when the right move is to stop. */
+/** The last two days are for light review and rest. */
 export const TAPER_DAYS = 2
 export const LIGHTS_OUT = '22:30'
 
@@ -88,8 +73,7 @@ export const DAY_TARGET = 15
 /** The label and the rule for a phase, in the reader's language. */
 export function phaseCopy(phase: Phase, t: Translate): { label: string; rule: string } {
   const copy = dayCopy(t).phase
-  if (phase === 'crunch') return { label: copy.crunch.label, rule: copy.crunch.rule(LIGHTS_OUT) }
-  return phase === 'taper' ? copy.taper : copy.base
+  return copy[phase]
 }
 
 export type DayInputs = {
@@ -174,37 +158,14 @@ const hours = (minutes: number, t: Translate) => {
   return rest === 0 ? t('{n} h', { n: whole }) : `${t('{n} h', { n: whole })} ${t('{n} min', { n: rest })}`
 }
 
-/**
- * How much of each kind of work a full day holds, by phase.
- *
- * Two to three hours in the base phase, ten to twelve in the last fortnight —
- * split between reading and solving in roughly one to two, because the
- * problems are where the hours have to end up. The taper wants neither.
- */
-const THEORY: Record<Phase, readonly number[]> = {
-  base: [10, 20, 30, 45, 60],
-  crunch: [45, 90, 135, 180, 240],
-  taper: [],
+/** Five bands scale to the student's available time. */
+function studyBands(minutes: number) {
+  return [0.2, 0.4, 0.6, 0.8, 1].map((share) => Math.max(1, Math.round(minutes * share)))
 }
-const SOLVING: Record<Phase, readonly number[]> = {
-  base: [20, 40, 60, 90, 120],
-  crunch: [90, 180, 300, 420, 540],
-  taper: [],
-}
-/** Minutes the rest of life may take before it starts costing points. */
-const LOAD_CEILINGS: Record<Phase, readonly number[]> = {
-  base: [480, 390, 300, 210, 120],
-  crunch: [300, 240, 180, 120, 60],
-  taper: [480, 390, 300, 210, 120],
-}
-/** In the taper both kinds of work are scored for being absent. */
-const RESTING: readonly number[] = [240, 180, 120, 60, 30]
+const LOAD_CEILINGS = [480, 390, 300, 210, 120]
+const RESTING = [60, 45, 30, 20, 15]
 
-export function hoursTarget(phase: Phase): number {
-  return (THEORY[phase][4] ?? 0) + (SOLVING[phase][4] ?? 0)
-}
-
-function theoryAxis(input: DayInputs, phase: Phase, t: Translate): Axis {
+function theoryAxis(input: DayInputs, phase: Phase, t: Translate, minutes: number): Axis {
   const copy = dayCopy(t)
   if (phase === 'taper') {
     const score = reverseBand(input.theoryMinutes, RESTING)
@@ -216,7 +177,7 @@ function theoryAxis(input: DayInputs, phase: Phase, t: Translate): Axis {
       gap: score === AXIS_MAX ? null : copy.gap.stop(AXIS_MAX - score),
     }
   }
-  const thresholds = THEORY[phase]
+  const thresholds = studyBands(minutes)
   const score = band(input.theoryMinutes, thresholds)
   const missing = AXIS_MAX - score
   return {
@@ -244,6 +205,7 @@ function solvingAxis(
   phase: Phase,
   graded: { today: number; goal: number },
   t: Translate,
+  minutes: number,
 ): Axis {
   const copy = dayCopy(t)
   if (phase === 'taper') {
@@ -256,7 +218,7 @@ function solvingAxis(
       gap: score === AXIS_MAX ? null : copy.gap.leaveIt,
     }
   }
-  const thresholds = SOLVING[phase]
+  const thresholds = studyBands(minutes)
   const reported = band(input.solvingMinutes, thresholds)
   const seen = graded.goal > 0 ? band(graded.today / graded.goal, [0.15, 0.35, 0.6, 0.8, 1]) : 0
   const score = Math.max(reported, seen)
@@ -296,29 +258,15 @@ function mentalAxis(input: DayInputs, t: Translate): Axis {
   }
 }
 
-function sleepAxis(input: DayInputs, phase: Phase, t: Translate): Axis {
+function sleepAxis(input: DayInputs, t: Translate): Axis {
   const copy = dayCopy(t)
-  // Eight hours is the fifth point, and from two weeks out the fifth point also
-  // needs the bedtime: sleeping eight hours starting at two in the morning
-  // trains you to be asleep at the hour the paper starts.
-  const earned = band(input.sleepHours, [5, 6, 7, 7.5, 8])
-  const capped = phase === 'base' || input.lightsOut ? earned : Math.min(earned, 4)
-  const missing = AXIS_MAX - capped
-
+  const score = band(input.sleepHours, [5, 6, 7, 7.5, 8])
   return {
     key: 'sleep',
     label: copy.axes.sleep,
-    score: capped,
-    detail:
-      input.sleepHours === 0
-        ? copy.detail.notRecorded
-        : copy.detail.sleepHours(input.sleepHours, input.lightsOut, LIGHTS_OUT),
-    gap:
-      missing === 0
-        ? null
-        : capped === 4 && !input.lightsOut && phase !== 'base'
-          ? copy.gap.lightsOut(LIGHTS_OUT)
-          : copy.gap.sleep(missing),
+    score,
+    detail: input.sleepHours === 0 ? copy.detail.notRecorded : copy.detail.sleepHours(input.sleepHours, input.lightsOut, LIGHTS_OUT),
+    gap: score === AXIS_MAX || input.sleepHours === 0 ? null : copy.gap.sleep(AXIS_MAX - score),
   }
 }
 
@@ -332,7 +280,7 @@ function sleepAxis(input: DayInputs, phase: Phase, t: Translate): Axis {
  * day — which is exactly why it belongs on the diagram. A week that keeps
  * scoring two here is a week that needs a conversation, not more effort.
  */
-function loadAxis(input: DayInputs, phase: Phase, t: Translate): Axis {
+function loadAxis(input: DayInputs, t: Translate): Axis {
   const copy = dayCopy(t)
   if (!input.reported) {
     return {
@@ -343,7 +291,7 @@ function loadAxis(input: DayInputs, phase: Phase, t: Translate): Axis {
       gap: copy.gap.load(AXIS_MAX),
     }
   }
-  const score = reverseBand(input.loadMinutes, LOAD_CEILINGS[phase])
+  const score = reverseBand(input.loadMinutes, LOAD_CEILINGS)
   const missing = AXIS_MAX - score
   return {
     key: 'load',
@@ -383,13 +331,15 @@ export function scoreDay(
   phase: Phase,
   graded: { today: number; goal: number },
   t: Translate,
+  sessionMinutes = 45,
 ): DayScore {
+  const theoryMinutes = Math.round(sessionMinutes / 3)
   const axes: Axis[] = [
-    theoryAxis(input, phase, t),
-    solvingAxis(input, phase, graded, t),
+    theoryAxis(input, phase, t, theoryMinutes),
+    solvingAxis(input, phase, graded, t, sessionMinutes - theoryMinutes),
     mentalAxis(input, t),
-    sleepAxis(input, phase, t),
-    loadAxis(input, phase, t),
+    sleepAxis(input, t),
+    loadAxis(input, t),
   ]
 
   const total = axes.reduce((sum, axis) => sum + axis.score, 0)

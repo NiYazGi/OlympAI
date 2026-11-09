@@ -86,7 +86,7 @@ export function MobileNav({ role = 'student', inClass = false }: { role?: 'stude
                 <ViewTransition name="tab-active" share="morph" default="none">
                   <span
                     aria-hidden
-                    className="absolute inset-x-4 top-0 h-px rounded-full bg-coral shadow-[0_0_12px_rgba(255,99,99,0.8)]"
+                    className="absolute inset-x-4 top-0 h-px rounded-full bg-coral"
                   />
                 </ViewTransition>
               ) : null}

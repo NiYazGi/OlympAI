@@ -21,15 +21,11 @@ export const TOUR_COPY = {
   },
   stats: {
     title: 'Your numbers',
-    body: 'Your streak of days, today’s points, and how long is left until the olympiad. The details are on Progress.',
+    body: 'The bar below your route fills as you earn XP towards your daily goal.',
   },
   flame: {
     title: 'Your flame',
     body: 'Every day you open OlympAI, the flame grows by one. Miss a whole day and it starts again — so drop in daily, even for five minutes.',
-  },
-  day: {
-    title: 'Score the day',
-    body: 'Once a day, mark five things: theory, solving, head, sleep and what the rest of life took. The bar is more than 15 of 25, and the card says where the missing points are cheapest tonight.',
   },
   plan: {
     title: 'Your plan',
@@ -104,7 +100,6 @@ const STUDENT: TourStep[] = [
   { key: 'today', targets: ['today'] },
   { key: 'stats', targets: ['stats'] },
   { key: 'flame', targets: ['flame'] },
-  { key: 'day', targets: ['day'] },
   { key: 'plan', targets: ['nav:/learn'] },
   { key: 'learn', targets: ['nav:/learn'] },
   { key: 'tasks', targets: ['nav:/tasks'] },

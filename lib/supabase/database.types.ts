@@ -9,6 +9,12 @@ export type Database = {
         Update: { full_name?: string | null; username?: string | null; grade?: string | null; primary_subject?: string | null; level?: string | null; goal?: string | null; target_competition_type?: string | null; training_intensity?: string | null; onboarding_completed_at?: string | null; daily_xp_goal?: number; target_subject_id?: string | null; target_competition_id?: string | null; target_date?: string | null; goal_set_at?: string | null; is_admin?: boolean; target_university?: string | null; telegram_username?: string | null; telegram_chat_id?: number | null; telegram_linked_at?: string | null; telegram_link_code?: string | null; tour_completed_at?: string | null; role?: string }
         Relationships: []
       }
+      profile_avatars: {
+        Row: { user_id: string; webp_base64: string; updated_at: string }
+        Insert: { user_id: string; webp_base64: string; updated_at?: string }
+        Update: { webp_base64?: string; updated_at?: string }
+        Relationships: []
+      }
       subjects: {
         Row: { id: string; name: string; slug: string; active: boolean }
         Insert: { id?: string; name: string; slug: string; active?: boolean }
@@ -42,9 +48,8 @@ export type Database = {
         Relationships: []
       }
       lesson_views: {
-        // The student's own claim about their own reading. Pays nothing and
-        // unlocks nothing, so RLS lets them write it directly.
-        Row: { id: string; user_id: string; lesson_id: string; opened_at: string; completed_at: string | null }
+        // The read flag is self-reported. A trigger sets the first completion.
+        Row: { id: string; user_id: string; lesson_id: string; opened_at: string; completed_at: string | null; first_completed_at: string | null }
         Insert: { id?: string; user_id: string; lesson_id: string; opened_at?: string; completed_at?: string | null }
         Update: { opened_at?: string; completed_at?: string | null }
         Relationships: []
@@ -127,12 +132,18 @@ export type Database = {
         Update: { kind?: string; title?: string; url?: string; description?: string | null; licence?: string; attribution?: string | null; position?: number }
         Relationships: []
       }
+      preparation_preferences: {
+        Row: { user_id: string; weekdays: number[]; session_minutes: number; school_grade: number | null }
+        Insert: { user_id: string; weekdays: number[]; session_minutes: number; school_grade?: number | null }
+        Update: { weekdays?: number[]; session_minutes?: number; school_grade?: number | null }
+        Relationships: []
+      }
       mock_tests: {
         // Written only through the service-role client: a client that could
         // compose its own paper could compose an easy one.
-        Row: { id: string; user_id: string; subject_id: string; task_ids: string[]; duration_minutes: number; started_at: string; submitted_at: string | null; score_percent: number | null; level: string | null; created_at: string }
-        Insert: { id?: string; user_id: string; subject_id: string; task_ids: string[]; duration_minutes: number; started_at?: string; submitted_at?: string | null; score_percent?: number | null; level?: string | null }
-        Update: { submitted_at?: string | null; score_percent?: number | null; level?: string | null }
+        Row: { id: string; user_id: string; subject_id: string; task_ids: string[]; duration_minutes: number; started_at: string; submitted_at: string | null; score_percent: number | null; level: string | null; created_at: string; preparation_key: string | null; preparation_reviewed_at: string | null }
+        Insert: { id?: string; user_id: string; subject_id: string; task_ids: string[]; duration_minutes: number; started_at?: string; submitted_at?: string | null; score_percent?: number | null; level?: string | null; preparation_key?: string | null; preparation_reviewed_at?: string | null }
+        Update: { submitted_at?: string | null; score_percent?: number | null; level?: string | null; preparation_key?: string | null; preparation_reviewed_at?: string | null }
         Relationships: []
       }
       competition_registrations: {

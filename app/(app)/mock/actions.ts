@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { getDb } from '@/lib/db'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getVerifiedUser } from '@/lib/supabase/auth'
 import { createClient } from '@/lib/supabase/server'
@@ -90,7 +91,7 @@ export async function submitMock(testId: string, answers: Record<string, string>
   const supabase = await createClient()
   const { data: test } = await supabase
     .from('mock_tests')
-    .select('id, user_id, task_ids, submitted_at, started_at, duration_minutes')
+    .select('id, user_id, task_ids, submitted_at, started_at, duration_minutes, preparation_key')
     .eq('id', testId)
     .eq('user_id', user.id)
     .maybeSingle()
@@ -149,27 +150,6 @@ export async function submitMock(testId: string, answers: Record<string, string>
     }
   }
 
-  const { error: insertError } = await admin.from('task_attempts').insert(
-    graded.map(({ task, answer, grade }) => ({
-      task_id: task.id,
-      user_id: user.id,
-      answer,
-      is_correct: grade.verdict === 'correct',
-      score: grade.score,
-      feedback: grade.feedback,
-      graded_by: grade.redacted ? 'model:redacted' : 'model',
-      model: grade.model,
-      points: grade.points,
-      summary: grade.summary,
-      marks: grade.marks,
-      criteria: grade.criteria,
-      break_point: grade.breakPoint,
-      mock_test_id: test.id,
-      source: 'mock',
-    })),
-  )
-  if (insertError) return { ok: false, error: t('Your answers could not be saved. Please try again.') }
-
   // Unanswered questions score zero: leaving a problem blank is part of the
   // result, not an absence of one.
   const outcome = scoreMock(
@@ -183,24 +163,58 @@ export async function submitMock(testId: string, answers: Record<string, string>
     }),
   )
 
-  await admin
-    .from('mock_tests')
-    .update({
-      submitted_at: new Date().toISOString(),
-      score_percent: outcome.scorePercent,
-      level: outcome.level,
-    })
-    .eq('id', test.id)
+  // Finish the test and record its attempts together. A concurrent retry
+  // cannot grade the same paper into the student's history a second time.
+  try {
+    const db = await getDb()
+    const saved = await db.transaction(async (tx) => {
+      const { rows } = await tx.query(
+        `update public.mock_tests set submitted_at = now(), score_percent = $3, level = $4
+         where id = $1 and user_id = $2 and submitted_at is null returning id`,
+        [test.id, user.id, outcome.scorePercent, test.preparation_key ? null : outcome.level],
+      )
+      if (!rows.length) return false
 
-  // The measured level replaces the one the student guessed at during setup.
-  await admin.from('profiles').update({ level: outcome.level }).eq('id', user.id)
+      const attempts = graded.map(({ task, answer, grade }) => ({
+        task_id: task.id,
+        answer,
+        is_correct: grade.verdict === 'correct',
+        score: grade.score,
+        feedback: grade.feedback,
+        graded_by: grade.redacted ? 'model:redacted' : 'model',
+        model: grade.model,
+        points: grade.points,
+        summary: grade.summary,
+        marks: grade.marks,
+        criteria: grade.criteria,
+        break_point: grade.breakPoint,
+      }))
+      await tx.query(
+        `insert into public.task_attempts (
+          task_id, user_id, answer, is_correct, score, feedback, graded_by, model,
+          points, summary, marks, criteria, break_point, mock_test_id, source
+        )
+        select task_id, $2, answer, is_correct, score, feedback, graded_by, model,
+          points, summary, marks, criteria, break_point, $3, 'mock'
+        from jsonb_populate_recordset(null::public.task_attempts, $1::jsonb)`,
+        [JSON.stringify(attempts), user.id, test.id],
+      )
+      if (!test.preparation_key) {
+        await tx.query('update public.profiles set level = $2 where id = $1', [user.id, outcome.level])
+      }
+      return true
+    })
+    if (!saved) return { ok: false, error: t('This test has already been submitted.') }
+  } catch {
+    return { ok: false, error: t('Your answers could not be saved. Please try again.') }
+  }
 
   revalidatePath('/mock')
   revalidatePath(`/mock/${test.id}`)
   revalidatePath('/dashboard')
+  revalidatePath('/plan')
   revalidatePath('/me')
   revalidatePath('/path')
-  revalidatePath('/me')
   return { ok: true }
 }
 

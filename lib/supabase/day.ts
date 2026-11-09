@@ -3,7 +3,7 @@ import 'server-only'
 import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { getSessionUserId } from '@/lib/supabase/auth'
-import { getGoal, getProgressAnalytics } from '@/lib/supabase/queries'
+import { getGoal, getPreparationSettings, getProgressAnalytics } from '@/lib/supabase/queries'
 import { getT } from '@/lib/i18n/server'
 import {
   EMPTY_DAY,
@@ -47,16 +47,17 @@ function daysUntil(targetDate: string | null, now = new Date()): number | null {
  */
 export const getDayStatus = cache(async (): Promise<DayStatus> => {
   const date = utcToday()
-  const [goal, analytics, t] = await Promise.all([getGoal(), getProgressAnalytics(), getT()])
+  const [goal, analytics, { preferences }, t] = await Promise.all([getGoal(), getProgressAnalytics(), getPreparationSettings(), getT()])
   const daysLeft = daysUntil(goal.targetDate)
   const phase = phaseFor(daysLeft)
+  const minutes = preferences.sessionMinutes
   const graded = { today: analytics.xp.today, goal: analytics.xp.goal }
 
   const blank: DayStatus = {
     date,
     inputs: EMPTY_DAY,
     recorded: false,
-    score: scoreDay(EMPTY_DAY, phase, graded, t),
+    score: scoreDay(EMPTY_DAY, phase, graded, t, minutes),
     daysLeft,
   }
 
@@ -83,5 +84,5 @@ export const getDayStatus = cache(async (): Promise<DayStatus> => {
     reported: true,
   }
 
-  return { date, inputs, recorded: true, score: scoreDay(inputs, phase, graded, t), daysLeft }
+  return { date, inputs, recorded: true, score: scoreDay(inputs, phase, graded, t, minutes), daysLeft }
 })

@@ -88,6 +88,8 @@ export async function answerQuizQuestion(
   if (error) return { ok: false, error: t('Your answer could not be saved. Please try again.') }
 
   revalidatePath('/learn')
+  revalidatePath('/dashboard')
+  revalidatePath('/plan')
 
   return {
     ok: true,
@@ -104,9 +106,8 @@ export async function answerQuizQuestion(
 /**
  * Opening and finishing a lesson.
  *
- * Both are the student's own account of their own reading, they pay no XP and
- * unlock nothing, so they go through the caller's session under RLS rather
- * than through the service role.
+ * The read flag is self-reported and goes through the caller's session under
+ * RLS. A trigger preserves the first completion for XP.
  */
 export async function markLessonOpened(lessonId: string): Promise<ActionResult> {
   const t = await getT()
@@ -150,7 +151,9 @@ export async function setLessonComplete(
   if (error) return { ok: false, error: t('Could not save that. Please try again.') }
 
   revalidatePath('/learn')
-  revalidatePath(`/learn`)
+  revalidatePath('/dashboard')
+  revalidatePath('/plan')
+  revalidatePath('/me')
   return { ok: true }
 }
 

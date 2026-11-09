@@ -49,7 +49,7 @@ export type { NextAction } from '@/lib/next-action'
  */
 
 /** Everything personal the ladder needs, in four queries for the whole render. */
-const getStudyProgress = cache(async () => {
+export const getStudyProgress = cache(async () => {
   const userId = await getSessionUserId()
   if (!userId) {
     return { userId: null, quiz: [], reviews: [], views: [], ownCards: [], attempts: [] }
@@ -58,15 +58,15 @@ const getStudyProgress = cache(async () => {
   const supabase = await createClient()
   const [{ data: quiz }, { data: reviews }, { data: views }, { data: ownCards }, { data: attempts }] =
     await Promise.all([
-      supabase.from('quiz_attempts').select('question_id, chosen_index, is_correct, created_at'),
-      supabase.from('flashcard_reviews').select('card_id, rating, created_at'),
-      supabase.from('lesson_views').select('lesson_id, opened_at, completed_at'),
+      supabase.from('quiz_attempts').select('question_id, chosen_index, is_correct, created_at').eq('user_id', userId),
+      supabase.from('flashcard_reviews').select('card_id, rating, created_at').eq('user_id', userId),
+      supabase.from('lesson_views').select('lesson_id, opened_at, completed_at').eq('user_id', userId),
       supabase
         .from('flashcards')
         .select('id, topic_id, front, back, position, created_at')
         .eq('user_id', userId)
         .order('created_at', { ascending: true }),
-      supabase.from('task_attempts').select('task_id, is_correct'),
+      supabase.from('task_attempts').select('task_id, is_correct').eq('user_id', userId),
     ])
 
   return {

@@ -27,10 +27,8 @@ const MARK_LABEL: Record<MarkKind, string> = {
  * Points first, large, because they are what a student looks for. Then the
  * student's own lines, numbered, with a bracket in the right margin over every
  * run the jury marked and a numbered circle at its top; lines the jury
- * accepted carry nothing, so quiet means accepted. Three colours, one meaning
- * each on every screen: white a strong idea, amber a step that needs a reason,
- * coral a mistake. Underneath, the legend says what each number is, then the
- * marking scheme, the feedback and the next step.
+ * accepted carry nothing, so quiet means accepted. The legend identifies each
+ * numbered mark before the marking scheme, feedback and next step.
  */
 export function AttemptProtocol({
   protocol,

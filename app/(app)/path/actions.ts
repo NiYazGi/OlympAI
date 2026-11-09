@@ -14,6 +14,8 @@ const MAX_HORIZON_DAYS = 730
 
 function revalidateGoalViews() {
   revalidatePath('/path')
+  revalidatePath('/learn')
+  revalidatePath('/plan')
   revalidatePath('/dashboard')
   revalidatePath('/olympiads')
 }
@@ -49,7 +51,7 @@ export async function setGoal(formData: FormData): Promise<GoalResult> {
   const today = new Date()
   const start = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
   const days = Math.round((target.getTime() - start) / 86_400_000)
-  if (Number.isNaN(days) || days < 1) {
+  if (Number.isNaN(days) || target.toISOString().slice(0, 10) !== targetDate || days < 1) {
     return { ok: false, error: t('Pick a date in the future.') }
   }
   if (days > MAX_HORIZON_DAYS) {
@@ -59,12 +61,15 @@ export async function setGoal(formData: FormData): Promise<GoalResult> {
   // A generic target carries no subject, so keep whatever the student chose.
   const subjectPatch = competition.subject_id ? { target_subject_id: competition.subject_id } : {}
 
+  const { data: previous } = await supabase.from('profiles').select('target_competition_id, goal_set_at')
+    .eq('id', userId).maybeSingle()
   const { error } = await supabase
     .from('profiles')
     .update({
       target_competition_id: competition.id,
       target_date: targetDate,
-      goal_set_at: new Date().toISOString(),
+      goal_set_at: previous?.target_competition_id === competition.id && previous.goal_set_at
+        ? previous.goal_set_at : new Date().toISOString(),
       ...subjectPatch,
     })
     .eq('id', userId)

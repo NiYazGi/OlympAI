@@ -59,9 +59,9 @@ export default async function SupportPage() {
 
   return (
     <main className="relative isolate flex min-h-dvh flex-col overflow-hidden bg-background text-foreground">
-      {/* Soft light from the school's red and the site's blue, behind everything. */}
+      {/* Brand tint behind the content. */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute -top-40 left-1/2 h-[38rem] w-[38rem] -translate-x-1/2 rounded-full bg-[#d7262e]/20 blur-[120px] dark:bg-[#d7262e]/25" />
+        <div className="absolute -top-40 left-1/2 h-[38rem] w-[38rem] -translate-x-1/2 rounded-full bg-coral/20 blur-[120px] dark:bg-coral/25" />
         <div className="absolute -bottom-48 -left-24 h-[30rem] w-[30rem] rounded-full bg-[var(--hero-wash)] blur-[100px]" />
         <div className="absolute top-1/3 -right-32 h-[26rem] w-[26rem] rounded-full bg-[var(--hero-wash)] blur-[100px]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,var(--border)_1px,transparent_0)] [background-size:28px_28px] opacity-60 [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_75%)]" />
@@ -81,7 +81,7 @@ export default async function SupportPage() {
             ×
           </span>
           <div className="relative size-24 sm:size-32">
-            <div aria-hidden className="absolute inset-0 rounded-full bg-[#d7262e]/30 blur-2xl" />
+            <div aria-hidden className="absolute inset-0 rounded-full bg-coral/30 blur-2xl" />
             <Image
               src="/partners/rfmsh.png"
               alt={t('RFMSh logo')}
@@ -101,7 +101,7 @@ export default async function SupportPage() {
           style={{ animationDelay: '140ms' }}
         >
           {before}
-          <span className="bg-gradient-to-r from-[#d7262e] to-[#ff6b5e] bg-clip-text text-transparent">{t('RFMSh')}</span>
+          <span className="bg-gradient-to-r from-coral to-[var(--brand-highlight)] bg-clip-text text-transparent">{t('RFMSh')}</span>
           {after}
         </h1>
         <p className="rise mt-4 max-w-xl text-balance text-base leading-7 text-muted-foreground sm:text-lg" style={{ animationDelay: '200ms' }}>
@@ -115,7 +115,7 @@ export default async function SupportPage() {
         <ul className="rise mt-8 flex flex-wrap justify-center gap-2" style={{ animationDelay: '320ms' }}>
           {facts.map((fact) => (
             <li key={fact.label} className="inline-flex items-center gap-2 rounded-full bg-card/80 px-4 py-2 text-sm text-foreground shadow-key backdrop-blur">
-              <fact.icon className="size-4 text-[#d7262e]" />
+              <fact.icon className="size-4 text-coral" />
               {fact.label}
             </li>
           ))}
@@ -124,7 +124,7 @@ export default async function SupportPage() {
         <div className="rise mt-10 flex flex-col items-center gap-3 sm:flex-row" style={{ animationDelay: '380ms' }}>
           <Link
             href="/"
-            className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#d7262e] px-5 text-sm font-medium text-white shadow-button transition-colors hover:bg-[#bf1f27]"
+            className="inline-flex h-11 items-center gap-2 rounded-xl bg-coral px-5 text-sm font-medium text-[var(--brand-contrast)] shadow-button transition-colors hover:bg-coral/85"
           >
             {t('Open OlympAI')} <ArrowRight className="size-4" />
           </Link>

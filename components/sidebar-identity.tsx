@@ -1,6 +1,7 @@
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { SidebarAccountLink } from '@/components/app-sidebar'
 import { getCurrentProfile } from '@/lib/supabase/queries'
+import { getAvatarSrc } from '@/lib/supabase/avatar'
 import { initials } from '@/lib/utils'
 import { getT } from '@/lib/i18n/server'
 
@@ -13,12 +14,13 @@ import { getT } from '@/lib/i18n/server'
  */
 export async function SidebarIdentity() {
   const t = await getT()
-  const profile = await getCurrentProfile()
+  const [profile, avatarSrc] = await Promise.all([getCurrentProfile(), getAvatarSrc()])
   const name = profile?.full_name?.trim() || t('your account')
 
   return (
     <SidebarAccountLink name={name}>
       <Avatar className="size-9 ring-1 ring-border">
+        {avatarSrc ? <AvatarImage src={avatarSrc} alt="" /> : null}
         <AvatarFallback className="bg-muted text-xs font-semibold text-foreground">
           {initials(profile?.full_name ?? null)}
         </AvatarFallback>
