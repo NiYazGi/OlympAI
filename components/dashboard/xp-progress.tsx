@@ -18,7 +18,7 @@ export async function XpProgress({ xp, hasPreparation }: {
           <span className="font-medium">{t('XP today')}</span>
           <span className="ml-1 text-muted-foreground tabular-nums">{xp.today} / {xp.goal}</span>
         </div>
-        {!hasPreparation ? <Link href="/learn" className="hover:underline">{t('Set an olympiad and a date')}</Link> : null}
+        {!hasPreparation ? <Link href="#preparation-setup" className="hover:underline">{t('Set an olympiad and a date')}</Link> : null}
         <Link href="/me" className="ml-auto inline-flex items-center gap-1 text-muted-foreground hover:text-foreground">
           {t('Progress')} <ArrowRight className="size-3.5" />
         </Link>

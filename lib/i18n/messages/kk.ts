@@ -2,6 +2,13 @@ import type { Messages } from '@/lib/i18n/config'
 
 /** Қазақша. Кілттер — интерфейстің ағылшынша мәтіні; lib/i18n/config.ts қараңыз. */
 const kk: Messages = {
+  "Choose an olympiad": "Олимпиаданы таңда",
+  "Or plan for": "Немесе жоспар мерзімі",
+  "Building your route…": "Дайындық жолын құрып жатырмыз…",
+  "Create my route": "Дайындық жолын құру",
+  "Your preparation route starts here": "Дайындық жолың осы жерден басталады",
+  "Choose an olympiad and a target date to build your personal route. Your profile and preparation settings determine the level and pace.": "Олимпиада мен мақсат күнін таңда — жеке дайындық жолың пайда болады. Деңгейі мен қарқыны профилің мен дайындық параметрлеріне сай болады.",
+  "Theory, {n} problems and a quiz on each study day, with mock tests along the way.": "Әр оқу күнінде — теория, {n} есеп және квиз. Жол бойында — сынақ турлары.",
   // Navigation and shell
   "Dashboard": "Басты бет",
   "Home": "Басты бет",

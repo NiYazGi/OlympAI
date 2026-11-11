@@ -59,7 +59,14 @@ export async function setGoal(formData: FormData): Promise<GoalResult> {
   }
 
   // A generic target carries no subject, so keep whatever the student chose.
-  const subjectPatch = competition.subject_id ? { target_subject_id: competition.subject_id } : {}
+  const subjectId = String(formData.get('subject_id') ?? '').trim()
+  if (!competition.subject_id && subjectId) {
+    const { data: subject } = await supabase.from('subjects').select('id').eq('id', subjectId).eq('active', true).maybeSingle()
+    if (!subject) return { ok: false, error: t('That subject is no longer available.') }
+  }
+  const subjectPatch = competition.subject_id || subjectId
+    ? { target_subject_id: competition.subject_id ?? subjectId }
+    : {}
 
   const { data: previous } = await supabase.from('profiles').select('target_competition_id, goal_set_at')
     .eq('id', userId).maybeSingle()

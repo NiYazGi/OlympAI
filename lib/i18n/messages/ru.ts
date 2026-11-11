@@ -2,6 +2,13 @@ import type { Messages } from '@/lib/i18n/config'
 
 /** Русский. Ключи — английский текст интерфейса; см. lib/i18n/config.ts. */
 const ru: Messages = {
+  "Choose an olympiad": "Выбери олимпиаду",
+  "Or plan for": "Или план на",
+  "Building your route…": "Собираем твою тропу…",
+  "Create my route": "Создать мою тропу",
+  "Your preparation route starts here": "Твоя тропа подготовки начинается здесь",
+  "Choose an olympiad and a target date to build your personal route. Your profile and preparation settings determine the level and pace.": "Выбери олимпиаду и дату цели — появится твоя персональная тропа. Уровень и темп учитывают твой профиль и настройки подготовки.",
+  "Theory, {n} problems and a quiz on each study day, with mock tests along the way.": "В учебный день — теория, {n} задач и квиз. По пути — пробные туры.",
   // Navigation and shell
   "Dashboard": "Главная",
   "Home": "Главная",

@@ -1,22 +1,19 @@
 import { Library } from 'lucide-react'
 import { TopicStrengths } from '@/components/dashboard/topic-strengths'
 import { XpProgress } from '@/components/dashboard/xp-progress'
-import { NextActionCard } from '@/components/learn/next-action-card'
+import { PreparationStart } from '@/components/preparation/start'
 import { EmptyState } from '@/components/empty-state'
 import { PreparationRoadmap } from '@/components/preparation/roadmap'
 import type { getPreparation } from '@/lib/supabase/preparation'
-import type { NextAction } from '@/lib/next-action'
 import type { ProgressAnalytics } from '@/lib/types'
 import { getT } from '@/lib/i18n/server'
 
 export async function DashboardView({
   analytics,
-  action,
   libraryEmpty,
   preparation,
 }: {
   analytics: ProgressAnalytics
-  action: NextAction
   /** Distinct from nothing left to solve: an empty library is not an achievement. */
   libraryEmpty: boolean
   preparation: Awaited<ReturnType<typeof getPreparation>>
@@ -44,7 +41,7 @@ export async function DashboardView({
             plan={preparation.plan} name={preparation.name} subject={preparation.subject}
             targetDate={preparation.targetDate} competitionSlug={preparation.competitionSlug} mockPrefix={preparation.mockPrefix}
           />
-        ) : <NextActionCard action={action} tone="hero" />}
+        ) : <PreparationStart />}
       </div>
 
       <XpProgress xp={analytics.xp} hasPreparation={Boolean(preparation)} />

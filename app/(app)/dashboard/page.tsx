@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation'
 import { DashboardView } from '@/components/dashboard/dashboard-view'
 import { BlockSkeleton, PendingRegion } from '@/components/skeletons'
 import { getPreparation } from '@/lib/supabase/preparation'
-import { getNextAction } from '@/lib/supabase/study'
 import {
   getCurrentProfile,
   getProgressAnalytics,
@@ -31,11 +30,10 @@ export default async function DashboardPage() {
 }
 
 async function DashboardData() {
-  const [profile, analytics, tasks, action, preparation] = await Promise.all([
+  const [profile, analytics, tasks, preparation] = await Promise.all([
     getCurrentProfile(),
     getProgressAnalytics(),
     getTaskCatalogue(),
-    getNextAction(),
     getPreparation(),
   ])
   if (profile && !profile.onboarding_completed_at) redirect('/onboarding')
@@ -46,7 +44,6 @@ async function DashboardData() {
   return (
     <DashboardView
       analytics={analytics}
-      action={action}
       libraryEmpty={tasks.length === 0}
       preparation={preparation}
     />
