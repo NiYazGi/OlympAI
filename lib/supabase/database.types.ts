@@ -66,8 +66,8 @@ export type Database = {
       quiz_attempts: {
         // Writable only through the service-role client: marking happens on the
         // server, so is_correct is never a value the browser chose.
-        Row: { id: string; user_id: string; question_id: string; chosen_index: number; is_correct: boolean; created_at: string }
-        Insert: { id?: string; user_id: string; question_id: string; chosen_index: number; is_correct: boolean; created_at?: string }
+        Row: { id: string; user_id: string; question_id: string; chosen_index: number; is_correct: boolean; created_at: string; preparation_session_id: string | null }
+        Insert: { id?: string; user_id: string; question_id: string; chosen_index: number; is_correct: boolean; created_at?: string; preparation_session_id?: string | null }
         Update: never
         Relationships: []
       }
@@ -133,9 +133,9 @@ export type Database = {
         Relationships: []
       }
       preparation_preferences: {
-        Row: { user_id: string; weekdays: number[]; session_minutes: number; school_grade: number | null }
-        Insert: { user_id: string; weekdays: number[]; session_minutes: number; school_grade?: number | null }
-        Update: { weekdays?: number[]; session_minutes?: number; school_grade?: number | null }
+        Row: { user_id: string; weekdays: number[]; session_minutes: number; school_grade: number | null; daily_tasks: number }
+        Insert: { user_id: string; weekdays: number[]; session_minutes: number; school_grade?: number | null; daily_tasks?: number }
+        Update: { weekdays?: number[]; session_minutes?: number; school_grade?: number | null; daily_tasks?: number }
         Relationships: []
       }
       mock_tests: {

@@ -6,6 +6,8 @@ import { getVerifiedUser } from '@/lib/supabase/auth'
 import { createClient } from '@/lib/supabase/server'
 import type { Rating } from '@/lib/srs'
 import { quizAnswerXp } from '@/lib/xp'
+import { runAs } from '@/lib/db/query'
+import { getDailySession } from '@/lib/supabase/daily-preparation'
 import { getLocale, getT } from '@/lib/i18n/server'
 
 export type ActionResult = { ok: boolean; error?: string }
@@ -38,6 +40,7 @@ export type QuizAnswer =
 export async function answerQuizQuestion(
   questionId: string,
   chosenIndex: number,
+  sessionId?: string,
 ): Promise<QuizAnswer> {
   const t = await getT()
   if (!Number.isInteger(chosenIndex) || chosenIndex < 0) {
@@ -58,6 +61,12 @@ export async function answerQuizQuestion(
     .eq('id', questionId)
     .maybeSingle()
   if (!question) return { ok: false, error: t('That question is no longer available.') }
+  if (sessionId) {
+    const session = await getDailySession(sessionId)
+    if (!session || !session.question_ids.includes(question.id)) {
+      return { ok: false, error: t('This activity does not belong to the selected study day.') }
+    }
+  }
 
   if (chosenIndex >= question.options.length) {
     return { ok: false, error: t('Choose one of the options.') }
@@ -79,13 +88,24 @@ export async function answerQuizQuestion(
     isCorrect,
   })
 
-  const { error } = await admin.from('quiz_attempts').insert({
-    user_id: user.id,
-    question_id: question.id,
-    chosen_index: chosenIndex,
-    is_correct: isCorrect,
-  })
-  if (error) return { ok: false, error: t('Your answer could not be saved. Please try again.') }
+  try {
+    await runAs({ role: 'service_role', userId: user.id }, async (tx) => {
+      await tx.query(
+        'insert into public.quiz_attempts(user_id,question_id,chosen_index,is_correct,preparation_session_id) values($1,$2,$3,$4,$5)',
+        [user.id, question.id, chosenIndex, isCorrect, sessionId ?? null],
+      )
+      if (sessionId) {
+        await tx.query([
+          'update public.preparation_sessions s set quiz_completed_at=coalesce(quiz_completed_at,now())',
+          'where s.id=$1 and s.user_id=$2 and not exists (',
+          'select 1 from unnest(s.question_ids) as q(id) where not exists (',
+          'select 1 from public.quiz_attempts a where a.preparation_session_id=s.id and a.user_id=$2 and a.question_id=q.id))',
+        ].join(' '), [sessionId, user.id])
+      }
+    })
+  } catch {
+    return { ok: false, error: t('Your answer could not be saved. Please try again.') }
+  }
 
   revalidatePath('/learn')
   revalidatePath('/dashboard')
@@ -132,6 +152,7 @@ export async function markLessonOpened(lessonId: string): Promise<ActionResult> 
 export async function setLessonComplete(
   lessonId: string,
   complete: boolean,
+  sessionId?: string,
 ): Promise<ActionResult> {
   const t = await getT()
   const supabase = await createClient()
@@ -140,15 +161,35 @@ export async function setLessonComplete(
   } = await supabase.auth.getUser()
   if (!user) return { ok: false, error: t('Your session has expired. Please log in again.') }
 
-  const { error } = await supabase.from('lesson_views').upsert(
-    {
-      user_id: user.id,
-      lesson_id: lessonId,
-      completed_at: complete ? new Date().toISOString() : null,
-    },
-    { onConflict: 'user_id,lesson_id' },
-  )
-  if (error) return { ok: false, error: t('Could not save that. Please try again.') }
+  if (sessionId) {
+    const session = await getDailySession(sessionId)
+    if (!session || session.lesson_id !== lessonId) {
+      return { ok: false, error: t('This activity does not belong to the selected study day.') }
+    }
+    try {
+      await runAs({ role: 'service_role', userId: user.id }, async (tx) => {
+        await tx.query([
+          'insert into public.lesson_views(user_id,lesson_id,completed_at) values($1,$2,$3)',
+          'on conflict(user_id,lesson_id) do update set completed_at=excluded.completed_at',
+        ].join(' '), [user.id, lessonId, complete ? new Date().toISOString() : null])
+        const updated = await tx.query('update public.preparation_sessions set lesson_completed_at=$3 where id=$1 and user_id=$2 returning id',
+          [sessionId, user.id, complete ? new Date().toISOString() : null])
+        if (!updated.rows.length) throw new Error('Study day no longer exists')
+      })
+    } catch {
+      return { ok: false, error: t('Could not save that. Please try again.') }
+    }
+  } else {
+    const { error } = await supabase.from('lesson_views').upsert(
+      {
+        user_id: user.id,
+        lesson_id: lessonId,
+        completed_at: complete ? new Date().toISOString() : null,
+      },
+      { onConflict: 'user_id,lesson_id' },
+    )
+    if (error) return { ok: false, error: t('Could not save that. Please try again.') }
+  }
 
   revalidatePath('/learn')
   revalidatePath('/dashboard')

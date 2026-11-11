@@ -1,14 +1,6 @@
-/**
- * The five rungs of a topic, and where a student stands on each.
- *
- * Before this the app had exactly one rung: a graded olympiad problem. That is
- * the right place to finish and a punishing place to start, so the four steps
- * that lead up to it are first-class here — read it, check you followed it,
- * keep it, then use it.
- *
- * Pure, and every figure is passed in already counted, so the ladder can be
- * reasoned about without a database. Nothing is stored: like XP and mastery,
- * the state below is recomputed from the rows that produced it.
+/** Topic actions only: reading, quiz and problem practice.
+ * Papers and skill evidence are independent metrics (lib/topic-progress.ts).
+ * Pure: all counts are provided by the authenticated query layer.
  */
 
 import { identity, type Translate } from '@/lib/i18n/config'
@@ -31,6 +23,7 @@ export type LadderStage = {
   detail: string
   percent: number
   href: string | null
+  actions?: { completed: number; total: number }
 }
 
 export type LadderInput = {
@@ -44,11 +37,11 @@ export type LadderInput = {
     opened: boolean
     completed: boolean
   } | null
-  /** Distinct questions the student has ever answered correctly, out of all. */
+  /** Distinct questions whose latest answer is correct, out of all. */
   quiz: { total: number; correct: number; answered: number }
   cards: { total: number; learned: number; due: number; fresh: number }
   tasks: { total: number; solved: number }
-  /** Mock papers sat in this topic's subject. */
+  /** Subject paper availability, used only by the subject next-action suggestion. */
   mocks: { taken: number; bestPercent: number | null; subjectEligible: boolean }
 }
 
@@ -58,7 +51,7 @@ const share = (done: number, total: number) =>
 export function buildLadder(input: LadderInput, t: Translate = identity): LadderStage[] {
   const topic = `/learn/${input.topicSlug}`
 
-  const study: LadderStage = input.lesson
+  const study: LadderStage = input.lesson && input.lesson.blocks > 0
     ? {
         key: 'study',
         label: t('Read'),
@@ -71,7 +64,8 @@ export function buildLadder(input: LadderInput, t: Translate = identity): Ladder
             : input.lesson.minutes
               ? t('{blocks} blocks · about {minutes} min.', { blocks: input.lesson.blocks, minutes: input.lesson.minutes })
               : t('{blocks} blocks.', { blocks: input.lesson.blocks }),
-        percent: input.lesson.completed ? 100 : input.lesson.opened ? 50 : 0,
+        percent: input.lesson.completed ? 100 : 0,
+        actions: { completed: input.lesson.completed ? 1 : 0, total: 1 },
         href: `${topic}/lesson`,
       }
     : {
@@ -103,6 +97,7 @@ export function buildLadder(input: LadderInput, t: Translate = identity): Ladder
           ? t('{total} questions waiting.', { total: input.quiz.total })
           : t('{correct} of {total} answered right.', { correct: input.quiz.correct, total: input.quiz.total }),
     percent: share(input.quiz.correct, input.quiz.total),
+    actions: { completed: input.quiz.correct, total: input.quiz.total },
     href: input.quiz.total === 0 ? null : `${topic}/quiz`,
   }
 
@@ -124,40 +119,16 @@ export function buildLadder(input: LadderInput, t: Translate = identity): Ladder
         ? t('No problems in this topic yet.')
         : t('{solved} of {total} problems solved.', { solved: input.tasks.solved, total: input.tasks.total }),
     percent: share(input.tasks.solved, input.tasks.total),
+    actions: { completed: input.tasks.solved, total: input.tasks.total },
     href:
       input.tasks.total === 0
         ? null
         : `/tasks?topic=${encodeURIComponent(input.topicName)}`,
   }
 
-  // Nothing above has been finished yet, so "ready when you are" would be
-  // technically true and misleading: the paper is open from day one, and
-  // sitting it first tells a beginner only that they are a beginner.
-  const startedAnything = [study, check, apply].some(
-    (stage) => stage.state === 'in-progress' || stage.state === 'done',
-  )
-
-  const sit: LadderStage = {
-    key: 'sit',
-    label: t('Sit a paper'),
-    blurb: t('Timed, no hints, no coach — the whole subject at once.'),
-    state: !input.mocks.subjectEligible
-      ? 'empty'
-      : input.mocks.taken > 0
-        ? 'done'
-        : 'ready',
-    detail: !input.mocks.subjectEligible
-      ? t('{subject} needs at least three problems before a paper measures anything.', { subject: t(input.subjectName) })
-      : input.mocks.taken > 0
-        ? t('{taken} papers sat · best {n}%.', { taken: input.mocks.taken, n: input.mocks.bestPercent ?? 0 })
-        : startedAnything
-          ? t('Ready when you are.')
-          : t('Open now, but it measures best once the steps above are behind you.'),
-    percent: input.mocks.bestPercent ?? 0,
-    href: input.mocks.subjectEligible ? '/mock' : null,
-  }
-
-  return [study, check, apply, sit]
+  /* Subject papers are deliberately separate from a topic's learning route.
+   * An aggregate paper score is not evidence for any individual topic. */
+  return [study, check, apply]
 }
 
 /**
@@ -174,8 +145,10 @@ export function nextStep(stages: LadderStage[]): LadderStage | null {
 
 /** How far through the topic, counting only rungs that have content. */
 export function ladderPercent(stages: LadderStage[]): number {
-  const real = stages.filter((stage) => stage.state !== 'empty')
+  const real = stages.filter((stage) => stage.key !== 'sit' && stage.state !== 'empty')
   if (real.length === 0) return 0
+  const total = real.reduce((sum, stage) => sum + (stage.actions?.total ?? 0), 0)
+  if (total > 0) return share(real.reduce((sum, stage) => sum + (stage.actions?.completed ?? 0), 0), total)
   return Math.round(real.reduce((sum, stage) => sum + stage.percent, 0) / real.length)
 }
 

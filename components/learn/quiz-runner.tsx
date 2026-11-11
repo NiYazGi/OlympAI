@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import type { TopicQuiz } from '@/lib/types'
 import { cardClass, cn } from '@/lib/utils'
 import { useT } from '@/components/i18n-provider'
+import { MathLine } from '@/components/sulu/rich-message'
 
 type Outcome = { isCorrect: boolean; correctIndex: number; explanation: string; xpEarned: number }
 type Miss = { id: string; prompt: string; chosen: string; correct: string; explanation: string }
@@ -23,7 +24,7 @@ type Miss = { id: string; prompt: string; chosen: string; correct: string; expla
  * The marking happens on the server: the answer key was never sent here, so
  * there is nothing in this component to read ahead in.
  */
-export function QuizRunner({ quiz }: { quiz: TopicQuiz }) {
+export function QuizRunner({ quiz, sessionId }: { quiz: TopicQuiz; sessionId?: string }) {
   const t = useT()
 
   const router = useRouter()
@@ -48,7 +49,7 @@ export function QuizRunner({ quiz }: { quiz: TopicQuiz }) {
     setError('')
     startTransition(async () => {
       // Options are shuffled for display; the server marks the stored index.
-      const result = await answerQuizQuestion(question.id, question.optionOrder[option])
+      const result = await answerQuizQuestion(question.id, question.optionOrder[option], sessionId)
       if (!result.ok) {
         setChosen(null)
         setError(result.error)
@@ -110,16 +111,16 @@ export function QuizRunner({ quiz }: { quiz: TopicQuiz }) {
           <ul className="mx-auto mt-5 max-w-xl space-y-3 text-left">
             {misses.map((miss) => (
               <li key={miss.id} className="rounded-lg bg-foreground/[0.03] p-4 text-sm ring-1 ring-foreground/10">
-                <p className="font-medium">{miss.prompt}</p>
+                <p className="font-medium"><MathLine text={miss.prompt} /></p>
                 <p className="mt-2 text-destructive">
                   <X className="mr-1 inline size-3.5" />
-                  {miss.chosen}
+                  <MathLine text={miss.chosen} />
                 </p>
                 <p className="mt-1 text-primary">
                   <Check className="mr-1 inline size-3.5" />
-                  {miss.correct}
+                  <MathLine text={miss.correct} />
                 </p>
-                <p className="mt-2 leading-6 text-muted-foreground">{miss.explanation}</p>
+                <p className="mt-2 leading-6 text-muted-foreground"><MathLine text={miss.explanation} /></p>
               </li>
             ))}
           </ul>
@@ -165,7 +166,7 @@ export function QuizRunner({ quiz }: { quiz: TopicQuiz }) {
       </div>
 
       <div className={cn(cardClass, 'p-5 sm:p-6')}>
-        <h2 className="text-lg leading-7 font-medium text-balance">{question.prompt}</h2>
+        <h2 className="text-lg leading-7 font-medium text-balance"><MathLine text={question.prompt} /></h2>
 
         <ul className="mt-5 space-y-2">
           {question.options.map((option, optionIndex) => {
@@ -208,7 +209,7 @@ export function QuizRunner({ quiz }: { quiz: TopicQuiz }) {
                       String.fromCharCode(65 + optionIndex)
                     )}
                   </span>
-                  <span className="min-w-0 flex-1">{option}</span>
+                  <span className="min-w-0 flex-1"><MathLine text={option} /></span>
                   {pending && isChosen ? (
                     <Loader2 className="mt-0.5 size-4 shrink-0 animate-spin text-muted-foreground" />
                   ) : null}
@@ -237,7 +238,7 @@ export function QuizRunner({ quiz }: { quiz: TopicQuiz }) {
               </span>
             </div>
             <p className="text-sm leading-6 text-pretty text-muted-foreground">
-              {outcome.explanation}
+              <MathLine text={outcome.explanation} />
             </p>
             <Button onClick={next}>
               {index + 1 >= round.length ? t('See the result') : t('Next question')}

@@ -164,7 +164,7 @@ async function MeBody() {
         <>
           <div className="grid gap-5 lg:grid-cols-2">
             <section className={`${cardClass} p-4 sm:p-6`}>
-              <h3 className="font-medium">{t('Topic mastery')}</h3>
+              <h3 className="font-medium">Точность решений по темам</h3>
               <p className="mt-1 text-sm text-muted-foreground">{t('Accuracy from graded attempts')}</p>
               <div className="mt-4">
                 <TopicBarChart
@@ -177,7 +177,7 @@ async function MeBody() {
               <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
                 {analytics.topics.map((topic) => (
                   <li key={topic.topic}>
-                    {topic.topic}: {topic.correct}/{topic.attempts}
+                    <Link href={topic.slug ? `/learn/${topic.slug}?evidence=attempts#route-evidence` : '/tasks'} className="hover:underline">{topic.topic}: {topic.correct}/{topic.attempts}</Link>
                   </li>
                 ))}
               </ul>

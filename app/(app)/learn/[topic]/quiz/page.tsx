@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/page-header'
 import { EmptyState } from '@/components/empty-state'
 import { QuizRunner } from '@/components/learn/quiz-runner'
 import { getTopicQuiz } from '@/lib/supabase/study'
+import { getDailySession } from '@/lib/supabase/daily-preparation'
 import { getT } from '@/lib/i18n/server'
 
 export const dynamic = 'force-dynamic'
@@ -16,12 +17,19 @@ export async function generateMetadata({ params }: { params: Promise<{ topic: st
   return { title: quiz ? t('{topic} quiz', { topic: t(quiz.topicName) }) : t('Quiz') }
 }
 
-export default async function QuizPage({ params }: { params: Promise<{ topic: string }> }) {
+export default async function QuizPage({ params, searchParams }: {
+  params: Promise<{ topic: string }>
+  searchParams: Promise<{ session?: string }>
+}) {
   const t = await getT()
 
   const { topic } = await params
-  const quiz = await getTopicQuiz(topic)
+  const { session: sessionId } = await searchParams
+  const session = await getDailySession(sessionId)
+  if (sessionId && !session) notFound()
+  const quiz = await getTopicQuiz(topic, session?.question_ids)
   if (!quiz) notFound()
+  if (session && quiz.questions.length !== session.question_ids.length) notFound()
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-5 p-4 sm:gap-6 sm:p-8">
@@ -46,7 +54,7 @@ export default async function QuizPage({ params }: { params: Promise<{ topic: st
           action={{ href: `/learn/${quiz.topicSlug}`, label: t('Back to the topic') }}
         />
       ) : (
-        <QuizRunner quiz={quiz} />
+        <QuizRunner key={session?.id ?? topic} quiz={quiz} sessionId={session?.id} />
       )}
     </div>
   )

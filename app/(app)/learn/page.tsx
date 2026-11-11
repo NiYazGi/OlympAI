@@ -129,7 +129,7 @@ async function Plan({ showAll }: { showAll: boolean }) {
             <section key={subject.name} className="space-y-3">
               {surface.subjects.length > 1 ? (
                 <div className="flex items-baseline justify-between gap-3 pt-2">
-                  <h2 className="font-medium">{subject.name}</h2>
+                  <h2 className="font-medium">{t(subject.name)}</h2>
                   <span className="text-sm tabular-nums text-muted-foreground">
                     {subject.percent}%
                   </span>
@@ -153,20 +153,25 @@ async function Plan({ showAll }: { showAll: boolean }) {
                             share="morph"
                             default="none"
                           >
-                            <span>{topic.name}</span>
+                            <span>{t(topic.name)}</span>
                           </ViewTransition>
                         </h3>
-                        <span className="shrink-0 text-sm font-semibold tabular-nums text-primary">
-                          {topic.percent}%
+                        <span title="Зачтённые действия маршрута; подробности на странице темы" className="shrink-0 text-sm font-semibold tabular-nums text-primary">
+                          {topic.metrics.coverage.ready ? `${topic.percent}%` : '—'}
                         </span>
                       </div>
 
                       <p className="mt-1 text-sm text-muted-foreground">
                         {topic.next
                           ? t('Next: {label} — {detail}', { label: topic.next.label, detail: topic.next.detail })
-                          : t('Nothing left to do here.')}
+                          : !topic.metrics.coverage.ready
+                            ? 'Маршрут ещё не подготовлен'
+                            : topic.metrics.coverage.complete
+                              ? 'Все доступные действия пройдены. Освоение навыков — отдельно.'
+                              : 'Доступные шаги пройдены · материалы ещё дополняются'}
                       </p>
 
+                      <p className="mt-2 text-xs text-muted-foreground">Материалы: {topic.metrics.coverage.available}/3 · Навыки: {topic.metrics.skills.some((skill) => skill.confirmed) ? `${topic.metrics.skills.filter((skill) => skill.confirmed).length} подтверждено` : 'недостаточно данных'}</p>
                       <div className="mt-3 flex gap-1">
                         {topic.stages.map((stage) => (
                           <span

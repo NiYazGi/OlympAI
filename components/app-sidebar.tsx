@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   BookOpen,
+  ChartNoAxesColumnIncreasing,
   ChevronRight,
   ClipboardCheck,
   GraduationCap,
@@ -31,7 +32,7 @@ export type Role = 'student' | 'teacher'
 type NavItem = { href: string; label: string; icon: typeof BookOpen; also?: string[] }
 
 /**
- * Six places, not eight. Plan, Path, the study plan and the method are all
+ * Plan, Path, the study plan and the method are all
  * "the route to my olympiad", so they light up Learn instead of each taking a
  * slot of their own; the pages themselves are unchanged. Class is only there
  * for a student who is in one: for everyone else it was an empty page with a
@@ -44,6 +45,7 @@ const studentItems: NavItem[] = [
   { href: '/mock', label: 'Mock tests', icon: ClipboardCheck },
   { href: '/sulu-ai', label: 'Sulu AI', icon: MessageCircle },
   { href: '/olympiads', label: 'Olympiads', icon: Trophy },
+  { href: '/ranking', label: 'Ranking', icon: ChartNoAxesColumnIncreasing },
 ]
 
 const classItem: NavItem = { href: '/class', label: 'Class', icon: Users }

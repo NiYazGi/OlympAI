@@ -12,8 +12,8 @@ import { ResourceList, Attribution } from '@/components/resources/resource-list'
 import { getTaskDetail, getTaskHistory, getTaskReports, getTaskResources } from '@/lib/supabase/queries'
 import { AttemptHistory } from '@/components/problems/attempt-history'
 import { ReportIssue } from '@/components/problems/report-issue'
-import { getTopicShortcut } from '@/lib/supabase/study'
-import { TopicShortcutPanel } from '@/components/learn/topic-shortcut'
+import { TaskMethodGraph } from '@/components/learn/task-method-graph'
+import { methodsForTask } from '@/lib/task-methods'
 import type { Licence } from '@/lib/licence'
 import { xpForFirstSolve } from '@/lib/xp'
 import { cardClass } from '@/lib/utils'
@@ -38,9 +38,8 @@ export default async function TaskPage({ params }: { params: Promise<{ slug: str
   const { slug } = await params
   const task = await getTaskDetail(slug)
   if (!task) notFound()
-  const [resources, shortcut, history, reports] = await Promise.all([
+  const [resources, history, reports] = await Promise.all([
     getTaskResources(slug),
-    getTopicShortcut(task.topic),
     getTaskHistory(slug),
     getTaskReports(slug),
   ])
@@ -178,14 +177,14 @@ export default async function TaskPage({ params }: { params: Promise<{ slug: str
             </section>
           ) : null}
 
-          <ResourceList resources={resources} />
+          <TaskMethodGraph taskId={task.id} />
+          <ResourceList resources={methodsForTask(task.id).length ? [] : resources} />
         </div>
 
         <div className="min-w-0 lg:col-span-2">
           <div className="flex flex-col gap-6">
             <SolutionPanel taskId={task.id} />
             <AttemptHistory taskId={task.id} attempts={history} reports={reports} />
-            {shortcut ? <TopicShortcutPanel shortcut={shortcut} /> : null}
             <SuluAssistantPanel taskId={task.id} />
           </div>
         </div>

@@ -13,7 +13,7 @@ const ICONS: Record<StageKey, React.ComponentType<{ className?: string }>> = {
 }
 
 /**
- * The five rungs, in order, with the next one to do picked out.
+ * The three topic actions, with the next one picked out.
  *
  * A rung with no content behind it stays visible and says so. Hiding it would
  * make the ladder look complete when it is only unwritten, and a student who

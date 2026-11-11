@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils'
  * how the import keeps numbered conditions on lines of their own.
  */
 
-const MATH = /\\\(([\s\S]+?)\\\)|\\\[([\s\S]+?)\\\]/g
+const MATH = /\\\[([\s\S]+?)\\\]|\$\$([\s\S]+?)\$\$|\\\(([\s\S]+?)\\\)|\$([^$\n]+?)\$/g
 
 /**
  * Plain-TeX commands the archive uses and KaTeX does not know. Without these
@@ -35,7 +35,7 @@ function render(tex: string, displayMode: boolean) {
     throwOnError: false,
     trust: false,
     strict: 'ignore',
-    output: 'html',
+    output: 'htmlAndMathml',
     macros: { ...MACROS },
   })
 }
@@ -45,12 +45,13 @@ function Line({ text }: { text: string }) {
   let last = 0
   for (const match of text.matchAll(MATH)) {
     if (match.index > last) parts.push(text.slice(last, match.index))
-    const display = match[2] !== undefined
+    const display = match[1] !== undefined || match[2] !== undefined
+    const tex = match[1] ?? match[2] ?? match[3] ?? match[4]
     parts.push(
       <span
         key={match.index}
         className={display ? 'my-3 block overflow-x-auto overflow-y-hidden' : undefined}
-        dangerouslySetInnerHTML={{ __html: render((display ? match[2] : match[1])!.trim(), display) }}
+        dangerouslySetInnerHTML={{ __html: render(tex!.trim(), display) }}
       />,
     )
     last = match.index + match[0].length
@@ -67,7 +68,8 @@ function Line({ text }: { text: string }) {
 const FIGURE = /^!\[([^\]]*)\]\((\/tasks\/[A-Za-z0-9/_.-]+\.(?:png|jpe?g|webp|svg))\)$/
 
 export function MathText({ text, className }: { text: string; className?: string }) {
-  const paragraphs = text.split(/\n\s*\n/)
+  const joined = text.replace(/\\\[([\s\S]+?)\\\]|\$\$([\s\S]+?)\$\$/g, (formula) => formula.replace(/\n/g, ' '))
+  const paragraphs = joined.split(/\n\s*\n/)
   return (
     <div className={cn('space-y-3 leading-relaxed [&_.katex]:text-[1.05em]', className)}>
       {paragraphs.map((paragraph, i) => {

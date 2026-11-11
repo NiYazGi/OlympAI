@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
+  ChartNoAxesColumnIncreasing,
   LayoutDashboard,
   MessageCircle,
   BookOpen,
@@ -33,6 +34,7 @@ const studentNav = [
 const studentMore = [
   { href: '/class', label: 'Class', icon: Users, classOnly: true },
   { href: '/olympiads', label: 'Olympiads', icon: Trophy },
+  { href: '/ranking', label: 'Ranking', icon: ChartNoAxesColumnIncreasing },
   { href: '/me', label: 'Me', icon: User },
   { href: '/settings', label: 'Settings', icon: Settings },
 ]

@@ -5,6 +5,9 @@ import { BackLink } from '@/components/back-link'
 import { PageHeader } from '@/components/page-header'
 import { RegistrationButton } from '@/components/competitions/registration-button'
 import { Meter } from '@/components/meter'
+import { ArchiveAnalysis } from '@/components/preparation/archive-analysis'
+import { getAnalysedTaskCatalogue } from '@/lib/supabase/curriculum-analysis'
+import { analyseCompetition } from '@/lib/competition-analysis'
 import { getCompetition } from '@/lib/supabase/competitions'
 import { getLocale, getT } from '@/lib/i18n/server'
 import { formatDate } from '@/lib/i18n/config'
@@ -33,6 +36,8 @@ export default async function OlympiadPage({ params }: { params: Promise<{ slug:
   const { slug } = await params
   const [competition, t, locale] = await Promise.all([getCompetition(slug), getT(), getLocale()])
   if (!competition) notFound()
+  const tasks = await getAnalysedTaskCatalogue()
+  const analysis = analyseCompetition(tasks, competition.subject ?? '', competition.slug)
 
   const level = competition.level
     ? t(competition.level)
@@ -99,6 +104,7 @@ export default async function OlympiadPage({ params }: { params: Promise<{ slug:
       {competition.format ? (
         <Section title={t('The papers')}>{competition.format}</Section>
       ) : null}
+      <ArchiveAnalysis analysis={analysis} />
       {competition.eligibility ? (
         <Section title={t('Who can enter')}>{competition.eligibility}</Section>
       ) : null}

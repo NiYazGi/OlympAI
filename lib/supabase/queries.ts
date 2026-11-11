@@ -95,9 +95,9 @@ export const getPreparationSettings = cache(async () => {
 
   const supabase = await createClient()
   const { data } = await supabase.from('preparation_preferences')
-    .select('weekdays, session_minutes, school_grade').eq('user_id', profile.id).maybeSingle()
+    .select('weekdays, session_minutes, school_grade, daily_tasks').eq('user_id', profile.id).maybeSingle()
   return data
-    ? { preferences: { weekdays: data.weekdays, sessionMinutes: data.session_minutes, schoolGrade: data.school_grade }, custom: true }
+    ? { preferences: { weekdays: data.weekdays, sessionMinutes: data.session_minutes, schoolGrade: data.school_grade, dailyTasks: data.daily_tasks }, custom: true }
     : { preferences: defaults, custom: false }
 })
 
@@ -109,7 +109,7 @@ export const getAttempts = cache(async () => {
   const supabase = await createClient()
   const { data } = await supabase
     .from('task_attempts')
-    .select('task_id, is_correct, score, created_at, mock_test_id')
+    .select('id, task_id, is_correct, score, created_at, mock_test_id')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
   return data ?? []
@@ -336,7 +336,7 @@ export const getTaskResources = cache(async (taskId: string) => {
   const { data } = await supabase
     .from('resources')
     .select('id, kind, title, url, description, licence, attribution, task_id, position')
-    .or(`task_id.eq.${taskId},topic_id.eq.${task.topic_id}`)
+    .eq('task_id', taskId)
     .order('position', { ascending: true })
 
   return (data ?? []).map((row) => ({
@@ -495,6 +495,7 @@ export const getProgressAnalytics = cache(async (): Promise<ProgressAnalytics> =
   const topicStats = [...byTopic]
     .map(([topic, value]) => ({
       topic,
+      slug: reference.topics.find((item) => item.name === topic)?.slug,
       attempts: value.attempts,
       correct: value.correct,
       mastery: Math.round((value.correct / value.attempts) * 100),

@@ -1,10 +1,14 @@
 import 'server-only'
 
 import { cache } from 'react'
-import { buildPreparation, type PreparationMock, type PreparationTopic } from '@/lib/preparation'
+import type { PreparationMock } from '@/lib/preparation'
+import type { DailyTopic } from '@/lib/daily-preparation'
+import { getDailyPreparation } from '@/lib/supabase/daily-preparation'
+import { analyseCompetition } from '@/lib/competition-analysis'
+import { getAnalysedTaskCatalogue } from '@/lib/supabase/curriculum-analysis'
 import { getDayStatus } from '@/lib/supabase/day'
 import { getReference, getStudyReference } from '@/lib/supabase/reference'
-import { getAttempts, getCurrentProfile, getGoal, getPreparationSettings, getTaskCatalogue } from '@/lib/supabase/queries'
+import { getAttempts, getCurrentProfile, getGoal, getPreparationSettings } from '@/lib/supabase/queries'
 import { createClient } from '@/lib/supabase/server'
 import { getStudyProgress } from '@/lib/supabase/study'
 
@@ -15,7 +19,7 @@ export const getPreparation = cache(async () => {
   const supabase = await createClient()
   const [day, reference, study, progress, attempts, tasks, settings, { data: papers }, { data: competition }] =
     await Promise.all([
-      getDayStatus(), getReference(), getStudyReference(), getStudyProgress(), getAttempts(), getTaskCatalogue(),
+      getDayStatus(), getReference(), getStudyReference(), getStudyProgress(), getAttempts(), getAnalysedTaskCatalogue(),
       getPreparationSettings(),
       supabase.from('mock_tests').select('id, preparation_key, task_ids, duration_minutes, started_at, submitted_at, preparation_reviewed_at')
         .eq('user_id', profile.id).eq('subject_id', goal.subjectId).order('started_at'),
@@ -76,9 +80,9 @@ export const getPreparation = cache(async () => {
     if (!first || first > answer.created_at) firstAnswer.set(answer.question_id, answer.created_at)
   }
   const lessonViews = new Map(progress.views.map((row) => [row.lesson_id, row.completed_at]))
-  const topics: PreparationTopic[] = reference.topics.filter((topic) => topic.subject_id === goal.subjectId).map((topic) => {
+  const topics: DailyTopic[] = reference.topics.filter((topic) => topic.subject_id === goal.subjectId).map((topic) => {
     const lesson = study.lessons.find((item) => item.topic_id === topic.id)
-    const questions = study.questions.filter((item) => item.topic_id === topic.id)
+    const questions = study.questions.filter((item) => item.topic_id === topic.id && item.id.startsWith('daily-'))
     const answered = questions.flatMap((question) => firstAnswer.get(question.id) ?? [])
     for (const question of questions) {
       const result = latestAnswer.get(question.id)
@@ -86,6 +90,7 @@ export const getPreparation = cache(async () => {
     }
     const result = results.get(topic.id)
     return {
+      id: topic.id, questionIds: questions.map((question) => question.id),
       name: topic.name, slug: topic.slug, position: topic.position,
       mastery: result ? Math.round(100 * result.correct / result.total) : null,
       lesson: lesson ? {
@@ -110,10 +115,11 @@ export const getPreparation = cache(async () => {
     customSchedule: settings.custom,
     currentGrade,
     intensity: profile.training_intensity,
-    plan: buildPreparation({
+    analysis: analyseCompetition(tasks, goal.subjectName, competition?.slug ?? null),
+    plan: await getDailyPreparation({
       today: day.date, targetDate: goal.targetDate, goalStart, competitionSlug: competition?.slug ?? null,
       competitionLevel: goal.competition?.level ?? null, subject: goal.subjectName, grade: profile.grade, level: profile.level,
       preferences, day: day.inputs, topics, tasks, completedTasks, mocks,
-    }),
+    }, topics, mockPrefix),
   }
 })

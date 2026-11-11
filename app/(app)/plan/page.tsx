@@ -1,6 +1,7 @@
 import { Reveal } from '@/components/reveal'
 import { PreparationRoadmap } from '@/components/preparation/roadmap'
 import { PreparationSchedule } from '@/components/preparation/schedule-form'
+import { ArchiveAnalysis } from '@/components/preparation/archive-analysis'
 import { getPreparation } from '@/lib/supabase/preparation'
 import Link from 'next/link'
 import { ArrowRight, CalendarRange, Check, Flag, Lock } from 'lucide-react'
@@ -88,6 +89,7 @@ async function Plan() {
         key={`${preferences.weekdays.join(',')}:${preferences.sessionMinutes}:${preferences.schoolGrade}`}
         preferences={preferences} grade={preparation.currentGrade} intensity={preparation.intensity} custom={preparation.customSchedule}
       />
+      <ArchiveAnalysis analysis={preparation.analysis} daily={preparation.plan.daily} />
       {track.from ? (
         <details className={cn(cardClass, 'p-4')}>
           <summary className="cursor-pointer font-medium">{t('Class plan')} · {track.from.name}</summary>

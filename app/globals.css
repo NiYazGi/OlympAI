@@ -1049,3 +1049,55 @@
   font-feature-settings: 'kern', 'liga', 'onum' 0;
   letter-spacing: -0.01em;
 }
+
+/* Motion communicates navigation, selection and feedback. No looping decoration. */
+.evidence-disclosure > summary::-webkit-details-marker { display: none; }
+.evidence-disclosure .disclosure-chevron { transition: transform 260ms var(--ease-settle); }
+.evidence-disclosure[open] .disclosure-chevron { transform: rotate(180deg); }
+.evidence-disclosure { scroll-margin-top: 1.5rem; }
+.method-link { transition: background-color 180ms ease; }
+.method-link:hover { background: var(--brand-soft); }
+
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-new(.page-arrive) {
+    animation: app-page-arrive 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  ::view-transition-old(.page-leave) {
+    animation: app-page-leave 140ms ease-out both;
+  }
+  .evidence-disclosure[open] .disclosure-body,
+  .feedback-arrive { animation: app-page-arrive 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .app-calm [data-slot='button'] {
+    transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 160ms ease;
+  }
+  .app-calm [data-slot='button']:active:not(:disabled) { transform: translateY(1px); }
+  .app-calm [role='progressbar'] > div { animation: progress-arrive 600ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  @supports (interpolate-size: allow-keywords) {
+    .evidence-disclosure { interpolate-size: allow-keywords; }
+    .evidence-disclosure::details-content {
+      content-visibility: hidden;
+      height: 0;
+      overflow: clip;
+      transition: height 280ms cubic-bezier(0.2, 0.8, 0.2, 1), content-visibility 280ms allow-discrete;
+    }
+    .evidence-disclosure[open]::details-content { content-visibility: visible; height: auto; }
+  }
+}
+@keyframes app-page-arrive {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes app-page-leave { to { opacity: 0; } }
+@keyframes progress-arrive { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .evidence-disclosure .disclosure-chevron,
+  .method-link { transition: none; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .motion-popover {
+    transform-origin: var(--transform-origin);
+    transition: opacity 180ms ease, transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .motion-popover[data-starting-style], .motion-popover[data-ending-style] { opacity: 0; transform: translateY(-4px) scale(0.98); }
+}

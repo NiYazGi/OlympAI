@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { PageHeader } from '@/components/page-header'
+import { TopicMetrics } from '@/components/learn/topic-metrics'
 import { StageList } from '@/components/learn/stage-list'
 import { getTopicLadder } from '@/lib/supabase/study'
 import { getT } from '@/lib/i18n/server'
@@ -17,7 +18,8 @@ export async function generateMetadata({ params }: { params: Promise<{ topic: st
   return { title: ladder ? ladder.name : t('Topic') }
 }
 
-export default async function TopicPage({ params }: { params: Promise<{ topic: string }> }) {
+export default async function TopicPage({ params, searchParams }: { params: Promise<{ topic: string }>; searchParams: Promise<{ evidence?: string }> }) {
+  const { evidence } = await searchParams
   const t = await getT()
 
   const { topic } = await params
@@ -37,16 +39,18 @@ export default async function TopicPage({ params }: { params: Promise<{ topic: s
       <PageHeader
         title={
           <ViewTransition name={`topic-${ladder.slug}`} share="morph" default="none">
-            <span>{ladder.name}</span>
+            <span>{t(ladder.name)}</span>
           </ViewTransition>
         }
-        description={ladder.subjectName}
+        description={t(ladder.subjectName)}
         note={
           <p className="pt-1 text-sm text-muted-foreground">
-            {ladder.percent}{t('% through this topic. The order is a suggestion — you can start anywhere.')}
+            {ladder.metrics.coverage.ready ? `${ladder.percent}% действий маршрута зачтено. Это не оценка освоения темы.` : 'Маршрут ещё не подготовлен.'}
           </p>
         }
       />
+
+      <TopicMetrics topic={ladder} expand={evidence} />
 
       <StageList stages={ladder.stages} next={ladder.next} />
 

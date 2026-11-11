@@ -24,7 +24,7 @@ export type ProgressAnalytics = {
   recentActivity: { day: string; problems: number }[]
   /** Accuracy per calendar week, oldest first. Only weeks with attempts appear. */
   accuracyTrend: { label: string; accuracy: number }[]
-  topics: { topic: string; mastery: number; attempts: number; correct: number }[]
+  topics: { topic: string; slug?: string; mastery: number; attempts: number; correct: number }[]
   weakTopics: string[]
   strongTopics: string[]
   recentMistakes: string[]
@@ -257,6 +257,8 @@ export type TopicLadder = {
   input: LadderInput
   percent: number
   next: LadderStage | null
+  metrics: import('@/lib/topic-progress').TopicMetrics
+  activity: { label: string; date: string | null; detail: string; href: string }[]
 }
 
 export type SubjectStudy = {

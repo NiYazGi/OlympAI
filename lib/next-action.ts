@@ -109,7 +109,7 @@ export function nextAction(
 
   // 2. Finish what was started.
   const halfRead = withContent.find(
-    (topic) => topic.input.lesson?.opened && !topic.input.lesson.completed,
+    (topic) => stageOf(topic, 'study')?.state !== 'empty' && topic.input.lesson?.opened && !topic.input.lesson.completed,
   )
   if (halfRead) {
     return {
@@ -192,7 +192,7 @@ export function nextAction(
               minutes: recommended.estimatedMinutes,
             })
           : `${current.name} · ${recommended.difficulty}★`,
-        why: t('The topic is learned. This is the step that finds out whether it holds up under a real problem.'),
+        why: 'Базовые шаги маршрута пройдены. Теперь проверь метод решением задачи.',
         topicName: current.name,
         subjectName,
         href: `/tasks/${recommended.id}`,
@@ -204,7 +204,7 @@ export function nextAction(
       kind: 'apply',
       label: t('Solve a problem in {name}', { name: current.name }),
       detail: t('{left} left in this topic · full derivation, graded on the method', { left }),
-      why: t('The topic is learned. This is the step that finds out whether it holds up under a real problem.'),
+      why: 'Базовые шаги маршрута пройдены. Теперь проверь метод решением задачи.',
       topicName: current.name,
       subjectName,
       href: `/tasks?topic=${encodeURIComponent(current.name)}`,
@@ -213,13 +213,13 @@ export function nextAction(
   }
 
   // 4. Everything in the subject is done.
-  const paper = withContent.find((topic) => stageOf(topic, 'sit').state === 'ready')
+  const paper = withContent.find((topic) => topic.input.mocks.subjectEligible && topic.input.mocks.taken === 0)
   if (paper) {
     return {
       kind: 'sit',
       label: t('Sit a {subjectName} paper', { subjectName: t(subjectName) }),
       detail: t('Timed, no hints, no coach.'),
-      why: t('Every topic here is behind you. A timed paper is the only thing left that measures the difference.'),
+      why: 'Доступные шаги маршрута пройдены. Отдельный пробник покажет результат на конкретных задачах.',
       topicName: null,
       subjectName,
       href: '/mock',
@@ -229,8 +229,8 @@ export function nextAction(
 
   return {
     kind: 'done',
-    label: t('You are through everything in {subjectName}', { subjectName: t(subjectName) }),
-    detail: t('Notes read, questions answered, cards known, problems solved.'),
+    label: 'Все доступные действия маршрута пройдены',
+    detail: topics.some((topic) => topic.stages.some((stage) => stage.state === 'empty')) ? 'Часть материалов ещё не подготовлена. Это не подтверждение освоения всех тем.' : 'Конспекты прочитаны, вопросы и задачи зачтены. Освоение навыков оценивается отдельно.',
     why: t('Nothing here is unfinished. More material is what this needs now, not more effort from you.'),
     topicName: null,
     subjectName,

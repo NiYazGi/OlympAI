@@ -2,17 +2,19 @@ import { CRUNCH_DAYS, TAPER_DAYS, type DayInputs } from '@/lib/day-state'
 import { realPapers, type RealPaper } from '@/lib/mock'
 import { fitsGrade, gradeRange } from '@/lib/profile-options'
 import type { CatalogueTask } from '@/lib/types'
+import { isCompetitionTask } from '@/lib/competition-analysis'
 
 export type PreparationPreferences = {
   weekdays: number[]
   sessionMinutes: number
   schoolGrade: number | null
+  dailyTasks?: number
 }
 
 export function defaultPreparationPreferences(intensity: string | null | undefined): PreparationPreferences {
-  if (intensity === '3 short sessions a week') return { weekdays: [1, 3, 5], sessionMinutes: 30, schoolGrade: null }
-  if (intensity === 'Daily intensive practice') return { weekdays: [0, 1, 2, 3, 4, 5, 6], sessionMinutes: 60, schoolGrade: null }
-  return { weekdays: [1, 2, 3, 4, 5], sessionMinutes: 45, schoolGrade: null }
+  if (intensity === '3 short sessions a week') return { weekdays: [1, 3, 5], sessionMinutes: 30, schoolGrade: null, dailyTasks: 5 }
+  if (intensity === 'Daily intensive practice') return { weekdays: [0, 1, 2, 3, 4, 5, 6], sessionMinutes: 60, schoolGrade: null, dailyTasks: 5 }
+  return { weekdays: [1, 2, 3, 4, 5], sessionMinutes: 45, schoolGrade: null, dailyTasks: 5 }
 }
 
 export type PreparationTopic = {
@@ -58,9 +60,10 @@ export type PreparationPlan = {
   hasMaterials: boolean
   adaptedToday: boolean
   priorityOnly: boolean
+  daily?: { tasks: number; sessions: number; contentShortage: boolean; overloadedDays: number }
 }
 
-type Input = {
+export type PreparationInput = {
   today: string
   targetDate: string
   goalStart: string
@@ -84,12 +87,6 @@ const dayTime = (date: string) => Date.parse(`${date}T00:00:00Z`)
 
 // Archive identifiers used by the importers. A competition card's subject is
 // insufficient evidence that a paper came from that competition.
-const ARCHIVE: Record<string, string> = {
-  'kz-national-math': 'national-', 'kz-regional-math': 'oblast-',
-  'kz-national-physics': 'phys-national-', 'kz-regional-physics': 'phys-oblast-',
-  gzho: 'gzho-', apmo: 'apmo-', bmo: 'bmo-', jbmo: 'jbmo-', 'silk-road': 'silk-road-',
-}
-
 type Slot = { date: string; left: number; daysToGoal: number }
 
 /** Spend the available minutes in order. A long practice step can span
@@ -110,7 +107,7 @@ function schedule(activity: Activity, slots: Slot[]): PreparationStep | null {
   return { ...activity, date, endDate: endDate === date ? undefined : endDate }
 }
 
-function makeSlots(input: Input, daysLeft: number, adaptedToday: boolean) {
+function makeSlots(input: PreparationInput, daysLeft: number, adaptedToday: boolean) {
   const start = dayTime(input.today)
   const slots: Slot[] = []
   for (let offset = 0; offset < Math.min(daysLeft, MAX_HORIZON); offset++) {
@@ -127,7 +124,7 @@ function makeSlots(input: Input, daysLeft: number, adaptedToday: boolean) {
   return slots
 }
 
-function makeMock(pool: CatalogueTask[], papers: RealPaper[], exact: (task: CatalogueTask) => boolean, minutes: number) {
+export function makeMock(pool: CatalogueTask[], papers: RealPaper[], exact: (task: CatalogueTask) => boolean, minutes: number) {
   if (minutes < 15 || pool.length === 0) return null
   const byId = new Map(pool.map((task) => [task.id, task]))
   const paper = papers.find((entry) =>
@@ -163,7 +160,7 @@ function makeMock(pool: CatalogueTask[], papers: RealPaper[], exact: (task: Cata
   }
 }
 
-export function buildPreparation(input: Input): PreparationPlan {
+export function buildPreparation(input: PreparationInput): PreparationPlan {
   const daysLeft = Math.max(0, Math.round((dayTime(input.targetDate) - dayTime(input.today)) / DAY) || 0)
   const { day } = input
   const adaptedToday = input.preferences.weekdays.includes(new Date(dayTime(input.today)).getUTCDay()) &&
@@ -173,8 +170,7 @@ export function buildPreparation(input: Input): PreparationPlan {
   const preferredMinutes = slots.reduce((sum, slot) => sum + slot.left, 0)
   const grade = input.preferences.schoolGrade
   const range: [number, number] | null = grade ? [grade, grade] : gradeRange(input.grade)
-  const prefix = input.competitionSlug && ARCHIVE[input.competitionSlug]
-  const exact = (task: CatalogueTask) => Boolean(prefix && task.id.startsWith(prefix))
+  const exact = (task: CatalogueTask) => isCompetitionTask(task, input.competitionSlug)
   const subjectTasks = input.tasks.filter((task) => task.subject === input.subject)
   const candidates = subjectTasks.filter((task) => fitsGrade(task, range))
   const hasArchive = candidates.some(exact)

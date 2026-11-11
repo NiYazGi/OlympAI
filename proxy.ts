@@ -39,6 +39,7 @@ export const config = {
   matcher: [
     '/dashboard/:path*',
     '/dashboard',
+    '/ranking',
     '/path/:path*',
     '/path',
     '/learn/:path*',
@@ -70,5 +71,6 @@ export const config = {
     '/plan/:path*',
     '/plan',
     '/method',
+    '/methods/:path*',
   ],
 }

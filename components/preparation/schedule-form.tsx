@@ -49,6 +49,10 @@ export function PreparationSchedule({ preferences, custom, grade, intensity }: {
         </fieldset>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="grid gap-1.5 text-sm font-medium">
+            {t('Problems per study day')}
+            <Input name="daily_tasks" type="number" min={1} max={10} step={1} required defaultValue={preferences.dailyTasks ?? 5} />
+          </label>
+          <label className="grid gap-1.5 text-sm font-medium">
             {t('Minutes per session')}
             <Input name="minutes" type="number" min={15} max={360} step={1} required defaultValue={preferences.sessionMinutes} />
           </label>

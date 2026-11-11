@@ -67,7 +67,7 @@ export function SolutionPanel({ taskId }: { taskId: string }) {
   // its bottom. Bringing its first line into view is the whole of the welcome.
   useEffect(() => {
     if (!result || !reviewing) return
-    protocolRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+    protocolRef.current?.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })
   }, [result, reviewing])
 
   const askSulu = (
@@ -202,7 +202,7 @@ export function SolutionPanel({ taskId }: { taskId: string }) {
         <Lightbulb className="size-3.5" /> {t('Get a hint')}
       </Button>
 
-      <div className="sticky bottom-0 -mx-1 flex flex-col gap-2 bg-card px-1 pt-2 pb-1 sm:static sm:mx-0 sm:flex-row sm:bg-transparent sm:p-0">
+      <div className="sticky bottom-0 -mx-1 flex flex-col gap-2 bg-card px-1 pt-2 pb-1 sm:static sm:mx-0 sm:flex-row sm:flex-wrap sm:bg-transparent sm:p-0">
         <Button
           className="min-h-11 w-full sm:w-auto"
           onClick={check}

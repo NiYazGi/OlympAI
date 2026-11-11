@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/server'
 import { buildCardsAside, buildLadder, ladderPercent, nextStep } from '@/lib/ladder'
 import { nextAction, type NextAction } from '@/lib/next-action'
 import { recommendTask } from '@/lib/recommendations'
-import { getCurrentProfile, getGoal, getProgressAnalytics, getTaskCatalogue } from '@/lib/supabase/queries'
+import { getAttempts, getCurrentProfile, getGoal, getProgressAnalytics, getTaskCatalogue } from '@/lib/supabase/queries'
 import { cardState, isDue, isLearned, orderForReview, type Rating } from '@/lib/srs'
 import { parseFigure } from '@/lib/figures'
 import type {
@@ -34,6 +34,7 @@ export type {
   TopicLadder,
   TopicQuiz,
 } from '@/lib/types'
+import { buildTopicMetrics } from '@/lib/topic-progress'
 import { gradeRange } from '@/lib/profile-options'
 export type { NextAction } from '@/lib/next-action'
 
@@ -109,11 +110,12 @@ type OrderedTopic = TopicLadder & { order: number }
 async function buildTopicLadders(): Promise<OrderedTopic[]> {
   const t = await getT()
 
-  const [reference, study, progress, mocks] = await Promise.all([
+  const [reference, study, progress, mocks, attempts] = await Promise.all([
     getReference(),
     getStudyReference(),
     getStudyProgress(),
-    getMockCountsBySubject(),
+    getStudyPapers(),
+    getAttempts(),
   ])
 
   const solvedTasks = new Set(
@@ -185,13 +187,18 @@ async function buildTopicLadders(): Promise<OrderedTopic[]> {
         solved: tasks.filter((task) => solvedTasks.has(task.id)).length,
       },
       mocks: {
-        taken: mocks.get(subjectName)?.taken ?? 0,
-        bestPercent: mocks.get(subjectName)?.best ?? null,
+        taken: mocks.filter((paper) => paper.subject_id === topic.subject_id).length,
+        bestPercent: null,
         subjectEligible: (tasksBySubject.get(topic.subject_id) ?? 0) >= 3,
       },
     }
     const stages = buildLadder(input, t)
     const deck = buildCardsAside(input, t)
+    const metrics = buildTopicMetrics({ topicSlug: topic.slug, taskIds: tasks.map((task) => task.id), stages, attempts, papers: mocks })
+    const activity = [
+      ...(view ? [{ label: lesson?.title ?? t('Read'), date: view.completed_at ?? view.opened_at, detail: view.completed_at ? 'Конспект прочитан' : 'Конспект открыт, ещё не завершён', href: `/learn/${topic.slug}/lesson` }] : []),
+      ...progress.quiz.filter((row) => questions.some((question) => question.id === row.question_id)).map((row) => ({ label: `Квиз · ${row.question_id}`, date: row.created_at, detail: row.is_correct ? 'Верный ответ' : 'Ответ пока не зачтён', href: `/learn/${topic.slug}/quiz` })),
+    ].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
 
     return {
       id: topic.id,
@@ -203,6 +210,8 @@ async function buildTopicLadders(): Promise<OrderedTopic[]> {
       deck,
       input,
       percent: ladderPercent(stages),
+      metrics,
+      activity,
       next: nextStep(stages),
       // Ordering key, dropped before the result leaves this module.
       order: meanDifficulty(reference.tasks.filter((task) => task.topic_id === topic.id)),
@@ -222,28 +231,16 @@ function meanDifficulty(tasks: { difficulty: number }[]): number {
   return tasks.reduce((sum, task) => sum + task.difficulty, 0) / tasks.length
 }
 
-/** Papers sat per subject. Read here rather than through queries.ts to keep
- *  the ladder's dependencies to the reference cache and one session. */
-const getMockCountsBySubject = cache(async () => {
-  const counts = new Map<string, { taken: number; best: number | null }>()
+/** Own submitted papers, kept as independent evidence rather than topic progress. */
+const getStudyPapers = cache(async () => {
   const userId = await getSessionUserId()
-  if (!userId) return counts
-
-  const [reference, supabase] = await Promise.all([getReference(), createClient()])
-  const { data } = await supabase
-    .from('mock_tests')
-    .select('subject_id, score_percent, submitted_at')
+  if (!userId) return []
+  const supabase = await createClient()
+  const { data } = await supabase.from('mock_tests')
+    .select('id, subject_id, task_ids, score_percent, submitted_at')
+    .eq('user_id', userId)
     .not('submitted_at', 'is', null)
-
-  for (const row of data ?? []) {
-    const name = reference.subjectById[row.subject_id] ?? 'Practice'
-    const current = counts.get(name) ?? { taken: 0, best: null }
-    counts.set(name, {
-      taken: current.taken + 1,
-      best: Math.max(current.best ?? 0, row.score_percent ?? 0),
-    })
-  }
-  return counts
+  return data ?? []
 })
 
 /** Topics of the subject the target implies, easiest first. */
@@ -426,7 +423,7 @@ function shuffledOrder(length: number) {
   return order
 }
 
-export const getTopicQuiz = cache(async (topicSlug: string): Promise<TopicQuiz | null> => {
+export const getTopicQuiz = cache(async (topicSlug: string, questionIds?: readonly string[]): Promise<TopicQuiz | null> => {
 
   const [reference, study, progress] = await Promise.all([
     getReference(),
@@ -440,7 +437,7 @@ export const getTopicQuiz = cache(async (topicSlug: string): Promise<TopicQuiz |
   const latest = latestAnswers(progress.quiz)
 
   const questions = study.questions
-    .filter((item) => item.topic_id === topic.id)
+    .filter((item) => item.topic_id === topic.id && (!questionIds || questionIds.includes(item.id)))
     .sort((a, b) => a.position - b.position)
     .map((item) => {
       const optionOrder = shuffledOrder(item.options.length)

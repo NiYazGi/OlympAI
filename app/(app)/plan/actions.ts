@@ -26,16 +26,18 @@ export async function savePreparationPreferences(
   } else {
     const weekdays = [...new Set(form.getAll('weekday').map(Number))].sort()
     const minutes = Number(form.get('minutes'))
+    const dailyTasks = Number(form.get('daily_tasks') ?? 5)
     const schoolGrade = form.get('school_grade') ? Number(form.get('school_grade')) : null
     if (weekdays.length === 0 || weekdays.some((day) => !Number.isInteger(day) || day < 0 || day > 6)) {
       return { ok: false, error: t('Choose at least one study day.') }
     }
-    if (!Number.isInteger(minutes) || minutes < 15 || minutes > 360 ||
+    if (!Number.isInteger(dailyTasks) || dailyTasks < 1 || dailyTasks > 10 ||
+      !Number.isInteger(minutes) || minutes < 15 || minutes > 360 ||
       (schoolGrade !== null && (!Number.isInteger(schoolGrade) || schoolGrade < 6 || schoolGrade > 12))) {
       return { ok: false, error: t('Choose a valid class and 15 to 360 minutes per session.') }
     }
     const { error } = await supabase.from('preparation_preferences').upsert({
-      user_id: user.id, weekdays, session_minutes: minutes, school_grade: schoolGrade,
+      user_id: user.id, weekdays, session_minutes: minutes, school_grade: schoolGrade, daily_tasks: dailyTasks,
     }, { onConflict: 'user_id' })
     if (error) return { ok: false, error: t('That did not save. Please try again.') }
   }

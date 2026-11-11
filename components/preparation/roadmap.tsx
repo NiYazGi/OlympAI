@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { ArrowDownRight, ArrowLeft, ArrowRight, BookOpen, Check, Clock, ListChecks, NotebookPen, RotateCcw, Timer, Trophy } from 'lucide-react'
 import { startPreparationMock } from '@/app/(app)/plan/actions'
 import { useLocale, useT } from '@/components/i18n-provider'
+import { RouteProgress } from '@/components/preparation/route-progress'
+import { TargetCalendar } from '@/components/preparation/target-calendar'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { formatDay } from '@/lib/i18n/config'
 import type { PreparationPlan, PreparationStep } from '@/lib/preparation'
@@ -26,11 +28,22 @@ function findStop(viewport: HTMLElement, id: string) {
     .find((node) => node.dataset.routeStep === id)
 }
 
-function moveCamera(viewport: HTMLElement, node: HTMLElement, animate = true) {
+function cameraOffset(viewport: HTMLElement, node: HTMLElement) {
   const bounds = node.getBoundingClientRect()
   const offset = bounds.left + bounds.width / 2 - viewport.getBoundingClientRect().left
+  return offset - viewport.clientWidth / 2
+}
+
+function moveCamera(viewport: HTMLElement, node: HTMLElement, animate = true) {
   const smooth = animate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  viewport.scrollBy({ left: offset - viewport.clientWidth / 2, behavior: smooth ? 'smooth' : 'instant' })
+  viewport.scrollBy({ left: cameraOffset(viewport, node), behavior: smooth ? 'smooth' : 'instant' })
+}
+
+function syncScrubber(viewport: HTMLElement, input: HTMLInputElement | null) {
+  if (!input) return
+  const max = viewport.scrollWidth - viewport.clientWidth
+  input.disabled = max <= 0
+  input.value = String(max > 0 ? viewport.scrollLeft / max * 100 : 0)
 }
 
 export function PreparationRoadmap({ plan, name, subject, targetDate, competitionSlug, mockPrefix, variant = 'dashboard' }: {
@@ -46,11 +59,14 @@ export function PreparationRoadmap({ plan, name, subject, targetDate, competitio
   const locale = useLocale()
   const inSchedule = variant === 'schedule'
   const track = useRef<HTMLDivElement>(null)
+  const scrubber = useRef<HTMLInputElement>(null)
   const detail = useRef<HTMLDivElement>(null)
+  const trackId = useId()
   const detailId = useId()
   const drag = useRef<{ id: number; start: number; scroll: number; moved: boolean } | null>(null)
   const suppressClick = useRef(false)
   const [selection, setSelection] = useState<string | null>(null)
+  const [currentMarker, setCurrentMarker] = useState(0)
   const current = plan.steps.find((step) => !step.completedAt)
   const currentId = current?.id ?? 'goal'
   const selected = selection === 'goal' ? null : plan.steps.find((step) => step.id === selection) ?? current
@@ -71,6 +87,21 @@ export function PreparationRoadmap({ plan, name, subject, targetDate, competitio
     const node = viewport && findStop(viewport, currentId)
     if (viewport && node) moveCamera(viewport, node, false)
   }, [currentId, mockPrefix])
+
+  useEffect(() => {
+    const viewport = track.current
+    if (!viewport || inSchedule) return
+    const observer = new ResizeObserver(() => {
+      syncScrubber(viewport, scrubber.current)
+      const node = findStop(viewport, currentId)
+      const max = viewport.scrollWidth - viewport.clientWidth
+      const position = node && max > 0 ? (viewport.scrollLeft + cameraOffset(viewport, node)) / max * 100 : 0
+      setCurrentMarker(Math.max(0, Math.min(100, position)))
+    })
+    observer.observe(viewport)
+    if (viewport.firstElementChild) observer.observe(viewport.firstElementChild)
+    return () => observer.disconnect()
+  }, [currentId, inSchedule])
 
   function jump(id: string) {
     setSelection(id)
@@ -139,36 +170,45 @@ export function PreparationRoadmap({ plan, name, subject, targetDate, competitio
 
   return (
     <section aria-labelledby="preparation-heading" className={cn('min-w-0', inSchedule && [cardClass, 'overflow-hidden'])}>
-      <div className={cn('flex flex-wrap items-baseline gap-x-4 gap-y-1', inSchedule && 'px-4 pt-3 sm:px-5')}>
+      <div className={cn('flex flex-wrap gap-x-4 gap-y-2', inSchedule ? 'items-baseline px-4 pt-3 sm:px-5' : 'items-center justify-between')}>
         <h2 id="preparation-heading" className="font-display text-lg font-semibold tracking-tight sm:text-xl">{name}</h2>
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-          {targetLabel}
-          {plan.daysLeft > 0 ? <span>· {t('{n} {n|day|days} left', { n: plan.daysLeft })}</span> : null}
-          <span>· {t(subject)}</span>
-        </p>
+        {inSchedule ? (
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+            {targetLabel}
+            {plan.daysLeft > 0 ? <span>· {t('{n} {n|day|days} left', { n: plan.daysLeft })}</span> : null}
+            <span>· {t(subject)}</span>
+          </p>
+        ) : (
+          <div className="flex items-center gap-4">
+            <RouteProgress steps={plan.steps} />
+            <TargetCalendar targetDate={targetDate} />
+          </div>
+        )}
       </div>
 
-      <div className={cn('mt-1 flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5', inSchedule && 'px-4 sm:px-5')}>
-        <p className="text-xs text-muted-foreground">
-          {t('{completed} of {total} steps completed', { completed, total: plan.steps.length })}
-          {inSchedule && plan.preferredMinutes > 0 ? <> · {t('{planned} of {available} min planned', { planned: plan.scheduledMinutes, available: plan.preferredMinutes })}</> : null}
-        </p>
-        <div className="flex flex-wrap items-center gap-1.5">
-          {!inSchedule ? (
-            <Link href="/plan" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
-              {t('Schedule')}
-            </Link>
-          ) : null}
-          {current ? <Button size="sm" variant="ghost" onClick={() => jump(currentId)}>{t('Current step')}</Button> : null}
-          <Button size="sm" variant="ghost" onClick={() => jump('goal')}>{t('Goal')}</Button>
-          <Button size="icon-sm" variant="ghost" aria-label={t('Scroll to earlier steps')} onClick={() => scroll(-1)}><ArrowLeft /></Button>
-          <Button size="icon-sm" variant="ghost" aria-label={t('Scroll to later steps')} onClick={() => scroll(1)}><ArrowRight /></Button>
+      {plan.daily ? <p className={cn('mt-2 text-xs text-muted-foreground', inSchedule && 'px-4 sm:px-5')}>
+        {t('Daily block · one topic · {n} problems · quiz', { n: plan.daily.tasks })}
+      </p> : null}
+
+      {inSchedule ? (
+        <div className="mt-1 flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 px-4 sm:px-5">
+          <p className="text-xs text-muted-foreground">
+            {t('{completed} of {total} steps completed', { completed, total: plan.steps.length })}
+            {plan.preferredMinutes > 0 ? <> · {t('{planned} of {available} min planned', { planned: plan.scheduledMinutes, available: plan.preferredMinutes })}</> : null}
+          </p>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {current ? <Button size="sm" variant="ghost" onClick={() => jump(currentId)}>{t('Current step')}</Button> : null}
+            <Button size="sm" variant="ghost" onClick={() => jump('goal')}>{t('Goal')}</Button>
+            <Button size="icon-sm" variant="ghost" aria-label={t('Scroll to earlier steps')} onClick={() => scroll(-1)}><ArrowLeft /></Button>
+            <Button size="icon-sm" variant="ghost" aria-label={t('Scroll to later steps')} onClick={() => scroll(1)}><ArrowRight /></Button>
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <div className={cn('relative mt-1', inSchedule && [styles.map, 'border-y border-border'])}>
-        <div ref={track} role="region" aria-label={t('Preparation route')} tabIndex={0}
-          className={cn(styles.viewport, 'overflow-x-auto outline-offset-[-2px]')}
+        <div ref={track} id={trackId} role="region" aria-label={t('Preparation route')} tabIndex={0}
+          className={cn(styles.viewport, !inSchedule && styles.compactViewport, 'overflow-x-auto outline-offset-[-2px]')}
+          onScroll={(event) => syncScrubber(event.currentTarget, scrubber.current)}
           onPointerDown={beginDrag} onPointerMove={moveDrag} onPointerUp={endDrag}
           onPointerCancel={endDrag} onLostPointerCapture={endDrag} onPointerLeave={(event) => {
             if (!drag.current?.moved) endDrag(event)
@@ -243,8 +283,35 @@ export function PreparationRoadmap({ plan, name, subject, targetDate, competitio
         </div>
       </div>
 
-      <div ref={detail} id={detailId} className={cn('py-4', inSchedule ? 'bg-muted/35 px-4 sm:px-6' : 'border-t border-border')}>
-        {selected ? <StepDetail key={selected.id} step={selected} current={selected.id === currentId} mockPrefix={mockPrefix} />
+      {!inSchedule ? (
+        <div className="relative mb-3 grid pt-5 pb-6">
+          <button type="button" className={cn(styles.markerLabel, 'top-0 right-0')} onClick={() => jump('goal')} aria-controls={trackId}>
+            <Trophy aria-hidden className="size-3.5" /> {t('Goal')}
+          </button>
+          <input ref={scrubber} type="range" min={0} max={100} step={0.1} defaultValue={0}
+            aria-label={t('Scroll preparation route')} aria-controls={trackId} className={styles.scrubber}
+            onChange={(event) => {
+              const viewport = track.current
+              if (viewport) viewport.scrollLeft = event.currentTarget.valueAsNumber / 100 * (viewport.scrollWidth - viewport.clientWidth)
+            }}
+          />
+          <span aria-hidden className="pointer-events-none absolute inset-x-[7px] top-5 h-6">
+            {current ? <span className={styles.currentMarker} style={{ left: `${currentMarker}%` }} /> : null}
+            <span className={styles.currentMarker} style={{ left: '100%' }} />
+          </span>
+          {current ? (
+            <button type="button" className={cn(styles.markerLabel, 'bottom-0 -translate-x-1/2 whitespace-nowrap')}
+              style={{ left: `clamp(3.75rem, ${currentMarker}%, calc(100% - 3.75rem))` }}
+              onClick={() => jump(currentId)} aria-controls={trackId}
+            >
+              {t('Current step')}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div ref={detail} id={detailId} className={cn(styles.detail, 'py-4', inSchedule ? 'bg-muted/35 px-4 sm:px-6' : 'border-t border-border')}>
+        {selected ? <StepDetail key={selected.id} step={selected} current={selected.id === currentId} mockPrefix={mockPrefix} compact={!inSchedule} />
           : (
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -273,7 +340,7 @@ export function PreparationRoadmap({ plan, name, subject, targetDate, competitio
   )
 }
 
-function StepDetail({ step, current, mockPrefix }: { step: PreparationStep; current: boolean; mockPrefix: string }) {
+function StepDetail({ step, current, mockPrefix, compact }: { step: PreparationStep; current: boolean; mockPrefix: string; compact: boolean }) {
   const t = useT()
   const locale = useLocale()
   const [result, start, pending] = useActionState(startPreparationMock, null)
@@ -283,15 +350,18 @@ function StepDetail({ step, current, mockPrefix }: { step: PreparationStep; curr
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="min-w-0 flex-1 basis-48">
-        <p className="eyebrow">{step.completedAt ? t('Done') : current ? t('Current step') : t('Upcoming step')} · {t(LABELS[step.kind])}</p>
+        <p className="eyebrow">
+          {step.completedAt ? t('Done') : current ? t(compact ? 'Now' : 'Current step') : t('Upcoming step')}
+          {!compact ? <> · {t(LABELS[step.kind])}</> : null}
+        </p>
         <p className="mt-1 text-sm font-semibold">{title}</p>
-        <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
+        {!compact ? <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
           <Clock className="size-3" /> {t('{n} min', { n: step.minutes })}
           <span>· {formatDay(step.date, locale)}{step.endDate ? ` – ${formatDay(step.endDate, locale)}` : ''}</span>
           {topic && topic !== title ? <span>· {topic}</span> : null}
           {step.source ? <span>· {t(step.source === 'archive' ? 'Competition archive' : 'Comparable practice')}</span> : null}
           {step.mock ? <span>· {t(step.mock.fullPaper ? 'Past paper' : 'Short rehearsal')} · {t('{n} problems', { n: step.mock.taskIds.length })}</span> : null}
-        </p>
+        </p> : null}
         {result?.error ? <p role="alert" className="mt-2 text-xs text-destructive">{result.error}</p> : null}
       </div>
       {step.href ? (

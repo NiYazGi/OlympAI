@@ -1,4 +1,5 @@
 import { Library } from 'lucide-react'
+import { TopicStrengths } from '@/components/dashboard/topic-strengths'
 import { XpProgress } from '@/components/dashboard/xp-progress'
 import { NextActionCard } from '@/components/learn/next-action-card'
 import { EmptyState } from '@/components/empty-state'
@@ -47,6 +48,7 @@ export async function DashboardView({
       </div>
 
       <XpProgress xp={analytics.xp} hasPreparation={Boolean(preparation)} />
+      <TopicStrengths topics={analytics.topics} />
     </div>
   )
 }

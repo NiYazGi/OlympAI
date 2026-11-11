@@ -32,7 +32,7 @@ function Formula({ tex, display, katex }: { tex: string; display: boolean; katex
   let html: string | null = null
   if (katex) {
     try {
-      html = katex.renderToString(tex, { displayMode: display, throwOnError: true, trust: false, strict: 'ignore', output: 'html' })
+      html = katex.renderToString(tex, { displayMode: display, throwOnError: true, trust: false, strict: 'ignore', output: 'htmlAndMathml' })
     } catch {
       // Shown as source text below.
     }
