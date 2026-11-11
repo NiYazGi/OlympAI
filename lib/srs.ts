@@ -16,10 +16,12 @@ export type Rating = 0 | 1 | 2 | 3
 
 /** 0 forgot · 1 hard · 2 good · 3 easy — the four buttons under a card. */
 export const RATINGS: { value: Rating; label: string; hint: string }[] = [
-  { value: 0, label: 'Forgot', hint: 'Back to the start of the ladder.' },
-  { value: 1, label: 'Hard', hint: 'Drops a step.' },
-  { value: 2, label: 'Good', hint: 'Up a step.' },
-  { value: 3, label: 'Easy', hint: 'Up two.' },
+  // Labels are i18n keys of their own: "Hard" and "Easy" already name task
+  // difficulty, and a card rating is a different thing to translate.
+  { value: 0, label: 'Forgot it', hint: 'Back to the start of the ladder.' },
+  { value: 1, label: 'Recalled with effort', hint: 'Drops a step.' },
+  { value: 2, label: 'Recalled', hint: 'Up a step.' },
+  { value: 3, label: 'Recalled easily', hint: 'Up two.' },
 ]
 
 /**
@@ -77,11 +79,17 @@ export function isDue(state: CardState, now = new Date()): boolean {
 }
 
 /** What the buttons promise, so the choice is not a guess. */
-export function intervalAfter(state: CardState, rating: Rating): string {
+/** When the card comes back, in the reader's language. */
+export function intervalAfter(
+  state: CardState,
+  rating: Rating,
+  t: (key: string, vars?: Record<string, string | number>) => string = (key, vars) =>
+    key.replace('{n}', String(vars?.n ?? '')).replace('{n|day|days}', 'days'),
+): string {
   const days = INTERVAL_DAYS[nextBox(state.box, rating)]
-  if (days === 0) return 'again today'
-  if (days === 1) return 'tomorrow'
-  return `in ${days} days`
+  if (days === 0) return t('again today')
+  if (days === 1) return t('tomorrow')
+  return t('in {n} {n|day|days}', { n: days })
 }
 
 /**

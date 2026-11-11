@@ -217,19 +217,31 @@ export async function requestSuluJsonWithUsage<T>(
     images.length ? [{ role: 'user', content: [{ type: 'input_text', text }, ...images] }] : text
 
   if (active.strictJson) {
-    const response = await post(active, {
-      instructions: guarded(instructions),
-      input: content(input),
-      text: { format: { type: 'json_schema', name: schema.name, schema: schema.schema, strict: true } },
-    }, fast)
-    const payload = await response.json()
-    const text = outputText(payload)
-    if (!text) throw new SuluError('Sulu AI returned an empty response.')
-    try {
-      return { data: JSON.parse(text) as T, usage: readUsage(payload.usage), model: active.model }
-    } catch {
-      throw new SuluError('Sulu AI returned a malformed response.')
+    // An enforced schema still occasionally comes back cut short or empty.
+    // One quiet retry turns that into a slower answer instead of an error the
+    // student has to retype their question for.
+    const total: SuluUsage = { input: 0, cached: 0, output: 0 }
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const response = await post(active, {
+        instructions: guarded(instructions),
+        input: content(input),
+        text: { format: { type: 'json_schema', name: schema.name, schema: schema.schema, strict: true } },
+      }, fast)
+      const payload = await response.json()
+      const usage = readUsage(payload.usage)
+      total.input += usage.input
+      total.cached += usage.cached
+      total.output += usage.output
+      const text = outputText(payload)
+      if (!text) continue
+      try {
+        const data = JSON.parse(text)
+        if (fitsSchema(data, schema.schema)) return { data: data as T, usage: total, model: active.model }
+      } catch {
+        // fall through to the retry
+      }
     }
+    throw new SuluError('Sulu AI returned a malformed response.')
   }
 
   // No enforced schema: describe it, check the reply, and ask once more if it does not fit.

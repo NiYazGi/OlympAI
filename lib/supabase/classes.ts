@@ -361,6 +361,7 @@ function readinessFor(
     gradeMax: task.grade_max,
     solved: solved.has(task.id),
     attempts: 0,
+    saved: false,
   }))
   const path = buildPath(tasks, subjectName, plan)
   if (path.totalTasks === 0) return null

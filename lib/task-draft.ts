@@ -27,13 +27,27 @@ export function readDraft(taskId: string): string {
   }
 }
 
+/** When this device last changed the draft, to settle which copy is newer. */
+export function readDraftTime(taskId: string): string | null {
+  try {
+    return window.localStorage.getItem(PREFIX + taskId + ':at')
+  } catch {
+    return null
+  }
+}
+
 /** Returns false when the browser refused to store it. */
-export function saveDraft(taskId: string, text: string): boolean {
+export function saveDraft(taskId: string, text: string, at = new Date().toISOString()): boolean {
   memory.set(taskId, text)
   for (const listener of listeners.get(taskId) ?? []) listener()
   try {
-    if (text.trim()) window.localStorage.setItem(PREFIX + taskId, text)
-    else window.localStorage.removeItem(PREFIX + taskId)
+    if (text.trim()) {
+      window.localStorage.setItem(PREFIX + taskId, text)
+      window.localStorage.setItem(PREFIX + taskId + ':at', at)
+    } else {
+      window.localStorage.removeItem(PREFIX + taskId)
+      window.localStorage.removeItem(PREFIX + taskId + ':at')
+    }
     return true
   } catch {
     return false

@@ -6,15 +6,15 @@ import { getCurrentProfile } from '@/lib/supabase/queries'
 import { getT } from '@/lib/i18n/server'
 import { cardClass, cn } from '@/lib/utils'
 
-/** One coach's rules, the reasons the day is scored the way it is. */
+/** One coach's way of preparing, written as advice rather than as a norm for everyone. */
 const RULES = [
-  { title: 'Your study schedule', body: 'Follow the study days and time you chose for your plan.', where: 'Preparation program' },
-  { title: 'Final two weeks', body: 'Use your study time for timed practice and reviewing mistakes.', where: 'Mock tests' },
+  { title: 'Your study schedule', body: 'Follow the study days and time you chose for your plan. An hour a day is a full plan, not a lesser one.', where: 'Preparation program' },
+  { title: 'Final two weeks', body: 'Use your study time for timed practice and reviewing mistakes. A longer, more intense run-up is something to agree with your coach, not a rule for everyone.', where: 'Mock tests' },
   { title: 'Last two days', body: 'Final two days for light review and rest.', where: 'Preparation program' },
-  { title: 'Do not prepare alone', body: 'Alone it is a grind, and a grind stops. Other people are where the problems you would never have picked come from, and where the reason to keep going comes from when the score is flat.', where: 'No axis of its own — but working alone hits Head first' },
-  { title: 'One thing at a time', body: 'An olympiad takes the whole of your attention. Run a startup or a side project in the same season and the olympiad is the thing that gives way — which is why the app scores a split day at nought rather than at half.', where: 'Taken: the more the rest of life took, the fewer points' },
-  { title: 'More than 15 out of 25, every day', body: 'Five axes, 5 points each, and they are interchangeable on purpose. Short of the bar by five, you can solve another problem — or you can go to bed, which is worth the same five and is usually the one you were not going to spend. Reading the diagram that way is the point of having one.', where: 'The diagram on the dashboard' },
-  { title: 'The medal is not the goal', body: 'You set the goals; a coach is there to get you to them. And the last one is not a place at an olympiad — it is what the place opens, which is usually a university.', where: 'Under your target, on the dashboard' },
+  { title: 'Do not prepare alone', body: 'Alone it is a grind, and a grind stops. Other people are where the problems you would never have picked come from, and where the reason to keep going comes from when the score is flat.', where: 'Classes and Sulu' },
+  { title: 'One main project per season', body: 'An olympiad season goes best with one main project. When school, sport or family take up a day, that is not a failure: the plan for that day gets lighter instead of you being marked down.', where: 'Preparation program' },
+  { title: 'Rest is part of the plan', body: 'Sleep and rest are not a debt to pay off with extra problems. Teenagers usually need 8 to 10 hours of sleep. After a short night or a heavy day the plan is shortened, with the reason shown.', where: 'Preparation program' },
+  { title: 'The medal is not the goal', body: 'You set the goals; a coach is there to get you to them. And the last one is not a place at an olympiad — it is what the place opens, which is usually a university.', where: 'Your goal, below' },
 ]
 
 export async function generateMetadata() {
@@ -44,7 +44,7 @@ export default async function MethodPage() {
     <div className="mx-auto flex max-w-3xl flex-col gap-5 p-4 sm:gap-6 sm:p-8">
       <BackLink href="/dashboard">{t('Dashboard')}</BackLink>
 
-      <PageHeader title={t('The method')} description={t('How one coach prepares students, and why the app counts the day the way it does.')} />
+      <PageHeader title={t('The method')} description={t('How one coach prepares students, adapted to the time each student actually has.')} />
 
       {/* The rules are numbered, and the numbering is the argument: they are
           taken in order through a season, not picked from. */}

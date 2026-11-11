@@ -126,7 +126,7 @@ async function MockList() {
             </h2>
             <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
               {t(
-                'Up to five questions spanning the difficulty range, timed. Your answers are graded together at the end and the result sets the level on your profile — replacing the one you guessed at during setup.',
+                'Up to five questions spanning the difficulty range, timed. Your answers are graded together at the end. A paper in your main subject, handed in on time, sets the level on your profile.',
               )}
             </p>
             <div className="mt-5 flex flex-wrap gap-2">

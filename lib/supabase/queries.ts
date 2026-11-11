@@ -42,6 +42,7 @@ const emptyAnalytics: ProgressAnalytics = {
   accuracy: 0,
   activeStreak: 0,
   longestCorrectRun: 0,
+  fixedMistakes: 0,
   currentLevel: null,
   recentActivity: [],
   accuracyTrend: [],
@@ -148,8 +149,22 @@ async function getFirstLessonCompletions() {
  * Reference content comes from the shared cache and the attempts from the one
  * per-request query, so this costs nothing beyond what the page already paid.
  */
+/** The problems this student has saved, newest first. */
+export const getSavedTaskIds = cache(async (): Promise<string[]> => {
+  const userId = await getSessionUserId()
+  if (!userId) return []
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('saved_tasks')
+    .select('task_id')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+  return (data ?? []).map((row) => row.task_id)
+})
+
 export const getTaskCatalogue = cache(async (): Promise<CatalogueTask[]> => {
-  const [reference, attempts] = await Promise.all([getReference(), getAttempts()])
+  const [reference, attempts, savedIds] = await Promise.all([getReference(), getAttempts(), getSavedTaskIds()])
+  const saved = new Set(savedIds)
 
   const byTask = new Map<string, { total: number; solved: boolean }>()
   for (const attempt of attempts) {
@@ -176,6 +191,7 @@ export const getTaskCatalogue = cache(async (): Promise<CatalogueTask[]> => {
       gradeMax: task.grade_max,
       solved: record?.solved ?? false,
       attempts: record?.total ?? 0,
+      saved: saved.has(task.id),
     }
   })
 })
@@ -187,7 +203,7 @@ export const getTaskCatalogue = cache(async (): Promise<CatalogueTask[]> => {
  * the server. Selecting it would ship the answer in the page payload.
  */
 export const getTaskDetail = cache(async (slug: string): Promise<TaskDetail | null> => {
-  const [reference, attempts] = await Promise.all([getReference(), getAttempts()])
+  const [reference, attempts, savedIds] = await Promise.all([getReference(), getAttempts(), getSavedTaskIds()])
 
   // A class's own problem is not in the shared catalogue; it is read as this
   // user, so the row policy decides whether they are in the class.
@@ -210,6 +226,7 @@ export const getTaskDetail = cache(async (slug: string): Promise<TaskDetail | nu
     gradeMax: task.grade_max,
     solved: history.some((attempt) => attempt.is_correct),
     attempts: history.length,
+    saved: savedIds.includes(task.id),
     problem: task.problem,
     given: task.given ?? [],
     findPrompt: task.find_prompt,
@@ -526,6 +543,16 @@ export const getProgressAnalytics = cache(async (): Promise<ProgressAnalytics> =
     if (run > longestCorrectRun) longestCorrectRun = run
   }
 
+  // A problem got wrong first and solved later: the loop worth rewarding.
+  const missed = new Set<string>()
+  const fixed = new Set<string>()
+  for (let index = attemptsList.length - 1; index >= 0; index -= 1) {
+    const attempt = attemptsList[index]!
+    if (!attempt.is_correct) missed.add(attempt.task_id)
+    else if (missed.has(attempt.task_id)) fixed.add(attempt.task_id)
+  }
+  const fixedMistakes = fixed.size
+
   const xpAttempts: XpAttempt[] = attemptsList.map((attempt) => ({
     taskId: attempt.task_id,
     difficulty: taskById.get(attempt.task_id)?.difficulty ?? 1,
@@ -545,11 +572,12 @@ export const getProgressAnalytics = cache(async (): Promise<ProgressAnalytics> =
     correctAnswers,
     // Zero when only quiz answers exist: 0/0 rendered as "NaN%".
     accuracy: attemptsList.length ? Math.round((correctAnswers / attemptsList.length) * 100) : 0,
-    // The flame: days in a row the app was opened (lib/supabase/visits.ts). It
-    // used to be days with an attempt, which a beginner reading their first
-    // lessons could not keep alive; one streak, counted one way.
+    // The flame: days in a row with real study — a solution, a quiz answer, a
+    // card or a finished lesson — where days outside the student's own study
+    // schedule neither count nor break it (lib/supabase/visits.ts).
     activeStreak: flame.current,
     longestCorrectRun,
+    fixedMistakes,
     currentLevel: profile?.level ?? null,
     recentActivity,
     accuracyTrend,
@@ -601,6 +629,10 @@ export type MockPaper = {
   submittedAt: string | null
   scorePercent: number | null
   level: string | null
+  /** Handed in after the clock: graded as practice, not as a timed result. */
+  late: boolean
+  /** Whether this paper set the profile level. */
+  levelApplied: boolean
   preparation: boolean
   reviewed: boolean
   questions: {
@@ -658,7 +690,7 @@ export const getMockPaper = cache(async (id: string): Promise<MockPaper | null> 
   const supabase = await createClient()
   const { data: test } = await supabase
     .from('mock_tests')
-    .select('id, subject_id, task_ids, duration_minutes, started_at, submitted_at, score_percent, level, preparation_key, preparation_reviewed_at')
+    .select('id, subject_id, task_ids, duration_minutes, started_at, submitted_at, score_percent, level, preparation_key, preparation_reviewed_at, submitted_late, level_applied')
     .eq('id', id)
     .eq('user_id', userId)
     .maybeSingle()
@@ -684,6 +716,8 @@ export const getMockPaper = cache(async (id: string): Promise<MockPaper | null> 
     submittedAt: test.submitted_at,
     scorePercent: test.score_percent,
     level: test.level,
+    late: test.submitted_late,
+    levelApplied: test.level_applied,
     preparation: Boolean(test.preparation_key),
     reviewed: Boolean(test.preparation_reviewed_at),
     questions: test.task_ids.flatMap((taskId) => {
@@ -706,4 +740,18 @@ export const getMockPaper = cache(async (id: string): Promise<MockPaper | null> 
       ]
     }),
   }
+})
+
+/** The copy of the editor's text kept with the account, if there is one. */
+export const getServerDraft = cache(async (taskId: string): Promise<{ text: string; updatedAt: string } | null> => {
+  const userId = await getSessionUserId()
+  if (!userId) return null
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('task_drafts')
+    .select('body, updated_at')
+    .eq('user_id', userId)
+    .eq('task_id', taskId)
+    .maybeSingle()
+  return data ? { text: data.body, updatedAt: data.updated_at } : null
 })

@@ -23,7 +23,8 @@ async function counts() {
     const db = await getDb()
     const { rows } = await db.query<{ tasks: number; olympiads: number }>(`
       select (select count(*) from public.tasks where class_id is null and not hidden)::int as tasks,
-             (select count(*) from public.competitions)::int as olympiads`)
+             (select count(*) from public.competitions
+                where active and (coalesce(ends_on, starts_on) is null or coalesce(ends_on, starts_on) >= current_date))::int as olympiads`)
     return rows[0] ?? null
   } catch {
     return null
@@ -53,7 +54,7 @@ const steps = [
 const inside = [
   'Past rounds of real olympiads, with the original statements and figures',
   'Timed mock papers, marked the way a jury marks',
-  'Short notes, quizzes and flashcards for each topic',
+  'Short notes, quizzes and flashcards for the main topics',
   'A preparation plan counted back from the date of your olympiad',
   'Classes for teachers: set problems and follow each student',
   'Russian, Kazakh and English, light and dark',

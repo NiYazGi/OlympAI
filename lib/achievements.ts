@@ -56,10 +56,11 @@ export function buildAchievements(analytics: ProgressAnalytics): Achievement[] {
       progress: goal(analytics.activeStreak, 30),
     },
     {
-      name: 'Sharpshooter',
-      description: '10 correct submissions in a row',
-      earned: analytics.longestCorrectRun >= 10,
-      progress: goal(analytics.longestCorrectRun, 10),
+      // Rewards noticing and correcting a mistake, not avoiding hard problems.
+      name: 'Fixed a mistake',
+      description: 'Solve 3 problems you first got wrong',
+      earned: analytics.fixedMistakes >= 3,
+      progress: goal(analytics.fixedMistakes, 3),
     },
     {
       name: 'Topic master',

@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState, useTransition } from 'react'
-import { CalendarDays, Check, Flag, Trophy } from 'lucide-react'
+import { CalendarDays, Check, Flag, Search, Trophy } from 'lucide-react'
 import { setGoal } from '@/app/(app)/path/actions'
 import { Button } from '@/components/ui/button'
 import { cardClass, cn } from '@/lib/utils'
@@ -42,12 +42,15 @@ export function GoalSetup({
   currentDate,
   preferredType = null,
   compact = false,
+  afterSave,
 }: {
   competitions: CompetitionOption[]
   currentId: string | null
   currentDate: string | null
   preferredType?: string | null
   compact?: boolean
+  /** Where to go once the goal is saved. */
+  afterSave?: string
 }) {
   const t = useT()
 
@@ -55,6 +58,8 @@ export function GoalSetup({
   const [competitionId, setCompetitionId] = useState(currentId ?? '')
   const [date, setDate] = useState(currentDate ?? '')
   const [error, setError] = useState('')
+  // Forty-odd olympiads are past the point where scanning is a way of finding one.
+  const [query, setQuery] = useState('')
   const [pending, startTransition] = useTransition()
 
   const grouped = useMemo(() => {
@@ -80,7 +85,12 @@ export function GoalSetup({
     formData.set('target_date', date)
     startTransition(async () => {
       const result = await setGoal(formData)
-      if (result.ok) setOpen(false)
+      if (result.ok) {
+        setOpen(false)
+        // A full navigation: a client push started inside this transition is
+        // dropped when the action's revalidation re-renders the page.
+        if (afterSave) window.location.assign(afterSave)
+      }
       else setError(result.error ?? t('That did not save.'))
     })
   }
@@ -126,7 +136,7 @@ export function GoalSetup({
               <span className="text-muted-foreground">{t('Selected:')} </span>
               <span className="font-medium text-foreground">{chosen.name}</span>
               {chosen.subjectName ? (
-                <span className="text-muted-foreground"> · {chosen.subjectName}</span>
+                <span className="text-muted-foreground"> · {t(chosen.subjectName)}</span>
               ) : (
                 <span className="text-muted-foreground"> {t('· you choose the subject')}</span>
               )}
@@ -135,8 +145,24 @@ export function GoalSetup({
             <span className="text-muted-foreground">{t('Nothing selected yet — pick one below.')}</span>
           )}
         </p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          {grouped.named.map((entry) => {
+        <label className="mt-3 flex h-10 items-center gap-2 rounded-lg border border-input bg-card px-3 focus-within:border-foreground/50">
+          <Search className="size-4 shrink-0 text-muted-foreground" />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={t('Find an olympiad: IMO, physics, republican…')}
+            aria-label={t('Find an olympiad')}
+            className="h-full min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
+          />
+        </label>
+        <div className="mt-3 grid max-h-[26rem] gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
+          {grouped.named
+            .filter((entry) => {
+              const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean)
+              const text = `${entry.name} ${entry.subjectName ?? ''} ${t(entry.subjectName ?? '')} ${entry.level ?? ''} ${t(entry.level ?? '')}`.toLowerCase()
+              return words.every((word) => text.includes(word)) || entry.id === competitionId
+            })
+            .map((entry) => {
             const active = entry.id === competitionId
             const empty = entry.taskCount === 0
             return (
@@ -164,8 +190,8 @@ export function GoalSetup({
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-medium">{entry.name}</span>
                   <span className="block text-xs text-muted-foreground">
-                    {entry.subjectName}
-                    {empty ? t(' · no tasks yet') : t(' · {taskCount} tasks', { taskCount: entry.taskCount })}
+                    {entry.subjectName ? t(entry.subjectName) : null}
+                    {empty ? t(' · no tasks yet') : t(' · {taskCount} problems in the subject library', { taskCount: entry.taskCount })}
                   </span>
                 </span>
               </button>

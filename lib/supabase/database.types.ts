@@ -132,6 +132,18 @@ export type Database = {
         Update: { kind?: string; title?: string; url?: string; description?: string | null; licence?: string; attribution?: string | null; position?: number }
         Relationships: []
       }
+      task_drafts: {
+        Row: { user_id: string; task_id: string; body: string; updated_at: string }
+        Insert: { user_id: string; task_id: string; body: string; updated_at?: string }
+        Update: { body?: string; updated_at?: string }
+        Relationships: []
+      }
+      saved_tasks: {
+        Row: { user_id: string; task_id: string; created_at: string }
+        Insert: { user_id: string; task_id: string; created_at?: string }
+        Update: { created_at?: string }
+        Relationships: []
+      }
       preparation_preferences: {
         Row: { user_id: string; weekdays: number[]; session_minutes: number; school_grade: number | null; daily_tasks: number }
         Insert: { user_id: string; weekdays: number[]; session_minutes: number; school_grade?: number | null; daily_tasks?: number }
@@ -141,9 +153,9 @@ export type Database = {
       mock_tests: {
         // Written only through the service-role client: a client that could
         // compose its own paper could compose an easy one.
-        Row: { id: string; user_id: string; subject_id: string; task_ids: string[]; duration_minutes: number; started_at: string; submitted_at: string | null; score_percent: number | null; level: string | null; created_at: string; preparation_key: string | null; preparation_reviewed_at: string | null }
+        Row: { id: string; user_id: string; subject_id: string; task_ids: string[]; duration_minutes: number; started_at: string; submitted_at: string | null; score_percent: number | null; level: string | null; created_at: string; preparation_key: string | null; preparation_reviewed_at: string | null; submitted_late: boolean; level_applied: boolean }
         Insert: { id?: string; user_id: string; subject_id: string; task_ids: string[]; duration_minutes: number; started_at?: string; submitted_at?: string | null; score_percent?: number | null; level?: string | null; preparation_key?: string | null; preparation_reviewed_at?: string | null }
-        Update: { submitted_at?: string | null; score_percent?: number | null; level?: string | null; preparation_key?: string | null; preparation_reviewed_at?: string | null }
+        Update: { submitted_at?: string | null; score_percent?: number | null; level?: string | null; preparation_key?: string | null; preparation_reviewed_at?: string | null; submitted_late?: boolean; level_applied?: boolean }
         Relationships: []
       }
       competition_registrations: {
@@ -231,6 +243,10 @@ export type Database = {
     }
     Views: { [_ in never]: never }
     Functions: {
+      study_days: {
+        Args: { since: string }
+        Returns: { day: string }[]
+      }
       visit_streak: {
         Args: { today: string }
         Returns: { current_streak: number; best_streak: number; last_day: string | null }[]

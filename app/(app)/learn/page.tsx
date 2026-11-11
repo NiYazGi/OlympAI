@@ -28,11 +28,11 @@ export const dynamic = 'force-dynamic'
 export default async function LearnPage({
   searchParams,
 }: {
-  searchParams: Promise<{ all?: string }>
+  searchParams: Promise<{ all?: string; goal?: string }>
 }) {
   const t = await getT()
 
-  const { all } = await searchParams
+  const { all, goal: goalParam } = await searchParams
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-5 p-4 sm:gap-6 sm:p-8">
@@ -56,13 +56,13 @@ export default async function LearnPage({
           </>
         }
       >
-        <Plan showAll={all === '1'} />
+        <Plan showAll={all === '1'} goalParam={goalParam ?? null} />
       </Reveal>
     </div>
   )
 }
 
-async function Plan({ showAll }: { showAll: boolean }) {
+async function Plan({ showAll, goalParam }: { showAll: boolean; goalParam: string | null }) {
   const t = await getT()
 
   const [surface, goal, competitions, subjects, profile] =
@@ -77,13 +77,17 @@ async function Plan({ showAll }: { showAll: boolean }) {
   // Choosing the target is the first step, not a separate page. Until it is
   // answered there is nothing to order the topics by, so the form is the whole
   // page rather than one card among several.
-  if (!goal.competition || !goal.targetDate) {
+  // Arriving from an olympiad's page with "Build preparation": the picker opens
+  // with that olympiad already chosen, and saving goes straight to the plan.
+  const requested = goalParam ? competitions.find((entry) => entry.id === goalParam) ?? null : null
+  if (!goal.competition || !goal.targetDate || requested) {
     return (
       <GoalSetup
         competitions={competitions}
-        currentId={goal.competition?.id ?? null}
+        currentId={requested?.id ?? goal.competition?.id ?? null}
         currentDate={goal.targetDate}
         preferredType={profile?.target_competition_type ?? null}
+        afterSave={requested ? '/dashboard' : undefined}
       />
     )
   }
@@ -156,7 +160,7 @@ async function Plan({ showAll }: { showAll: boolean }) {
                             <span>{t(topic.name)}</span>
                           </ViewTransition>
                         </h3>
-                        <span title="Зачтённые действия маршрута; подробности на странице темы" className="shrink-0 text-sm font-semibold tabular-nums text-primary">
+                        <span title={t('Route actions counted; details on the topic page')} className="shrink-0 text-sm font-semibold tabular-nums text-primary">
                           {topic.metrics.coverage.ready ? `${topic.percent}%` : '—'}
                         </span>
                       </div>
@@ -165,13 +169,13 @@ async function Plan({ showAll }: { showAll: boolean }) {
                         {topic.next
                           ? t('Next: {label} — {detail}', { label: topic.next.label, detail: topic.next.detail })
                           : !topic.metrics.coverage.ready
-                            ? 'Маршрут ещё не подготовлен'
+                            ? t('The route is not ready yet')
                             : topic.metrics.coverage.complete
-                              ? 'Все доступные действия пройдены. Освоение навыков — отдельно.'
-                              : 'Доступные шаги пройдены · материалы ещё дополняются'}
+                              ? t('Every available action is done. Skill mastery is separate.')
+                              : t('The available steps are done · materials are still being added')}
                       </p>
 
-                      <p className="mt-2 text-xs text-muted-foreground">Материалы: {topic.metrics.coverage.available}/3 · Навыки: {topic.metrics.skills.some((skill) => skill.confirmed) ? `${topic.metrics.skills.filter((skill) => skill.confirmed).length} подтверждено` : 'недостаточно данных'}</p>
+                      <p className="mt-2 text-xs text-muted-foreground">{t('Materials: {n}/3 · Skills: {skills}', { n: topic.metrics.coverage.available, skills: topic.metrics.skills.some((skill) => skill.confirmed) ? t('{n} confirmed', { n: topic.metrics.skills.filter((skill) => skill.confirmed).length }) : t('not enough data') })}</p>
                       <div className="mt-3 flex gap-1">
                         {topic.stages.map((stage) => (
                           <span

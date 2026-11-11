@@ -118,13 +118,13 @@ async function MeBody() {
               {profile?.primary_subject ? (
                 <span className="flex items-center gap-1.5">
                   <Target className="size-4" />
-                  {profile.primary_subject}
+                  {t(profile.primary_subject)}
                 </span>
               ) : null}
               {profile?.level ? (
                 <span className="flex items-center gap-1.5">
                   <Trophy className="size-4" />
-                  {profile.level}
+                  {t(profile.level)}
                 </span>
               ) : null}
             </div>
@@ -212,8 +212,10 @@ async function MeBody() {
               </div>
               <p className="mt-3 text-sm text-muted-foreground">
                 {analytics.weakTopics[0]
-                  ? t('{topic} needs more focused practice.', { topic: analytics.weakTopics[0] })
-                  : t('Nothing below 70% — step up the difficulty.')}
+                  ? t('{topic} needs more focused practice.', { topic: t(analytics.weakTopics[0]) })
+                  : analytics.totalAttempts < 10
+                    ? t('Too little data yet. Solve a few more problems on different methods before raising the difficulty.')
+                    : t('Nothing below 70% — step up the difficulty.')}
               </p>
             </section>
 

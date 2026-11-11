@@ -289,3 +289,41 @@ export async function reportTaskIssue(input: {
   revalidatePath('/admin/reports')
   return { ok: true, message: t('Sent. The result of the review will appear on this task.') }
 }
+
+/** Saves a problem to come back to, or takes it off the list. */
+export async function toggleSavedTask(taskId: string, save: boolean): Promise<{ ok: boolean; saved: boolean; error?: string }> {
+  const t = await getT()
+  const user = await getVerifiedUser()
+  if (!user) return { ok: false, saved: !save, error: t('Your session has expired. Please log in again.') }
+  const supabase = await createClient()
+  // Only a problem this student may see can be saved.
+  const { data: visible } = await supabase.from('tasks').select('id').eq('id', taskId).maybeSingle()
+  if (!visible) return { ok: false, saved: !save, error: t('This task is unavailable. Please return to the task library.') }
+  const { error } = save
+    ? await supabase.from('saved_tasks').upsert({ user_id: user.id, task_id: taskId }, { onConflict: 'user_id,task_id' })
+    : await supabase.from('saved_tasks').delete().eq('user_id', user.id).eq('task_id', taskId)
+  if (error) return { ok: false, saved: !save, error: t('That did not save. Please try again.') }
+  revalidatePath('/tasks')
+  revalidatePath(`/tasks/${taskId}`)
+  return { ok: true, saved: save }
+}
+
+/**
+ * Keeps the editor's text with the account, so a solution started on one
+ * device is there on the next. An empty text removes the copy.
+ */
+export async function saveServerDraft(taskId: string, text: string): Promise<{ ok: boolean; savedAt?: string }> {
+  const user = await getVerifiedUser()
+  if (!user) return { ok: false }
+  const supabase = await createClient()
+  const body = text.slice(0, 20_000)
+  if (!body.trim()) {
+    const { error } = await supabase.from('task_drafts').delete().eq('user_id', user.id).eq('task_id', taskId)
+    return { ok: !error }
+  }
+  const savedAt = new Date().toISOString()
+  const { error } = await supabase
+    .from('task_drafts')
+    .upsert({ user_id: user.id, task_id: taskId, body, updated_at: savedAt }, { onConflict: 'user_id,task_id' })
+  return error ? { ok: false } : { ok: true, savedAt }
+}

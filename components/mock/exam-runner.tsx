@@ -123,7 +123,7 @@ export function ExamRunner({
 
       {overtime ? (
         <p className="rounded-lg bg-warning/10 p-3 text-sm text-warning">
-          {t('The clock has run out. You can still submit — anything written after time is recorded the same way.')}
+          {t('The time is up. You can still hand the paper in: it will be checked as a review after the paper, and it will not change your result or level.')}
         </p>
       ) : null}
 

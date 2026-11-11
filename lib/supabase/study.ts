@@ -196,8 +196,8 @@ async function buildTopicLadders(): Promise<OrderedTopic[]> {
     const deck = buildCardsAside(input, t)
     const metrics = buildTopicMetrics({ topicSlug: topic.slug, taskIds: tasks.map((task) => task.id), stages, attempts, papers: mocks })
     const activity = [
-      ...(view ? [{ label: lesson?.title ?? t('Read'), date: view.completed_at ?? view.opened_at, detail: view.completed_at ? 'Конспект прочитан' : 'Конспект открыт, ещё не завершён', href: `/learn/${topic.slug}/lesson` }] : []),
-      ...progress.quiz.filter((row) => questions.some((question) => question.id === row.question_id)).map((row) => ({ label: `Квиз · ${row.question_id}`, date: row.created_at, detail: row.is_correct ? 'Верный ответ' : 'Ответ пока не зачтён', href: `/learn/${topic.slug}/quiz` })),
+      ...(view ? [{ label: lesson?.title ?? t('Read'), date: view.completed_at ?? view.opened_at, detail: view.completed_at ? t('Notes read') : t('Notes opened, not finished yet'), href: `/learn/${topic.slug}/lesson` }] : []),
+      ...progress.quiz.filter((row) => questions.some((question) => question.id === row.question_id)).map((row) => ({ label: `${t('Quiz')} · ${row.question_id}`, date: row.created_at, detail: row.is_correct ? t('Correct answer') : t('Answer not counted yet'), href: `/learn/${topic.slug}/quiz` })),
     ].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
 
     return {

@@ -4,12 +4,15 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft, Clock, Trophy, Zap } from 'lucide-react'
 import { PageHeader } from '@/components/page-header'
+import { MAX_POINTS } from '@/lib/protocol'
+import { SaveTaskButton } from '@/components/problems/save-task-button'
+import { PrintButton } from '@/components/print-button'
 import { DifficultyStars, difficultyLabel } from '@/components/difficulty-stars'
 import { SolutionPanel } from '@/components/problems/solution-panel'
 import { SuluAssistantPanel } from '@/components/problems/sulu-assistant-panel'
 import { Badge } from '@/components/ui/badge'
 import { ResourceList, Attribution } from '@/components/resources/resource-list'
-import { getTaskDetail, getTaskHistory, getTaskReports, getTaskResources } from '@/lib/supabase/queries'
+import { getServerDraft, getTaskDetail, getTaskHistory, getTaskReports, getTaskResources } from '@/lib/supabase/queries'
 import { AttemptHistory } from '@/components/problems/attempt-history'
 import { ReportIssue } from '@/components/problems/report-issue'
 import { TaskMethodGraph } from '@/components/learn/task-method-graph'
@@ -38,10 +41,11 @@ export default async function TaskPage({ params }: { params: Promise<{ slug: str
   const { slug } = await params
   const task = await getTaskDetail(slug)
   if (!task) notFound()
-  const [resources, history, reports] = await Promise.all([
+  const [resources, history, reports, serverDraft] = await Promise.all([
     getTaskResources(slug),
     getTaskHistory(slug),
     getTaskReports(slug),
+    getServerDraft(slug),
   ])
 
   return (
@@ -73,6 +77,8 @@ export default async function TaskPage({ params }: { params: Promise<{ slug: str
           .join(' · ')}
       >
         <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <SaveTaskButton taskId={task.id} initial={task.saved} />
+          <PrintButton />
           {task.source ? (
             // Sources run to "Республиканская олимпиада по физике, 2016, 9 класс":
             // allowed to wrap, or the badge alone was wider than a phone.
@@ -102,7 +108,7 @@ export default async function TaskPage({ params }: { params: Promise<{ slug: str
 
       {task.attempts > 0 ? (
         <section
-          className={`${cardClass} flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between`}
+          className={`${cardClass} print-hide flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between`}
         >
           <div>
             <p className="text-sm font-medium">
@@ -110,7 +116,9 @@ export default async function TaskPage({ params }: { params: Promise<{ slug: str
             </p>
             <p className="text-xs text-muted-foreground">
               {t('{n} {n|attempt|attempts}', { n: task.attempts })}
-              {task.bestScore !== null ? t(' · best score {bestScore}/100', { bestScore: task.bestScore }) : ''}
+              {/* The same scale as the history below: points out of 7, converted the
+                  same way for attempts graded before the protocol existed. */}
+              {history.length ? t(' · best {n} of {max}', { n: Math.max(...history.map((attempt) => attempt.points)), max: MAX_POINTS }) : ''}
             </p>
           </div>
         </section>
@@ -177,13 +185,15 @@ export default async function TaskPage({ params }: { params: Promise<{ slug: str
             </section>
           ) : null}
 
+          <div className="print-hide flex flex-col gap-6">
           <TaskMethodGraph taskId={task.id} />
           <ResourceList resources={methodsForTask(task.id).length ? [] : resources} />
+          </div>
         </div>
 
-        <div className="min-w-0 lg:col-span-2">
+        <div className="print-hide min-w-0 lg:col-span-2">
           <div className="flex flex-col gap-6">
-            <SolutionPanel taskId={task.id} />
+            <SolutionPanel taskId={task.id} serverDraft={serverDraft} />
             <AttemptHistory taskId={task.id} attempts={history} reports={reports} />
             <SuluAssistantPanel taskId={task.id} />
           </div>

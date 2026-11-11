@@ -20,6 +20,8 @@ export type ProgressAnalytics = {
   activeStreak: number
   /** Longest run of consecutive correct attempts, oldest to newest. */
   longestCorrectRun: number
+  /** Problems first got wrong and later solved: a mistake noticed and fixed. */
+  fixedMistakes: number
   currentLevel: string | null
   recentActivity: { day: string; problems: number }[]
   /** Accuracy per calendar week, oldest first. Only weeks with attempts appear. */
@@ -60,6 +62,8 @@ export type CatalogueTask = {
   gradeMax: number | null
   solved: boolean
   attempts: number
+  /** Put aside by the student to come back to. */
+  saved: boolean
 }
 
 export type TaskDetail = CatalogueTask & {

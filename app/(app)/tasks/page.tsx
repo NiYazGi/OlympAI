@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowLeft, Flag } from 'lucide-react'
+import { ArrowLeft, BookmarkCheck, Flag } from 'lucide-react'
 import { Reveal } from '@/components/reveal'
 import { EmptyState } from '@/components/empty-state'
 import { Track } from '@/components/problems/track'
@@ -9,7 +9,7 @@ import { PageHeader } from '@/components/page-header'
 import { ProblemBank } from '@/components/problems/problem-bank'
 import { NextActionCard, ScopeNote } from '@/components/learn/next-action-card'
 import { ListSkeleton, PendingRegion } from '@/components/skeletons'
-import { getGoal, getTaskCatalogue } from '@/lib/supabase/queries'
+import { getGoal, getSavedTaskIds, getTaskCatalogue } from '@/lib/supabase/queries'
 import { getNextAction } from '@/lib/supabase/study'
 import { getT } from '@/lib/i18n/server'
 
@@ -26,7 +26,7 @@ export default async function TasksPage({
 }) {
   const t = await getT()
 
-  const { all, topic, list } = await searchParams
+  const [{ all, topic, list }, savedIds] = await Promise.all([searchParams, getSavedTaskIds()])
   // Two views of the same problems. The track opens — the section the student
   // is on and what it asks for, in order; the whole catalogue with filters is
   // ?list=1, because "what is there" and "what now" are different questions.
@@ -41,7 +41,17 @@ export default async function TasksPage({
             ? t('Every problem in the subject, filterable. Looking something up here does not change what the track says to do next.')
             : t('The last step of every topic: write the full derivation and Sulu grades the reasoning.')
         }
-      />
+      >
+        {savedIds.length ? (
+          <Link
+            href="/tasks?list=1&all=1&saved=1"
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm transition-colors hover:bg-secondary"
+          >
+            <BookmarkCheck className="size-4 text-coral" />
+            {t('Saved: {n}', { n: savedIds.length })}
+          </Link>
+        ) : null}
+      </PageHeader>
       <Reveal
         fallback={
           <>

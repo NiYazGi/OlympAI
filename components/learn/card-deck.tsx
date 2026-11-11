@@ -114,9 +114,9 @@ export function CardDeck({ deck }: { deck: TopicCards }) {
                   onClick={() => rate(rating.value)}
                   className="h-auto flex-col items-start gap-0.5 py-2.5"
                 >
-                  <span className="font-medium">{rating.label}</span>
+                  <span className="font-medium">{t(rating.label)}</span>
                   <span className="text-xs opacity-70">
-                    {intervalAfter(current.state, rating.value)}
+                    {intervalAfter(current.state, rating.value, t)}
                   </span>
                 </Button>
               ))}

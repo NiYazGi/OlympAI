@@ -55,7 +55,7 @@ export async function TopicStrengths({ topics }: { topics: ProgressAnalytics['to
             })}
           </ul>
           <p className="mt-2 text-xs text-muted-foreground">
-            Оценка точности появляется после 3 попыток. Нажми на тему, чтобы увидеть решения и даты. Это не процент освоения навыков.
+            {t('Accuracy appears after 3 attempts. Open a topic to see the solutions and dates. This is not a share of skills mastered.')}
           </p>
         </>
       ) : (

@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import { notFound } from 'next/navigation'
-import { BookOpen, ExternalLink, Globe } from 'lucide-react'
+import Link from 'next/link'
+import { BookOpen, CalendarCheck, ExternalLink, Globe } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { BackLink } from '@/components/back-link'
 import { PageHeader } from '@/components/page-header'
 import { RegistrationButton } from '@/components/competitions/registration-button'
@@ -165,7 +167,17 @@ export default async function OlympiadPage({ params }: { params: Promise<{ slug:
       ) : null}
 
       <div className="space-y-2">
-        <RegistrationButton competitionId={competition.id} registered={competition.registered} />
+        <div className="flex flex-wrap gap-2">
+          <Button
+            nativeButton={false}
+            render={
+              <Link href={`/learn?goal=${competition.id}`}>
+                <CalendarCheck className="size-4" /> {t('Build preparation for this olympiad')}
+              </Link>
+            }
+          />
+          <RegistrationButton competitionId={competition.id} registered={competition.registered} />
+        </div>
         <p className="text-xs leading-5 text-muted-foreground">{t('Tracking keeps it on your list here. Entering is done on the organiser’s site.')}</p>
       </div>
 

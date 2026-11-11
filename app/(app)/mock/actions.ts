@@ -91,7 +91,7 @@ export async function submitMock(testId: string, answers: Record<string, string>
   const supabase = await createClient()
   const { data: test } = await supabase
     .from('mock_tests')
-    .select('id, user_id, task_ids, submitted_at, started_at, duration_minutes, preparation_key')
+    .select('id, user_id, subject_id, task_ids, submitted_at, started_at, duration_minutes, preparation_key')
     .eq('id', testId)
     .eq('user_id', user.id)
     .maybeSingle()
@@ -163,15 +163,28 @@ export async function submitMock(testId: string, answers: Record<string, string>
     }),
   )
 
+  // Work handed in after the clock is graded as practice, not as a timed result.
+  const deadline = new Date(test.started_at).getTime() + (test.duration_minutes + GRACE_MINUTES) * 60_000
+  const late = Date.now() > deadline
+  // A paper only speaks for the subject it was sat in: a mathematics paper
+  // must not move the level of a student whose profile is about physics.
+  const [{ data: subjectRow }, profile] = await Promise.all([
+    supabase.from('subjects').select('name').eq('id', test.subject_id).maybeSingle(),
+    getCurrentProfile(),
+  ])
+  const sameSubject = !profile?.primary_subject || profile.primary_subject === subjectRow?.name
+  const applyLevel = !late && !test.preparation_key && sameSubject
+
   // Finish the test and record its attempts together. A concurrent retry
   // cannot grade the same paper into the student's history a second time.
   try {
     const db = await getDb()
     const saved = await db.transaction(async (tx) => {
       const { rows } = await tx.query(
-        `update public.mock_tests set submitted_at = now(), score_percent = $3, level = $4
+        `update public.mock_tests set submitted_at = now(), score_percent = $3, level = $4,
+           submitted_late = $5, level_applied = $6
          where id = $1 and user_id = $2 and submitted_at is null returning id`,
-        [test.id, user.id, outcome.scorePercent, test.preparation_key ? null : outcome.level],
+        [test.id, user.id, outcome.scorePercent, test.preparation_key || late ? null : outcome.level, late, applyLevel],
       )
       if (!rows.length) return false
 
@@ -199,7 +212,7 @@ export async function submitMock(testId: string, answers: Record<string, string>
         from jsonb_populate_recordset(null::public.task_attempts, $1::jsonb)`,
         [JSON.stringify(attempts), user.id, test.id],
       )
-      if (!test.preparation_key) {
+      if (applyLevel) {
         await tx.query('update public.profiles set level = $2 where id = $1', [user.id, outcome.level])
       }
       return true
@@ -224,7 +237,7 @@ export async function submitMock(testId: string, answers: Record<string, string>
  * back from the catalogue rather than taken from the caller — the argument
  * names a paper, and what that paper contains is not the browser's to decide.
  */
-export async function startPaper(paper: string): Promise<MockResult> {
+export async function startPaper(paper: string, minutes?: number): Promise<MockResult> {
   const t = await getT()
   const user = await getVerifiedUser()
   if (!user) return { ok: false, error: t('Your session has expired. Please log in again.') }
@@ -250,7 +263,15 @@ export async function startPaper(paper: string): Promise<MockResult> {
 
   const { data: created, error } = await createAdminClient()
     .from('mock_tests')
-    .insert({ user_id: user.id, subject_id: subject.id, task_ids: found.taskIds, duration_minutes: found.durationMinutes })
+    .insert({
+      user_id: user.id,
+      subject_id: subject.id,
+      task_ids: found.taskIds,
+      // The student sets the clock to the round they are preparing for; the
+      // estimate from the problems is only the default.
+      duration_minutes:
+        Number.isInteger(minutes) && minutes! >= 15 && minutes! <= 360 ? minutes! : found.durationMinutes,
+    })
     .select('id')
     .single()
   if (error || !created) return { ok: false, error: t('The paper could not be started.') }

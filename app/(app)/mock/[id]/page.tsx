@@ -1,3 +1,4 @@
+import { PrintButton } from '@/components/print-button'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft, CheckCircle2, Clock, TrendingUp, XCircle } from 'lucide-react'
@@ -46,7 +47,9 @@ async function Sitting({ paper }: { paper: NonNullable<Awaited<ReturnType<typeof
       <PageHeader
         title={t('{subject} mock', { subject: t(paper.subject) })}
         description={t('{q} questions · {m} minutes · no hints, no Sulu', { q: paper.questions.length, m: paper.durationMinutes })}
-      />
+      >
+        <PrintButton label={t('Print the paper')} />
+      </PageHeader>
       <ExamRunner
         paper={paper}
         statements={Object.fromEntries(paper.questions.map((question) => [question.id, <MathText key={question.id} text={question.problem} />]))}
@@ -76,6 +79,9 @@ async function Results({ paper }: { paper: NonNullable<Awaited<ReturnType<typeof
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
           <span className="text-4xl font-semibold tabular-nums">{score}%</span>
           <span className="text-lg font-medium text-primary">{paper.level ? t(paper.level) : null}</span>
+          {paper.late ? (
+            <span className="rounded-md bg-warning/10 px-2 py-0.5 text-sm text-warning">{t('Handed in after the time')}</span>
+          ) : null}
         </div>
         <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
           <div
@@ -86,7 +92,17 @@ async function Results({ paper }: { paper: NonNullable<Awaited<ReturnType<typeof
         <p className="mt-3 text-sm text-muted-foreground">
           {answered} {t('of')} {paper.questions.length} {t(paper.preparation
             ? 'questions answered. Review the feedback before your next session.'
-            : 'questions answered. The score weights each question by its difficulty, so the hard ones count for more. This level now sits on your profile.')}
+            : 'questions answered. The score weights each question by its difficulty, so the hard ones count for more.')}{' '}
+          {paper.preparation
+            ? null
+            : paper.late
+              ? t('The answers were handed in after the clock ran out, so this counts as a review after the paper: it does not change your level.')
+              : paper.levelApplied
+                ? t('This level now sits on your profile.')
+                : t('Your profile level is for your main subject, so this paper does not change it.')}
+        </p>
+        <p className="mt-2 text-xs leading-5 text-muted-foreground">
+          {t('Each answer is marked on the OlympAI training scale, out of 7. It is not the official jury score of the round.')}
         </p>
       </section>
 

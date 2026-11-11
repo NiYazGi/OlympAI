@@ -197,7 +197,7 @@ ${ACTION_MEANING[action]}
 Allowed level: ${level}${level < 4 ? ' (no final answer)' : ''}
 ${lastHelp && action === 'more' ? `Previous hint: ${lastHelp.text}\n` : ''}Student's message: ${message || '(none)'}
 Student's current written work: ${draft ? `\n${draft}` : '(nothing written)'}
-Reply in ${options.language}; if the student writes in another language, reply in theirs.
+Reply in ${options.language}; if the student writes in another language, reply in theirs. Use only that language's own alphabet, plus standard mathematical notation: never insert words or characters from another writing system, such as Chinese characters or English words inside a Russian sentence.
 </request>`
 }
 

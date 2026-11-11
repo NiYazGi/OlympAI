@@ -17,6 +17,15 @@ export type ChatMessage = StoredMessage
 
 const prompts = ['Give me a hint', 'Explain the key idea', 'Check my approach']
 
+/** The reasons a student gets stuck, each turned into one clear question. */
+const STUCK = [
+  { key: 'statement', label: 'I do not understand the statement', message: 'I do not understand the statement of the problem. Help me restate what is given and what is asked, without solving it.' },
+  { key: 'theory', label: 'I do not know the theory', message: 'I think I am missing the theory for this problem. Which idea or law do I need, and where should I read about it?' },
+  { key: 'idea', label: 'I cannot see the idea', message: 'I understand the statement but cannot see how to start. Give me a first nudge.' },
+  { key: 'algebra', label: 'I am lost in the calculation', message: 'I have a plan but got lost in the calculation. Help me find where my working goes wrong.' },
+  { key: 'tired', label: 'I am tired', message: '' },
+] as const
+
 /**
  * The transcript is server state.
  *
@@ -306,6 +315,35 @@ export function CoachChat({
                 <BookOpenCheck className="size-3.5" /> {t('Check me')}
               </Button>
             </div>
+            <details className="group text-xs">
+              <summary className="w-fit cursor-pointer list-none text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden">
+                {t('Stuck? Say what is in the way')}
+              </summary>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {STUCK.map((reason) => (
+                  <button
+                    key={reason.key}
+                    type="button"
+                    disabled={loading}
+                    onClick={() => {
+                      if (reason.key === 'tired') {
+                        // No model call: the useful answer to tiredness is a break.
+                        setMessages((current) => [
+                          ...current,
+                          { id: crypto.randomUUID(), role: 'user', content: t(reason.label) },
+                          { id: crypto.randomUUID(), role: 'assistant', content: t('Take a 10-minute break away from the screen. Your draft is saved, and the next hint will be here when you come back.') },
+                        ])
+                        return
+                      }
+                      void ask('ask', t(reason.message))
+                    }}
+                    className="rounded-full border border-border px-2.5 py-1 transition-colors hover:bg-secondary disabled:opacity-50"
+                  >
+                    {t(reason.label)}
+                  </button>
+                ))}
+              </div>
+            </details>
           </div>
         ) : (
         <div className="flex gap-2 overflow-x-auto">

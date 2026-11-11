@@ -2,15 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import Link from 'next/link'
-import { Camera, Check, CheckCircle2, CloudOff, FileText, Lightbulb, Loader2, MessageCircle, PenLine, Zap } from 'lucide-react'
-import { readSolutionPhoto, submitTaskAttempt, type AttemptResult } from '@/app/(app)/tasks/actions'
+import { Camera, Check, CheckCircle2, Cloud, CloudOff, FileText, Lightbulb, Loader2, MessageCircle, PenLine, Zap } from 'lucide-react'
+import { readSolutionPhoto, saveServerDraft, submitTaskAttempt, type AttemptResult } from '@/app/(app)/tasks/actions'
 import { AttemptProtocol } from '@/components/problems/attempt-protocol'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import { useT } from '@/components/i18n-provider'
 import { ReportIssue } from '@/components/problems/report-issue'
-import { readDraft, saveDraft, subscribeDraft } from '@/lib/task-draft'
+import { readDraft, readDraftTime, saveDraft, subscribeDraft } from '@/lib/task-draft'
 import { OPORA_HINT_EVENT } from '@/lib/opora/events'
 
 type Graded = Extract<AttemptResult, { ok: true }>
@@ -18,8 +18,18 @@ type Graded = Extract<AttemptResult, { ok: true }>
 /** The grader's own floor, mirrored here so the rejection is not a round trip. */
 const MIN_ANSWER_LENGTH = 20
 
-export function SolutionPanel({ taskId }: { taskId: string }) {
+export function SolutionPanel({
+  taskId,
+  serverDraft = null,
+}: {
+  taskId: string
+  /** The copy kept with the account, from another device or an earlier visit. */
+  serverDraft?: { text: string; updatedAt: string } | null
+}) {
   const t = useT()
+  const [sync, setSync] = useState<'idle' | 'saving' | 'synced' | 'offline'>('idle')
+  const [restored, setRestored] = useState(false)
+  const typed = useRef(false)
 
   const subscribe = useCallback((onChange: () => void) => subscribeDraft(taskId, onChange), [taskId])
   const solution = useSyncExternalStore(subscribe, () => readDraft(taskId), () => '')
@@ -40,6 +50,7 @@ export function SolutionPanel({ taskId }: { taskId: string }) {
   // "Put back in the editor" in the attempt history writes through the same
   // store, so it lands here without any wiring between the two.
   function edit(text: string) {
+    typed.current = true
     setStored(saveDraft(taskId, text))
     setError('')
     if (result) setResult(null)
@@ -62,6 +73,45 @@ export function SolutionPanel({ taskId }: { taskId: string }) {
       setChecking(false)
     }
   }
+
+  // On arrival: the newer of the two copies wins. A draft written on another
+  // device replaces an older or empty one here, and says so.
+  useEffect(() => {
+    if (!serverDraft) return
+    const local = readDraft(taskId)
+    const localAt = readDraftTime(taskId) ?? ''
+    if (serverDraft.text !== local && (!local.trim() || serverDraft.updatedAt > localAt)) {
+      saveDraft(taskId, serverDraft.text, serverDraft.updatedAt)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setRestored(true)
+    }
+    setSync('synced')
+  }, [taskId, serverDraft])
+
+  // A second and a half after typing stops, the text goes to the account too.
+  useEffect(() => {
+    if (!typed.current) return
+    setSync('saving')
+    const timer = window.setTimeout(async () => {
+      try {
+        const saved = await saveServerDraft(taskId, solution)
+        setSync(saved.ok ? 'synced' : 'offline')
+      } catch {
+        setSync('offline')
+      }
+    }, 1500)
+    return () => window.clearTimeout(timer)
+  }, [taskId, solution])
+
+  // Back online: send what was kept on the device.
+  useEffect(() => {
+    const retry = () => {
+      if (sync !== 'offline') return
+      void saveServerDraft(taskId, readDraft(taskId)).then((saved) => setSync(saved.ok ? 'synced' : 'offline'))
+    }
+    window.addEventListener('online', retry)
+    return () => window.removeEventListener('online', retry)
+  }, [taskId, sync])
 
   // The protocol replaces a long answer, which on a phone leaves the reader at
   // its bottom. Bringing its first line into view is the whole of the welcome.
@@ -158,12 +208,29 @@ export function SolutionPanel({ taskId }: { taskId: string }) {
         placeholder={t('Write your reasoning and equations here…')}
         className="min-h-56 flex-1 resize-y px-3 py-3 font-mono text-base leading-relaxed sm:min-h-72"
       />
-      {stored === null ? null : (
+      {restored ? (
+        <p className="-mt-2 text-xs text-muted-foreground">{t('Your draft from another device or an earlier visit is restored from your account.')}</p>
+      ) : null}
+      {stored === null && !restored ? null : (
         <p className="-mt-2 flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite">
-          {stored ? (
-            <>
-              <Check className="size-3" /> {t('Draft saved on this device')}
-            </>
+          {stored !== false ? (
+            sync === 'synced' ? (
+              <>
+                <Cloud className="size-3" /> {t('Saved on this device and in your account')}
+              </>
+            ) : sync === 'offline' ? (
+              <>
+                <CloudOff className="size-3 text-warning" /> {t('Saved on this device; it goes to your account once the connection is back')}
+              </>
+            ) : sync === 'saving' ? (
+              <>
+                <Check className="size-3" /> {t('Saved on this device, saving to your account…')}
+              </>
+            ) : (
+              <>
+                <Check className="size-3" /> {t('Draft saved on this device')}
+              </>
+            )
           ) : (
             <>
               <CloudOff className="size-3 text-warning" />{' '}

@@ -64,7 +64,7 @@ async function Account() {
       <Section icon={Languages} title={t('Language')}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">
-            {t('The interface language. Problems are shown in the language they were published in — the olympiad archive is in Russian, the short lessons are in English. Sulu replies in this language.')}
+            {t('The interface language. Problems are shown in the language they were published in, mostly Russian. Lessons are written in Russian; some older material has Kazakh and English versions. Sulu replies in this language.')}
           </p>
           <LanguageSwitcher full className="shadow-key" />
         </div>

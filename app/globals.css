@@ -1101,3 +1101,42 @@
   }
   .motion-popover[data-starting-style], .motion-popover[data-ending-style] { opacity: 0; transform: translateY(-4px) scale(0.98); }
 }
+
+/* Printing a problem or a paper: the statement on white paper, nothing else.
+   The app shell, the editor, the chat and every button stay on screen. */
+@media print {
+  :root,
+  .dark {
+    color-scheme: light;
+    --background: #fff;
+    --foreground: #000;
+    --card: #fff;
+    --muted-foreground: #333;
+    --border: #ccc;
+  }
+  aside,
+  nav,
+  header:not(.print-keep),
+  .print-hide,
+  button,
+  textarea,
+  [role='status'],
+  [data-tour='nav:more'] {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+  }
+  main,
+  section {
+    box-shadow: none !important;
+    break-inside: avoid-page;
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+  @page {
+    margin: 16mm;
+  }
+}

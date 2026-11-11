@@ -168,7 +168,7 @@ async function TeacherPlan() {
             <span className="font-medium">{t('Pace')}: </span>
             {plan.onTrack
               ? t('{pace} solved last week against {target}. On the line.', { pace: plan.currentPace, target: plan.tasksPerWeek })
-              : t('{pace} solved last week against {target}. The date moves or the week does.', { pace: plan.currentPace, target: plan.tasksPerWeek })}
+              : t('{pace} solved last week against {target}. You can keep to the key topics first, or add one session a week; an olympiad date usually cannot move.', { pace: plan.currentPace, target: plan.tasksPerWeek })}
           </p>
         </div>
       </section>
@@ -179,7 +179,11 @@ async function TeacherPlan() {
           <p className={cn(cardClass, 'p-5 text-sm text-muted-foreground')}>{t('Every problem on the route is solved.')}</p>
         ) : (
           <>
-            <p className="text-sm text-muted-foreground">{t('{n} {n|problem|problems} keeps you on the line. Here are the next ones on your route.', { n: upNext.length })}</p>
+            <p className="text-sm text-muted-foreground">
+              {plan.fits
+                ? t('{n} {n|problem|problems} keeps you on the line. Here are the next ones on your route.', { n: upNext.length })
+                : t('At this rhythm the whole route does not fit before the date. Start with these, the next ones on your route, and talk to your coach about which topics come first.')}
+            </p>
             <ul className="grid gap-2">
               {upNext.map(({ stage, task }) => (
                 <li key={task.id}>

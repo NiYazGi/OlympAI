@@ -3,7 +3,7 @@
 import { useMemo, useState, ViewTransition } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { ArrowRight, Check, Clock, Library, Search, Zap } from 'lucide-react'
+import { ArrowRight, BookmarkCheck, Check, Clock, Library, Search, Zap } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -34,10 +34,14 @@ function olympiadOf(task: { source: string | null; title: string }) {
 const ALL_LEVELS = 'All levels'
 const ALL_STATES = 'All'
 const DIFFICULTIES = [ALL_LEVELS, 'Easy', 'Medium', 'Hard']
-const STATES = [ALL_STATES, 'Solved', 'Unsolved', 'Attempted']
+const STATES = [ALL_STATES, 'Saved', 'Solved', 'Unsolved', 'Attempted']
 const ALL_GRADES = 'All grades'
 /** Rendered in pages: a library of nearly two thousand rows cannot be one list. */
 const PAGE = 40
+
+function isSavedParam(value: string | null) {
+  return value === '1'
+}
 
 /** "9 класс" for a single grade, "10–11 класс" for a band. */
 export function gradeLabel(task: Pick<CatalogueTask, 'gradeMin' | 'gradeMax'>, t: (key: string, vars?: Record<string, string | number>) => string) {
@@ -88,7 +92,9 @@ export function ProblemBank({ tasks }: { tasks: CatalogueTask[] }) {
   // ?topic= is how the ladder's "Apply" step arrives here. It seeds the filter
   // and nothing more: the selects stay in charge afterwards, so changing one
   // does not have to fight the URL it was opened from.
-  const requestedTopic = useSearchParams().get('topic')
+  const params = useSearchParams()
+  const requestedTopic = params.get('topic')
+  const requestedSaved = params.get('saved')
   const [query, setQuery] = useState('')
   const [subject, setSubject] = useState(ALL_SUBJECTS)
   const [difficulty, setDifficulty] = useState(ALL_LEVELS)
@@ -97,7 +103,8 @@ export function ProblemBank({ tasks }: { tasks: CatalogueTask[] }) {
       ? requestedTopic
       : ALL_TOPICS,
   )
-  const [state, setState] = useState(ALL_STATES)
+  // ?saved=1 opens the list on the problems put aside for later.
+  const [state, setState] = useState(() => (isSavedParam(requestedSaved) ? 'Saved' : ALL_STATES))
   const [grade, setGrade] = useState(ALL_GRADES)
   const [olympiad, setOlympiad] = useState(ALL_OLYMPIADS)
 
@@ -168,6 +175,7 @@ export function ProblemBank({ tasks }: { tasks: CatalogueTask[] }) {
         if (difficulty !== ALL_LEVELS && difficultyLabel(task.difficulty) !== difficulty) {
           return false
         }
+        if (state === 'Saved' && !task.saved) return false
         if (state === 'Solved' && !task.solved) return false
         if (state === 'Unsolved' && task.solved) return false
         if (state === 'Attempted' && task.attempts === 0) return false
@@ -263,6 +271,9 @@ export function ProblemBank({ tasks }: { tasks: CatalogueTask[] }) {
                         <span>{task.title}</span>
                       </ViewTransition>
                     </h3>
+                    {task.saved ? (
+                      <BookmarkCheck aria-label={t('Saved')} className="size-4 text-coral" />
+                    ) : null}
                     {task.solved ? (
                       <Badge variant="secondary" className="gap-1">
                         <Check className="size-3" /> {t('Solved')}

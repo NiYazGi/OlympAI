@@ -39,7 +39,7 @@ function field(value: string | number | null | undefined, max = 400) {
 export function languageRule(language: string) {
   return `
 
-Reply in ${language}. If the student writes in a different language, reply in theirs. Problem text may be in Russian, Kazakh or English; keep names and quoted terms as written.`
+Reply in ${language}. If the student writes in a different language, reply in theirs. Problem text may be in Russian, Kazakh or English; keep names and quoted terms as written. Use only that language's own alphabet, plus standard mathematical notation: never insert words or characters from another writing system, such as Chinese characters or English words inside a Russian sentence.`
 }
 
 /** `rules` is the chat prompt from lib/ai/prompts (the admin's version or the default). */
@@ -207,7 +207,7 @@ ${task.officialSolution}`
 
   return `${rules}
 
-${task.language ? `Write every text field in ${{ ru: 'Russian', en: 'English', kk: 'Kazakh' }[task.language]}, whatever language the attempt is in.` : 'Write every text field in the language the student wrote in.'}
+${task.language ? `Write every text field in ${{ ru: 'Russian', en: 'English', kk: 'Kazakh' }[task.language]}, whatever language the attempt is in.` : 'Write every text field in the language the student wrote in.'} Use only that language's own alphabet, plus standard mathematical notation: never insert words or characters from another writing system, such as Chinese characters or English words inside a Russian sentence.
 
 <task>
 Title: ${field(task.title, 200)}

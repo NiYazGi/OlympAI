@@ -20,13 +20,20 @@ export async function flameFor(today?: string): Promise<Flame> {
 
   const supabase = await createClient()
   const utcToday = new Date().toISOString().slice(0, 10)
-  const { data: recent } = await supabase
-    .from('daily_visits')
-    .select('day')
-    .eq('user_id', userId)
-    .gte('day', addDays(utcToday, -8))
-    .order('day', { ascending: false })
-  const days = new Set((recent ?? []).map((row) => row.day))
+  // The flame counts days of study (a solution, a quiz answer, a card, a
+  // finished lesson), not days the site was opened. The visit is still the
+  // best guess at the student's calendar day.
+  const [{ data: recent }, { data: studied }] = await Promise.all([
+    supabase
+      .from('daily_visits')
+      .select('day')
+      .eq('user_id', userId)
+      .gte('day', addDays(utcToday, -8))
+      .order('day', { ascending: false })
+      .limit(1),
+    supabase.rpc('study_days', { since: addDays(utcToday, -9) }),
+  ])
+  const days = new Set((studied ?? []).map((row) => row.day))
   const latest = (recent ?? [])[0]?.day ?? null
   const reference = today ?? (latest && latest > utcToday ? latest : utcToday)
 
