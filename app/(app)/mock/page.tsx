@@ -14,6 +14,8 @@ import {
 } from '@/lib/supabase/queries'
 import { composeMockFor, realPapers } from '@/lib/mock'
 import { PaperBrowser } from '@/components/mock/paper-browser'
+import { Locked } from '@/components/billing/locked'
+import { canUse } from '@/lib/features'
 import { cardClass, cn } from '@/lib/utils'
 import { getLocale, getT } from '@/lib/i18n/server'
 import { formatDate } from '@/lib/i18n/config'
@@ -59,6 +61,7 @@ async function MockList() {
     getTaskCatalogue(),
     getCurrentProfile(),
   ])
+  const [mocksOpen, papersOpen] = await Promise.all([canUse('mocks'), canUse('realPapers')])
 
   // Real sittings, narrowed to what the student is training for.
   const papers = realPapers(
@@ -117,7 +120,7 @@ async function MockList() {
                   )}
                 </p>
               </div>
-              <PaperBrowser papers={papers} />
+              {papersOpen ? <PaperBrowser papers={papers} /> : <Locked feature="realPapers" compact />}
             </section>
           ) : null}
           <section className={cn(cardClass, 'p-5 sm:p-6')}>
@@ -129,7 +132,8 @@ async function MockList() {
                 'Up to five questions spanning the difficulty range, timed. Your answers are graded together at the end. A paper in your main subject, handed in on time, sets the level on your profile.',
               )}
             </p>
-            <div className="mt-5 flex flex-wrap gap-2">
+            {mocksOpen ? null : <Locked feature="mocks" compact className="mt-5" />}
+            <div className={cn('mt-5 flex flex-wrap gap-2', !mocksOpen && 'hidden')}>
               {eligible.map((subject) => {
                 // The paper that would start, so the button states its real
                 // length: a full paper can run past three hours, and the page

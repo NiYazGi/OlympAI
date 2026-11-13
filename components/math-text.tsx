@@ -67,12 +67,37 @@ function Line({ text }: { text: string }) {
  */
 const FIGURE = /^!\[([^\]]*)\]\((\/tasks\/[A-Za-z0-9/_.-]+\.(?:png|jpe?g|webp|svg))\)$/
 
+/** ``` fenced blocks: input/output samples in informatics statements, shown as typed. */
+const FENCE = /```[^\n]*\n([\s\S]*?)\n?```/g
+const CODE_SLOT = /^\u0000(\d+)\u0000$/
+/** A paragraph that is only **text** is a section heading ("Input format"). */
+const HEADING = /^\*\*([^*]+)\*\*$/
+
 export function MathText({ text, className }: { text: string; className?: string }) {
-  const joined = text.replace(/\\\[([\s\S]+?)\\\]|\$\$([\s\S]+?)\$\$/g, (formula) => formula.replace(/\n/g, ' '))
-  const paragraphs = joined.split(/\n\s*\n/)
+  const blocks: string[] = []
+  // Pull code out first so its newlines and dollar signs are left alone.
+  const withoutCode = text.replace(FENCE, (_, code: string) => `\n\n\u0000${blocks.push(code) - 1}\u0000\n\n`)
+  const joined = withoutCode.replace(/\\\[([\s\S]+?)\\\]|\$\$([\s\S]+?)\$\$/g, (formula) => formula.replace(/\n/g, ' '))
+  const paragraphs = joined.split(/\n\s*\n/).filter((paragraph) => paragraph.trim())
   return (
     <div className={cn('space-y-3 leading-relaxed [&_.katex]:text-[1.05em]', className)}>
       {paragraphs.map((paragraph, i) => {
+        const code = CODE_SLOT.exec(paragraph.trim())
+        if (code) {
+          return (
+            <pre key={i} className="overflow-x-auto rounded-lg bg-foreground/[0.05] px-3 py-2 font-mono text-[13px] leading-5">
+              {blocks[Number(code[1])]}
+            </pre>
+          )
+        }
+        const heading = HEADING.exec(paragraph.trim())
+        if (heading) {
+          return (
+            <p key={i} className="pt-1 font-semibold">
+              <Line text={heading[1]} />
+            </p>
+          )
+        }
         const lines = paragraph.split('\n').map((line) => line.trim())
         if (lines.every((line) => FIGURE.test(line))) {
           return (

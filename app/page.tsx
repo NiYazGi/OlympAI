@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils'
 
 export async function generateMetadata() {
   const t = await getT()
-  return { title: { absolute: t('OlympAI: preparation for mathematics and physics olympiads') } }
+  return { title: { absolute: t('OlympAI: preparation for mathematics, physics and informatics olympiads') } }
 }
 
 async function counts() {
@@ -67,7 +67,7 @@ const faq = [
   },
   {
     q: 'Who is it for?',
-    a: 'School students from grade 7 who are preparing for olympiads in mathematics or physics, from the regional stage to international ones, and their teachers.',
+    a: 'School students from grade 7 who are preparing for olympiads in mathematics, physics or informatics, from the regional stage to international ones, and their teachers.',
   },
   {
     q: 'How is a solution checked?',
@@ -85,7 +85,7 @@ export default async function LandingPage() {
   const figures = [
     stats ? { value: `${roughly(stats.tasks)}+`, label: t('problems from olympiad archives') } : null,
     stats ? { value: String(stats.olympiads), label: t('olympiads in the catalogue') } : null,
-    { value: '2', label: t('subjects: mathematics and physics') },
+    { value: '3', label: t('subjects: mathematics, physics and informatics') },
     { value: '3', label: t('languages: Russian, Kazakh, English') },
   ].filter((item): item is { value: string; label: string } => item !== null)
 
@@ -152,8 +152,8 @@ export default async function LandingPage() {
       {/* Subjects ------------------------------------------------------------ */}
       <section id="subjects" className="scroll-mt-20 border-t border-border">
         <div className="mx-auto max-w-[1120px] px-5 py-20 sm:px-8">
-          <h2 className="font-display text-[32px] leading-tight font-semibold sm:text-[40px]">{t('Two subjects, done properly')}</h2>
-          <div className="mt-10 grid gap-4 md:grid-cols-2">
+          <h2 className="font-display text-[32px] leading-tight font-semibold sm:text-[40px]">{t('Three subjects, done properly')}</h2>
+          <div className="mt-10 grid gap-4 md:grid-cols-3">
             <SubjectCard
               title={t('Mathematics')}
               topics={t('Algebra, combinatorics, number theory, inequalities')}
@@ -163,6 +163,11 @@ export default async function LandingPage() {
               title={t('Physics')}
               topics={t('Mechanics, electricity, thermodynamics')}
               olympiads="IPhO, APhO, IZhO"
+            />
+            <SubjectCard
+              title={t('Informatics')}
+              topics={t('Algorithms, graphs, dynamic programming, data structures')}
+              olympiads="IOI, APIO, «Шёлковый путь»"
             />
           </div>
           <p className="mt-6 max-w-2xl text-[16px] leading-7 text-muted-foreground">

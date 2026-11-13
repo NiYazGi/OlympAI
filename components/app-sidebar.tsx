@@ -4,6 +4,9 @@ import { ViewTransition, type ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
+  FileSignature,
+  MessagesSquare,
+  Gem,
   BookOpen,
   ChartNoAxesColumnIncreasing,
   ChevronRight,
@@ -73,11 +76,17 @@ export function AppSidebar({
   admin,
   role = 'student',
   inClass = false,
+  billing = false,
+  community = false,
 }: {
   identity: ReactNode
   admin?: ReactNode
   role?: Role
   inClass?: boolean
+  /** Shows Plans; only where billing is switched on. */
+  billing?: boolean
+  /** Shows the Forum; only where the community is switched on. */
+  community?: boolean
 }) {
   const t = useT()
 
@@ -106,10 +115,20 @@ export function AppSidebar({
               <item.icon className="size-5" strokeWidth={1.75} />
             </SidebarLink>
           ))}
+          {community ? (
+            <SidebarLink href="/forum" label={t('Forum')} active={isActive('/forum') || isActive('/u')}>
+              <MessagesSquare className="size-5" strokeWidth={1.75} />
+            </SidebarLink>
+          ) : null}
         </div>
 
         <div className="mt-auto flex flex-col gap-0.5 pt-8">
           {admin}
+          {billing ? (
+            <SidebarLink href="/pricing" label={t('Plans')} active={isActive('/pricing') || isActive('/checkout')}>
+              <Gem className="size-5" strokeWidth={1.75} />
+            </SidebarLink>
+          ) : null}
           <SidebarLink href="/settings" label={t('Settings')} active={isActive('/settings')}>
             <Settings className="size-5" strokeWidth={1.75} />
           </SidebarLink>
@@ -132,6 +151,17 @@ export function AdminSidebarLink() {
       active={pathname === '/admin' || pathname.startsWith('/admin/')}
     >
       <ShieldCheck className="size-5" strokeWidth={1.75} />
+    </SidebarLink>
+  )
+}
+
+/** The document generator, beside Admin and for admins only. */
+export function DocumentsSidebarLink() {
+  const t = useT()
+  const pathname = usePathname()
+  return (
+    <SidebarLink href="/documents" label={t('Documents')} active={pathname === '/documents' || pathname.startsWith('/documents/')}>
+      <FileSignature className="size-5" strokeWidth={1.75} />
     </SidebarLink>
   )
 }

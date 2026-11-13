@@ -25,6 +25,10 @@ import { getAvatarSrc } from '@/lib/supabase/avatar'
 import { getCurrentProfile, getProgressAnalytics } from '@/lib/supabase/queries'
 import { cardClass, cn, initials } from '@/lib/utils'
 import { getT } from '@/lib/i18n/server'
+import { Locked } from '@/components/billing/locked'
+import { canUse } from '@/lib/features'
+import { billingEnabled } from '@/lib/billing'
+import { communityEnabled } from '@/lib/community'
 
 export async function generateMetadata() {
   const t = await getT()
@@ -68,7 +72,16 @@ export default async function MePage() {
 async function MeBody() {
   const t = await getT()
 
-  const [profile, analytics, avatarSrc] = await Promise.all([getCurrentProfile(), getProgressAnalytics(), getAvatarSrc()])
+  const [profile, analytics, avatarSrc, analyticsOpen, mistakesOpen, weakOpen, skillsOpen, reportOpen] = await Promise.all([
+    getCurrentProfile(),
+    getProgressAnalytics(),
+    getAvatarSrc(),
+    canUse('analytics'),
+    canUse('mistakes'),
+    canUse('weakSets'),
+    canUse('skillMap'),
+    canUse('weeklyReport'),
+  ])
   const achievements = buildAchievements(analytics)
   const earned = achievements.filter((achievement) => achievement.earned).length
   const ordered = [...achievements].sort((a, b) => {
@@ -160,9 +173,26 @@ async function MeBody() {
         {t('Progress')}
       </h2>
 
+      {communityEnabled() && profile?.username ? (
+        <Link href={`/u/${profile.username}`} className="-mt-2 text-sm text-primary hover:underline">
+          {t('Your public profile and awards')} →
+        </Link>
+      ) : null}
+      {billingEnabled() ? <div className="grid gap-3 sm:grid-cols-2">
+        <Link href="/me/skills" className={`${cardClass} lift p-4 text-sm`}>
+          <span className="font-medium">{t('Skills and gaps map')}</span>
+          <span className="mt-0.5 block text-muted-foreground">{skillsOpen ? t('Every topic: what holds and what is missing.') : t('Included in {plan}.', { plan: 'Pro' })}</span>
+        </Link>
+        <Link href="/me/report" className={`${cardClass} lift p-4 text-sm`}>
+          <span className="font-medium">{t('Weekly readiness report')}</span>
+          <span className="mt-0.5 block text-muted-foreground">{reportOpen ? t('The last seven days and what to do next.') : t('Included in {plan}.', { plan: 'Pro' })}</span>
+        </Link>
+      </div> : null}
+
+      {analytics.hasData && !analyticsOpen ? <Locked feature="analytics" /> : null}
       {analytics.hasData ? (
         <>
-          <div className="grid gap-5 lg:grid-cols-2">
+          <div className={cn('grid gap-5 lg:grid-cols-2', !analyticsOpen && 'hidden')}>
             <section className={`${cardClass} p-4 sm:p-6`}>
               <h3 className="font-medium">Точность решений по темам</h3>
               <p className="mt-1 text-sm text-muted-foreground">{t('Accuracy from graded attempts')}</p>
@@ -192,7 +222,7 @@ async function MeBody() {
             </section>
           </div>
 
-          {analytics.accuracyTrend.length > 1 ? (
+          {analyticsOpen && analytics.accuracyTrend.length > 1 ? (
             <section className={`${cardClass} p-4 sm:p-6`}>
               <h3 className="font-medium">{t('Accuracy by week')}</h3>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -205,7 +235,7 @@ async function MeBody() {
           ) : null}
 
           <div className="grid gap-5 md:grid-cols-3">
-            <section className={`${cardClass} p-5`}>
+            {weakOpen ? <section className={`${cardClass} p-5`}>
               <div className="flex items-center gap-2">
                 <Flame className="size-4 text-primary" />
                 <h3 className="font-medium">{t('Train next')}</h3>
@@ -217,7 +247,7 @@ async function MeBody() {
                     ? t('Too little data yet. Solve a few more problems on different methods before raising the difficulty.')
                     : t('Nothing below 70% — step up the difficulty.')}
               </p>
-            </section>
+            </section> : <Locked feature="weakSets" compact />}
 
             <section className={`${cardClass} p-5`}>
               <div className="flex items-center gap-2">
@@ -231,7 +261,7 @@ async function MeBody() {
               </p>
             </section>
 
-            <section className={`${cardClass} p-5`}>
+            {mistakesOpen ? <section className={`${cardClass} p-5`}>
               <h3 className="font-medium">{t('Review mistakes')}</h3>
               <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
                 {analytics.recentMistakes.length ? (
@@ -240,7 +270,7 @@ async function MeBody() {
                   <li>{t('Nothing incorrect to review.')}</li>
                 )}
               </ul>
-            </section>
+            </section> : <Locked feature="mistakes" compact />}
           </div>
         </>
       ) : (

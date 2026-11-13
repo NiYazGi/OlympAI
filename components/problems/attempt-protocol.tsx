@@ -1,6 +1,7 @@
 'use client'
 
 import type { CSSProperties, ReactNode } from 'react'
+import Link from 'next/link'
 import { useT } from '@/components/i18n-provider'
 import { MathLine } from '@/components/sulu/rich-message'
 import { MAX_POINTS, solutionLines, type Mark, type MarkKind, type Protocol } from '@/lib/protocol'
@@ -129,7 +130,12 @@ export function AttemptProtocol({
         })}
       </ol>
 
-      {protocol.marks.length === 0 ? (
+      {protocol.reviewLocked ? (
+        <p className="-mt-3 text-xs text-muted-foreground">
+          {t('A line-by-line review of the reasoning — where it holds, where it breaks and why — is included in Pro.')}{' '}
+          <Link href="/pricing" className="text-primary hover:underline">{t('Plans')}</Link>
+        </p>
+      ) : protocol.marks.length === 0 ? (
         <p className="-mt-3 text-xs text-muted-foreground">
           {t('This attempt was graded before line marks existed, so it has the feedback alone.')}
         </p>

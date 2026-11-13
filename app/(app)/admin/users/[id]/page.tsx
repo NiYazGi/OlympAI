@@ -6,6 +6,8 @@ import { PageHeader } from '@/components/page-header'
 import { UserControls } from '@/components/admin/user-controls'
 import { AttemptControls } from '@/components/admin/attempt-controls'
 import { AdminToggle } from '@/components/admin/admin-toggle'
+import { PlanControls } from '@/components/admin/plan-controls'
+import { billingEnabled, entitlementFor, getPlans, subscriptionsFor } from '@/lib/billing'
 import { requireAdminPage } from '@/lib/supabase/admin-guard'
 import { getSessionUserId } from '@/lib/supabase/auth'
 import { getAccount } from '@/lib/admin/accounts'
@@ -192,8 +194,43 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
           ) : null}
         </div>
 
-        <UserControls account={account} isSelf={account.id === me} grades={GRADES} />
+        <div className="space-y-5">
+          {billingEnabled() ? <PlanPanel userId={account.id} /> : null}
+          <UserControls account={account} isSelf={account.id === me} grades={GRADES} />
+        </div>
       </div>
     </>
+  )
+}
+
+async function PlanPanel({ userId }: { userId: string }) {
+  const [t, locale, plans, entitlement, subscriptions] = await Promise.all([
+    getT(),
+    getLocale(),
+    getPlans(),
+    entitlementFor(userId),
+    subscriptionsFor(userId),
+  ])
+  const name = (id: string) => plans.find((plan) => plan.id === id)?.name ?? id
+  const day = (value: string) => shortDate(value, locale)
+  const current =
+    entitlement.via === 'promo'
+      ? t('Unlimit through the promotion; underneath: {plan}', { plan: entitlement.subscription ? name(entitlement.subscription.planId) : 'Free' })
+      : entitlement.via === 'subscription' && entitlement.until
+        ? `${name(entitlement.plan)} · ${t('until {date}', { date: day(entitlement.until) })}`
+        : 'Free'
+  return (
+    <PlanControls
+      userId={userId}
+      current={current}
+      rows={subscriptions.map((row) => ({
+        id: row.id,
+        planName: name(row.planId),
+        period: `${day(row.startsAt)} – ${day(row.endsAt)}`,
+        source: row.source,
+        active: row.active,
+        canceled: Boolean(row.canceledAt),
+      }))}
+    />
   )
 }

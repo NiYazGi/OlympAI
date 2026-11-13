@@ -22,6 +22,7 @@ import { xpForFirstSolve } from '@/lib/xp'
 import { cardClass } from '@/lib/utils'
 import { getT } from '@/lib/i18n/server'
 import { MathText } from '@/components/math-text'
+import { TaskDiscussion } from '@/components/community/task-discussion'
 
 // Task content is behind RLS and the solved state is per-user, so this page is
 // rendered per request. It previously ran generateStaticParams over the mock
@@ -139,8 +140,9 @@ export default async function TaskPage({ params }: { params: Promise<{ slug: str
               url={task.sourceUrl}
             />
             </div>
-            <div className="mt-3">
+            <div className="mt-3 flex flex-wrap items-center gap-3">
               <ReportIssue taskId={task.id} kind="statement" />
+              <TaskDiscussion taskId={task.id} />
             </div>
 
             {task.diagramUrl ? (

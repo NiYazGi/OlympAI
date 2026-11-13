@@ -1,5 +1,6 @@
 'use client'
 
+import { AiThinking } from '@/components/ai-thinking'
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, useTransition, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { AlarmClock, Loader2, Send } from 'lucide-react'
@@ -172,7 +173,8 @@ export function ExamRunner({
         ))}
       </ol>
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-end gap-4">
+        {pending ? <AiThinking kind="paper" /> : null}
         <Button size="lg" onClick={submit} disabled={pending || answered === 0}>
           {pending ? (
             <>

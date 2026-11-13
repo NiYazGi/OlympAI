@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   title: { default: 'OlympAI — AI Olympiad Coach', template: '%s | OlympAI' },
   description: 'Practice olympiad problems, understand mistakes, and build mastery with a guided AI coach.',
   applicationName: 'OlympAI',
-  keywords: ['olympiad preparation', 'academic practice', 'physics', 'mathematics', 'AI coach'],
+  keywords: ['olympiad preparation', 'academic practice', 'physics', 'mathematics', 'informatics', 'AI coach'],
   icons: { icon: [{ url: '/icon.svg', type: 'image/svg+xml' }] },
   openGraph: { title: 'OlympAI — AI Olympiad Coach', description: 'Practice olympiad problems with guided AI coaching.', type: 'website', siteName: 'OlympAI', images: [{ url: '/icon.svg', width: 512, height: 512, alt: 'OlympAI' }] },
   twitter: { card: 'summary', title: 'OlympAI — AI Olympiad Coach', description: 'Practice olympiad problems with guided AI coaching.' },

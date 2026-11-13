@@ -1,5 +1,6 @@
 'use client'
 
+import { AiThinking } from '@/components/ai-thinking'
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { ArrowUp, BookOpenCheck, FileText, Lightbulb, ListChecks, RotateCcw, ZoomIn } from 'lucide-react'
 import { SuluGlyph } from '@/components/brand-mark'
@@ -219,7 +220,7 @@ export function CoachChat({
                 {message.content ? (
                   <RichMessage content={message.content} role={message.role} />
                 ) : loading ? (
-                  <span className="text-shimmer">{t('Thinking…')}</span>
+                  <AiThinking kind="chat" />
                 ) : null}
                 {message.role === 'assistant' && message.meta?.level ? (
                   <p className="mt-2 text-[11px] text-muted-foreground">
@@ -234,7 +235,7 @@ export function CoachChat({
         {taskId && loading ? (
           <div className="flex justify-start">
             <div className="rounded-2xl rounded-bl-md bg-foreground/[0.05] px-4 py-3 text-sm shadow-key">
-              <span className="text-shimmer">{t('Thinking…')}</span>
+              <AiThinking kind="chat" />
             </div>
           </div>
         ) : null}

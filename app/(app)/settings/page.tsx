@@ -1,13 +1,15 @@
 import { Reveal } from '@/components/reveal'
 import Link from 'next/link'
-import { Languages, LogOut, Plus, ShieldCheck, SunMoon, User } from 'lucide-react'
+import { Gem, Languages, LogOut, Plus, ShieldCheck, SunMoon, User } from 'lucide-react'
 import { PageHeader } from '@/components/page-header'
 import { BlockSkeleton, PendingRegion } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { signOut } from '@/app/auth/actions'
 import { getCurrentProfile } from '@/lib/supabase/queries'
 import { cardClass, cn } from '@/lib/utils'
-import { getT } from '@/lib/i18n/server'
+import { getLocale, getT } from '@/lib/i18n/server'
+import { billingEnabled, getEntitlement, getPlans } from '@/lib/billing'
+import { shortDate } from '@/lib/admin/format'
 import { LanguageSwitcher } from '@/components/language-switcher'
 import { ThemePicker } from '@/components/theme-toggle'
 import { TelegramLink } from '@/app/(app)/settings/telegram'
@@ -60,6 +62,8 @@ async function Account() {
           {t(', alongside your progress.')}
         </p>
       </Section>
+
+      {billingEnabled() ? <PlanSection /> : null}
 
       <Section icon={Languages} title={t('Language')}>
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -123,6 +127,33 @@ async function Account() {
         </form>
       </Section>
     </>
+  )
+}
+
+async function PlanSection() {
+  const [t, locale, plans, entitlement] = await Promise.all([getT(), getLocale(), getPlans(), getEntitlement()])
+  const name = plans.find((plan) => plan.id === entitlement.plan)?.name ?? entitlement.plan
+  const status =
+    entitlement.via === 'promo' && entitlement.until
+      ? t('{plan}, free for everyone until {date}', { plan: name, date: shortDate(entitlement.until, locale) })
+      : entitlement.via === 'subscription' && entitlement.until
+        ? t('{plan}, paid until {date}', { plan: name, date: shortDate(entitlement.until, locale) })
+        : name
+  return (
+    <Section icon={Gem} title={t('Subscription plan')}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm font-medium">{status}</p>
+        <Button
+          variant="outline"
+          nativeButton={false}
+          render={
+            <Link href="/pricing" prefetch>
+              {t('Plans and payments')}
+            </Link>
+          }
+        />
+      </div>
+    </Section>
   )
 }
 

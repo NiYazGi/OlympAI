@@ -7,6 +7,8 @@ import { AttemptProtocol } from '@/components/problems/attempt-protocol'
 import { AttemptHistory } from '@/components/problems/attempt-history'
 import { getAttemptDetail, getTaskDetail, getTaskHistory, getTaskReports } from '@/lib/supabase/queries'
 import { getSessionUserId } from '@/lib/supabase/auth'
+import { canUse } from '@/lib/features'
+import { withoutReview } from '@/lib/protocol'
 import { getLocale, getT } from '@/lib/i18n/server'
 import { formatDate } from '@/lib/i18n/config'
 import { cardClass, cn } from '@/lib/utils'
@@ -70,7 +72,7 @@ export default async function AttemptPage({ params }: { params: Promise<{ slug: 
 
         <div className="flex min-w-0 flex-col gap-6 lg:col-span-7">
           <div className={cn(cardClass, 'p-5 sm:p-6')}>
-            <AttemptProtocol protocol={attempt.protocol} />
+            <AttemptProtocol protocol={(await canUse('deepReview')) ? attempt.protocol : withoutReview(attempt.protocol)} />
           </div>
           {own ? <AttemptHistory taskId={task.id} attempts={history} reports={reports} /> : null}
         </div>

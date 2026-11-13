@@ -3,6 +3,8 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
+  Gem,
+  MessagesSquare,
   ChartNoAxesColumnIncreasing,
   LayoutDashboard,
   MessageCircle,
@@ -49,11 +51,13 @@ const teacherNav = [
 
 const teacherMore = [{ href: '/settings', label: 'Settings', icon: Settings }]
 
-export function MobileNav({ role = 'student', inClass = false }: { role?: 'student' | 'teacher'; inClass?: boolean }) {
+export function MobileNav({ role = 'student', inClass = false, billing = false, community = false }: { role?: 'student' | 'teacher'; inClass?: boolean; billing?: boolean; community?: boolean }) {
   const navItems: { href: string; label: string; icon: typeof Users; also?: string[] }[] = role === 'teacher' ? teacherNav : studentNav
-  const moreItems = (role === 'teacher' ? teacherMore : studentMore).filter(
-    (item) => inClass || !('classOnly' in item && item.classOnly),
-  )
+  const moreItems = [
+    ...(role === 'teacher' ? teacherMore : studentMore).filter((item) => inClass || !('classOnly' in item && item.classOnly)),
+    ...(community ? [{ href: '/forum', label: 'Forum', icon: MessagesSquare }] : []),
+    ...(billing ? [{ href: '/pricing', label: 'Plans', icon: Gem }] : []),
+  ]
   const t = useT()
 
   const pathname = usePathname()

@@ -8,7 +8,8 @@ import { checkAttemptRateLimit } from '@/lib/rate-limit'
 import { gradeAttempt, type Grade } from '@/lib/sulu/grade'
 import { transcribeSolutionPhoto } from '@/lib/sulu/transcribe'
 import { attemptXp } from '@/lib/xp'
-import type { Protocol } from '@/lib/protocol'
+import { withoutReview, type Protocol } from '@/lib/protocol'
+import { canUse } from '@/lib/features'
 import { SuluError } from '@/lib/sulu/provider'
 import { getLocale, getT } from '@/lib/i18n/server'
 
@@ -161,10 +162,7 @@ export async function submitTaskAttempt(
   revalidatePath('/plan')
   revalidatePath('/path')
 
-  return {
-    ok: true,
-    attemptId: inserted.id,
-    protocol: {
+  const protocol: Protocol = {
       verdict: grade.verdict,
       points: grade.points,
       pointsDerived: false,
@@ -176,7 +174,12 @@ export async function submitTaskAttempt(
       criteria: grade.criteria,
       breakPoint: grade.breakPoint,
       answer: trimmedAnswer,
-    },
+  }
+  return {
+    ok: true,
+    attemptId: inserted.id,
+    // The full protocol is saved either way; the plan decides what is shown.
+    protocol: (await canUse('deepReview')) ? protocol : withoutReview(protocol),
     xpEarned,
     repeat: alreadySolved,
     firstSolve: grade.verdict === 'correct' && !alreadySolved,

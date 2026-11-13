@@ -1,5 +1,6 @@
 'use client'
 
+import { AiThinking } from '@/components/ai-thinking'
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { Camera, Check, CheckCircle2, Cloud, CloudOff, FileText, Lightbulb, Loader2, MessageCircle, PenLine, Zap } from 'lucide-react'
@@ -288,6 +289,7 @@ export function SolutionPanel({
         </Button>
         {askSulu}
       </div>
+      {checking ? <AiThinking kind="grading" className="px-1" /> : null}
     </div>
   )
 }
@@ -383,6 +385,7 @@ function NotebookPhoto({ taskId, onRead }: { taskId: string; onRead: (text: stri
             {state === 'reading' ? <Loader2 className="size-3.5 animate-spin" /> : <Camera className="size-3.5" />}
             {state === 'reading' ? t('Reading the photo…') : t('Photo of your notebook')}
           </Button>
+          {state === 'reading' ? <AiThinking kind="photo" /> : null}
           {message ? (
             <span
               role={state === 'error' ? 'alert' : 'status'}

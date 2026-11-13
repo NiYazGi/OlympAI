@@ -2,6 +2,8 @@ import { Reveal } from '@/components/reveal'
 import { PreparationRoadmap } from '@/components/preparation/roadmap'
 import { PreparationSchedule } from '@/components/preparation/schedule-form'
 import { ArchiveAnalysis } from '@/components/preparation/archive-analysis'
+import { Locked } from '@/components/billing/locked'
+import { canUse } from '@/lib/features'
 import { getPreparation } from '@/lib/supabase/preparation'
 import Link from 'next/link'
 import { ArrowRight, CalendarRange, Check, Flag, Lock } from 'lucide-react'
@@ -65,7 +67,8 @@ export default async function PlanPage() {
 }
 
 async function Plan() {
-  const [preparation, t, track] = await Promise.all([getPreparation(), getT(), getStudentTrack()])
+  const [preparation, t, track, planOpen, strategyOpen] = await Promise.all([getPreparation(), getT(), getStudentTrack(), canUse('plan'), canUse('strategy')])
+  if (!planOpen) return <Locked feature="plan" />
   if (!preparation) {
     return (
       <EmptyState
@@ -89,7 +92,7 @@ async function Plan() {
         key={`${preferences.weekdays.join(',')}:${preferences.sessionMinutes}:${preferences.schoolGrade}`}
         preferences={preferences} grade={preparation.currentGrade} intensity={preparation.intensity} custom={preparation.customSchedule}
       />
-      <ArchiveAnalysis analysis={preparation.analysis} daily={preparation.plan.daily} />
+      {strategyOpen ? <ArchiveAnalysis analysis={preparation.analysis} daily={preparation.plan.daily} /> : <Locked feature="strategy" />}
       {track.from ? (
         <details className={cn(cardClass, 'p-4')}>
           <summary className="cursor-pointer font-medium">{t('Class plan')} · {track.from.name}</summary>

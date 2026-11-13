@@ -26,6 +26,11 @@ export type Criterion = { text: string; max: number; earned: number }
 /** The first line where the argument stops holding, and what would repair it. */
 export type BreakPoint = { line: number; need: string; technique: string | null }
 
+/** What a plan without the in-depth review sees: the verdict and feedback only. */
+export function withoutReview(protocol: Protocol): Protocol {
+  return { ...protocol, marks: [], criteria: [], breakPoint: null, reviewLocked: true }
+}
+
 export type Protocol = {
   verdict: Verdict
   /** Out of MAX_POINTS. Attempts graded before the protocol have it derived. */
@@ -40,6 +45,8 @@ export type Protocol = {
   criteria: Criterion[]
   breakPoint: BreakPoint | null
   answer: string
+  /** The plan hides the line-by-line review (marks, criteria, break point). */
+  reviewLocked?: boolean
 }
 
 /** The sign a verdict is written with in an olympiad protocol. */

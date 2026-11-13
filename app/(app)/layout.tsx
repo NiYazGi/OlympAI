@@ -1,6 +1,6 @@
 import { Suspense, type ReactNode } from 'react'
 import { redirect } from 'next/navigation'
-import { AdminSidebarLink, AppSidebar } from '@/components/app-sidebar'
+import { AdminSidebarLink, AppSidebar, DocumentsSidebarLink } from '@/components/app-sidebar'
 import { MobileNav } from '@/components/mobile-nav'
 import { SidebarIdentity, SidebarIdentitySkeleton } from '@/components/sidebar-identity'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -14,6 +14,8 @@ import { FlameGate } from '@/components/flame/flame-gate'
 import { TourGate } from '@/components/tour/tour-gate'
 import { AnnouncementBar } from '@/components/announcement-bar'
 import { getLiveAnnouncement } from '@/lib/admin/settings'
+import { billingEnabled } from '@/lib/billing'
+import { communityEnabled } from '@/lib/community'
 
 /**
  * Awaits only the session — one in-process lookup — and the locale. This
@@ -47,6 +49,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           }
           role={role}
           inClass={inClass}
+          billing={billingEnabled()}
+          community={communityEnabled()}
         />
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="hidden h-20 shrink-0 items-center justify-end gap-1.5 px-8 md:flex">
@@ -59,7 +63,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             <ThemeToggle />
             <LanguageSwitcher />
           </header>
-          <MobileNav role={role} inClass={inClass} />
+          <MobileNav role={role} inClass={inClass} billing={billingEnabled()} community={communityEnabled()} />
           <Suspense fallback={null}>
             <Announcement />
           </Suspense>
@@ -73,7 +77,12 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 }
 
 async function AdminEntry() {
-  return (await isCurrentUserAdmin()) ? <AdminSidebarLink /> : null
+  return (await isCurrentUserAdmin()) ? (
+    <>
+      <AdminSidebarLink />
+      <DocumentsSidebarLink />
+    </>
+  ) : null
 }
 
 /** The admin's banner, when one is set (Admin → Settings). */

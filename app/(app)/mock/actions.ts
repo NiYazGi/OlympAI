@@ -13,6 +13,7 @@ import { attemptXp } from '@/lib/xp'
 import { composeMockFor, realPapers, scoreMock } from '@/lib/mock'
 import { getCurrentProfile, getTaskCatalogue } from '@/lib/supabase/queries'
 import { getLocale, getT } from '@/lib/i18n/server'
+import { canUse } from '@/lib/features'
 
 export type MockResult = { ok: boolean; error?: string }
 
@@ -32,6 +33,7 @@ export async function startMock(subjectName: string): Promise<MockResult> {
   const t = await getT()
   const user = await getVerifiedUser()
   if (!user) return { ok: false, error: t('Your session has expired. Please log in again.') }
+  if (!(await canUse('mocks'))) return { ok: false, error: t('Mock olympiads are included in Plus.') }
 
   const supabase = await createClient()
   const { data: subject } = await supabase
@@ -241,6 +243,7 @@ export async function startPaper(paper: string, minutes?: number): Promise<MockR
   const t = await getT()
   const user = await getVerifiedUser()
   if (!user) return { ok: false, error: t('Your session has expired. Please log in again.') }
+  if (!(await canUse('realPapers'))) return { ok: false, error: t('Olympiad simulation is included in Pro.') }
 
   const supabase = await createClient()
   const { data: open } = await supabase

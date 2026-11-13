@@ -155,3 +155,32 @@ export async function deleteUser(userId: string, typedEmail: string): Promise<Ad
   revalidatePath('/admin')
   redirect('/admin/users?deleted=1')
 }
+
+/** Billing: a plan for a number of days, no payment; or end one now. */
+export async function grantPlan(userId: string, planId: string, days: number): Promise<AdminResult> {
+  const t = await getT()
+  const gate = await requireAdminAction()
+  if (!gate.ok) return gate
+  const { billingEnabled, grantSubscription } = await import('@/lib/billing')
+  const { isPlanId } = await import('@/lib/billing-types')
+  if (!billingEnabled()) return { ok: false, error: t('Plans are not available here yet.') }
+  const span = Math.round(Number(days))
+  if (!UUID.test(userId) || !isPlanId(planId) || planId === 'free' || !(span >= 1 && span <= 730)) {
+    return { ok: false, error: t('Malformed request body.') }
+  }
+  await grantSubscription(userId, planId, span)
+  await logAdmin(gate.admin, gate.userId, 'user.plan.grant', userId, { plan: planId, days: span })
+  revalidatePath('/pricing')
+  return done(userId, t('Plan granted.'))
+}
+
+export async function endPlan(userId: string, subscriptionId: string): Promise<AdminResult> {
+  const t = await getT()
+  const gate = await requireAdminAction()
+  if (!gate.ok) return gate
+  if (!UUID.test(userId) || !UUID.test(subscriptionId)) return { ok: false, error: t('Malformed request body.') }
+  const { endSubscriptionNow } = await import('@/lib/billing')
+  await endSubscriptionNow(subscriptionId, userId)
+  await logAdmin(gate.admin, gate.userId, 'user.plan.end', userId, { subscription: subscriptionId })
+  return done(userId, t('Plan ended.'))
+}
