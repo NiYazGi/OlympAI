@@ -21,9 +21,11 @@ const MIN_ANSWER_LENGTH = 20
 
 export function SolutionPanel({
   taskId,
+  trainingSessionId,
   serverDraft = null,
 }: {
   taskId: string
+  trainingSessionId?: string
   /** The copy kept with the account, from another device or an earlier visit. */
   serverDraft?: { text: string; updatedAt: string } | null
 }) {
@@ -63,7 +65,7 @@ export function SolutionPanel({
     setResult(null)
     setError('')
     try {
-      const response = await submitTaskAttempt(taskId, solution)
+      const response = await submitTaskAttempt(taskId, solution, trainingSessionId)
       if (response.ok) {
         setResult(response)
         setReviewing(true)

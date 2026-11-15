@@ -38,6 +38,10 @@ export async function completeOnboarding(formData: FormData): Promise<Onboarding
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return { ok: false, error: t('Your session has expired. Please log in again.') }
+  const { data: profile, error: profileError } = await supabase.from('profiles')
+    .select('onboarding_completed_at').eq('id', user.id).maybeSingle()
+  if (profileError || !profile) return { ok: false, error: t('Unable to save your setup. Please try again.') }
+  if (profile.onboarding_completed_at) redirect('/plan/settings')
 
   const update: ProfileUpdate = {}
   for (const field of FIELDS) {
@@ -61,6 +65,7 @@ export async function completeOnboarding(formData: FormData): Promise<Onboarding
     .from('profiles')
     .update({ ...update, onboarding_completed_at: new Date().toISOString() })
     .eq('id', user.id)
+    .is('onboarding_completed_at', null)
   if (error) return { ok: false, error: t('Unable to save your setup. Please try again.') }
 
   // Back to wherever they were going, validated rather than trusted: it

@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { randomBytes } from 'node:crypto'
 import { Send } from 'lucide-react'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -38,7 +39,7 @@ export async function TelegramLink() {
   if (profile?.telegram_chat_id) {
     return (
       <Section title={t('Telegram')}>
-        <p className="text-sm leading-6 text-muted-foreground">{t('Connected. The bot asks in the evening; /day asks now, /score repeats today’s number.')}</p>
+        <p className="text-sm leading-6 text-muted-foreground">Telegram подключён. Самооценка по пяти направлениям добровольная: включи её отдельно в настройках подготовки или командой /reflection_on. /reflection_off отключает вопросы.</p><Link href="/plan/settings" className="mt-3 inline-block text-sm font-medium text-primary hover:underline">Настроить добровольную самооценку →</Link>
       </Section>
     )
   }
@@ -49,7 +50,7 @@ export async function TelegramLink() {
 
   return (
     <Section title={t('Telegram')}>
-      <p className="text-sm leading-6 text-muted-foreground">{t('The bot asks five short questions once a day and fills in your day for you. The link below connects this account to your Telegram — it is single-use, and opening this page again replaces it.')}</p>
+      <p className="text-sm leading-6 text-muted-foreground">Привяжи Telegram, если хочешь пользоваться ботом. Опрос не включается автоматически: самооценку можно добровольно подключить позже. Ссылка ниже одноразовая.</p>
       {bot ? (
         <Button
           className="mt-4"

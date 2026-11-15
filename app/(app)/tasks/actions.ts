@@ -12,6 +12,10 @@ import { withoutReview, type Protocol } from '@/lib/protocol'
 import { canUse } from '@/lib/features'
 import { SuluError } from '@/lib/sulu/provider'
 import { getLocale, getT } from '@/lib/i18n/server'
+import { getPreparation } from '@/lib/supabase/preparation'
+import { getDb } from '@/lib/db'
+import { trainingToday } from '@/lib/training-time'
+import { reserveTrainingActivity } from '@/lib/training-mutations'
 
 const MIN_ANSWER_LENGTH = 20
 const MAX_ANSWER_LENGTH = 8_000
@@ -33,6 +37,7 @@ export type AttemptResult =
 export async function submitTaskAttempt(
   taskId: string,
   answer: string,
+  trainingSessionId?: string,
 ): Promise<AttemptResult> {
   const t = await getT()
   const trimmedAnswer = answer.trim()
@@ -78,6 +83,22 @@ export async function submitTaskAttempt(
   if (task.class_id || task.hidden) {
     const { data: visible } = await supabase.from('tasks').select('id').eq('id', taskId).maybeSingle()
     if (!visible) return { ok: false, error: t('This task is unavailable. Please return to the task library.') }
+  }
+
+  if (trainingSessionId) {
+    const preparation = await getPreparation()
+    const today = trainingToday()
+    const session = preparation?.plan.sessions.find((row) => row.id === trainingSessionId && row.goal_key === preparation.mockPrefix &&
+      row.on_date === today && !row.completed_at && !row.skipped_at && !row.superseded_at && row.task_ids.includes(task.id))
+    if (!session || !preparation) return { ok: false, error: t('This activity does not belong to the selected study day.') }
+    try {
+      const db = await getDb()
+      const reserved = await db.transaction((tx) => reserveTrainingActivity(tx, { userId: user.id, sessionId: session.id,
+        goalKey: preparation.mockPrefix, today, kind: 'task', taskId: task.id }))
+      if (!reserved) return { ok: false, error: t('This activity does not belong to the selected study day.') }
+    } catch {
+      return { ok: false, error: t('Your attempt could not be saved. Please try again.') }
+    }
   }
 
   let grade: Grade

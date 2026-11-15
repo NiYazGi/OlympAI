@@ -1,51 +1,10 @@
 import { Library } from 'lucide-react'
-import { TopicStrengths } from '@/components/dashboard/topic-strengths'
-import { XpProgress } from '@/components/dashboard/xp-progress'
-import { PreparationStart } from '@/components/preparation/start'
 import { EmptyState } from '@/components/empty-state'
-import { PreparationRoadmap } from '@/components/preparation/roadmap'
-import type { getPreparation } from '@/lib/supabase/preparation'
-import type { ProgressAnalytics } from '@/lib/types'
-import { getT } from '@/lib/i18n/server'
+import { PreparationStart } from '@/components/preparation/start'
+import { TodayTraining } from '@/components/dashboard/today-training'
+import type {getPreparation} from '@/lib/supabase/preparation'
 
-export async function DashboardView({
-  analytics,
-  libraryEmpty,
-  preparation,
-}: {
-  analytics: ProgressAnalytics
-  /** Distinct from nothing left to solve: an empty library is not an achievement. */
-  libraryEmpty: boolean
-  preparation: Awaited<ReturnType<typeof getPreparation>>
-}) {
-  const t = await getT()
-
-  if (libraryEmpty && !preparation) {
-    return (
-      <EmptyState
-        icon={Library}
-        title={t('No problems are available yet')}
-        body={t('The library has not been filled in for this workspace. Once it is, what to do next shows up here.')}
-        action={{ href: '/sulu-ai', label: t('Ask Sulu something') }}
-      />
-    )
-  }
-
-  return (
-    <div className="space-y-4 sm:space-y-5">
-      {/* The data-tour wrappers are where the guided tour points. */}
-      <div data-tour="today">
-        {preparation ? (
-          <PreparationRoadmap
-            key={preparation.mockPrefix}
-            plan={preparation.plan} name={preparation.name} subject={preparation.subject}
-            targetDate={preparation.targetDate} competitionSlug={preparation.competitionSlug} mockPrefix={preparation.mockPrefix}
-          />
-        ) : <PreparationStart />}
-      </div>
-
-      <XpProgress xp={analytics.xp} hasPreparation={Boolean(preparation)} />
-      <TopicStrengths topics={analytics.topics} />
-    </div>
-  )
+export async function DashboardView({libraryEmpty,preparation}:{libraryEmpty:boolean;preparation:Awaited<ReturnType<typeof getPreparation>>}) {
+  if (libraryEmpty&&!preparation) return <EmptyState icon={Library} title="В библиотеке пока нет материалов" body="Выбери цель подготовки. Когда появятся материалы, они войдут в твой план." action={{href:'/plan/settings',label:'Настроить подготовку'}}/>
+  return preparation?<TodayTraining preparation={preparation}/>:<PreparationStart/>
 }

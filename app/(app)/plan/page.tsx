@@ -1,6 +1,7 @@
 import { Reveal } from '@/components/reveal'
 import { PreparationRoadmap } from '@/components/preparation/roadmap'
-import { PreparationSchedule } from '@/components/preparation/schedule-form'
+import { PreparationCalendar } from '@/components/preparation/calendar'
+import { trainingMinutes } from '@/lib/training-time'
 import { ArchiveAnalysis } from '@/components/preparation/archive-analysis'
 import { Locked } from '@/components/billing/locked'
 import { canUse } from '@/lib/features'
@@ -47,9 +48,9 @@ export default async function PlanPage() {
   const t = await getT()
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-5 p-4 sm:gap-6 sm:p-8">
+    <div className="mx-auto flex max-w-6xl flex-col gap-5 p-4 sm:gap-6 sm:p-8">
       <PageHeader title={t('Your plan')} description={t('What the next weeks look like, and what today is for.')}>
-        <Link href="/learn" className="text-sm text-muted-foreground underline underline-offset-2">{t('Change target')}</Link>
+        <Link href="/plan/settings" className="text-sm text-muted-foreground underline underline-offset-2">Единые настройки</Link>
       </PageHeader>
       <Reveal
         fallback={
@@ -75,11 +76,10 @@ async function Plan() {
         icon={Flag}
         title={t('Set a target first')}
         body={t('A plan is a route to somewhere. Choose what you are preparing for and by when, and this page fills in.')}
-        action={{ href: '/learn', label: t('Choose a target') }}
+        action={{ href: '/plan/settings', label: t('Choose a target') }}
       />
     )
   }
-  const { preferences } = preparation
   return (
     <>
       <PreparationRoadmap
@@ -88,10 +88,13 @@ async function Plan() {
         targetDate={preparation.targetDate} competitionSlug={preparation.competitionSlug}
         mockPrefix={preparation.mockPrefix} variant="schedule"
       />
-      <PreparationSchedule
-        key={`${preferences.weekdays.join(',')}:${preferences.sessionMinutes}:${preferences.schoolGrade}`}
-        preferences={preferences} grade={preparation.currentGrade} intensity={preparation.intensity} custom={preparation.customSchedule}
-      />
+      <PreparationCalendar days={preparation.plan.calendar} today={preparation.plan.today} targetDate={preparation.targetDate}/>
+      <section className="rounded-2xl border border-border p-5">
+        <h2 className="font-semibold">Нагрузка в согласованных пределах</h2>
+        <p className="mt-2 text-sm text-muted-foreground">Запланировано {trainingMinutes(preparation.plan.scheduledMinutes)} из {trainingMinutes(preparation.plan.preferredMinutes)} доступного времени. Разбор входит в эти минуты. Длинные задачи разбиты на части без сокращения оценки времени.</p>
+        <p className="mt-2 text-xs text-muted-foreground">При пропуске оставшаяся работа распределяется заново. День не получает двойную норму. За 5 дней нагрузка снижается, последние 2 дня — полный отдых.</p>
+        <Link href="/plan/settings" className="mt-3 inline-block text-sm font-medium text-primary">Изменить дни, часы, этап и цель →</Link>
+      </section>
       {strategyOpen ? <ArchiveAnalysis analysis={preparation.analysis} daily={preparation.plan.daily} /> : <Locked feature="strategy" />}
       {track.from ? (
         <details className={cn(cardClass, 'p-4')}>

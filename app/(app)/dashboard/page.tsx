@@ -5,7 +5,6 @@ import { BlockSkeleton, PendingRegion } from '@/components/skeletons'
 import { getPreparation } from '@/lib/supabase/preparation'
 import {
   getCurrentProfile,
-  getProgressAnalytics,
   getTaskCatalogue,
 } from '@/lib/supabase/queries'
 import { cardClass, cn } from '@/lib/utils'
@@ -30,9 +29,8 @@ export default async function DashboardPage() {
 }
 
 async function DashboardData() {
-  const [profile, analytics, tasks, preparation] = await Promise.all([
+  const [profile, tasks, preparation] = await Promise.all([
     getCurrentProfile(),
-    getProgressAnalytics(),
     getTaskCatalogue(),
     getPreparation(),
   ])
@@ -43,7 +41,6 @@ async function DashboardData() {
 
   return (
     <DashboardView
-      analytics={analytics}
       libraryEmpty={tasks.length === 0}
       preparation={preparation}
     />

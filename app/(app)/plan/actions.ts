@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { getDb } from '@/lib/db'
+import { trainingToday } from '@/lib/training-time'
+import { reserveTrainingActivity } from '@/lib/training-mutations'
 import { getT } from '@/lib/i18n/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getVerifiedUser } from '@/lib/supabase/auth'
@@ -11,40 +13,10 @@ import { createClient } from '@/lib/supabase/server'
 
 export type PreparationResult = { ok: boolean; error?: string }
 
-export async function savePreparationPreferences(
-  _previous: PreparationResult | null,
-  form: FormData,
-): Promise<PreparationResult> {
-  const t = await getT()
-  const user = await getVerifiedUser()
-  if (!user) return { ok: false, error: t('Your session has expired. Please log in again.') }
-
-  const supabase = await createClient()
-  if (form.get('mode') === 'default') {
-    const { error } = await supabase.from('preparation_preferences').delete().eq('user_id', user.id)
-    if (error) return { ok: false, error: t('That did not save. Please try again.') }
-  } else {
-    const weekdays = [...new Set(form.getAll('weekday').map(Number))].sort()
-    const minutes = Number(form.get('minutes'))
-    const dailyTasks = Number(form.get('daily_tasks') ?? 5)
-    const schoolGrade = form.get('school_grade') ? Number(form.get('school_grade')) : null
-    if (weekdays.length === 0 || weekdays.some((day) => !Number.isInteger(day) || day < 0 || day > 6)) {
-      return { ok: false, error: t('Choose at least one study day.') }
-    }
-    if (!Number.isInteger(dailyTasks) || dailyTasks < 1 || dailyTasks > 10 ||
-      !Number.isInteger(minutes) || minutes < 15 || minutes > 360 ||
-      (schoolGrade !== null && (!Number.isInteger(schoolGrade) || schoolGrade < 6 || schoolGrade > 12))) {
-      return { ok: false, error: t('Choose a valid class and 15 to 360 minutes per session.') }
-    }
-    const { error } = await supabase.from('preparation_preferences').upsert({
-      user_id: user.id, weekdays, session_minutes: minutes, school_grade: schoolGrade, daily_tasks: dailyTasks,
-    }, { onConflict: 'user_id' })
-    if (error) return { ok: false, error: t('That did not save. Please try again.') }
-  }
-
-  revalidatePath('/dashboard')
-  revalidatePath('/plan')
-  return { ok: true }
+/** Legacy callers use the unified form; never clear motivation or bypass load consent. */
+export async function savePreparationPreferences():Promise<PreparationResult> {
+  if (!await getVerifiedUser()) redirect('/login')
+  redirect('/plan/settings')
 }
 
 export async function startPreparationMock(
@@ -63,6 +35,10 @@ export async function startPreparationMock(
 
   const key = preparation.mockPrefix + id
   const step = preparation.plan.steps.find((item) => item.id === id && item.kind === 'mock')
+  const today = trainingToday()
+  if (step?.mock && step.date !== today) return { ok: false, error: 'Этот пробник назначен на другую дату. Сегодняшнее занятие находится на главной.' }
+  const planned = preparation.plan.sessions.find((session) => session.mock_key === id && session.goal_key === preparation.mockPrefix &&
+    session.on_date === today && !session.completed_at && !session.skipped_at && !session.superseded_at)
   let paperId: string | null
   try {
     const db = await getDb()
@@ -70,13 +46,25 @@ export async function startPreparationMock(
       const { rows: existing } = await tx.query<{ id: string }>(
         'select id from public.mock_tests where user_id = $1 and preparation_key = $2', [user.id, key],
       )
-      if (existing[0]) return existing[0].id
-      if (!step?.mock) return null
+      if (existing[0]) {
+        // Resuming an existing test must preserve its daily time reservation too.
+        if (planned) await reserveTrainingActivity(tx, { userId: user.id, sessionId: planned.id, goalKey: preparation.mockPrefix,
+          today, kind: 'mock', mockKey: id })
+        return existing[0].id
+      }
+      if (!step?.mock || !planned) return null
 
       const { rows: open } = await tx.query(
         'select id from public.mock_tests where user_id = $1 and submitted_at is null limit 1', [user.id],
       )
       if (open.length > 0) return null
+
+      // Starting from the full route reaches this action directly, without
+      // startTrainingSession. Keep both writes atomic so a refreshed plan cannot
+      // replace this timebox with a second assignment while the test is open.
+      const started = await reserveTrainingActivity(tx, { userId: user.id, sessionId: planned.id, goalKey: preparation.mockPrefix,
+        today, kind: 'mock', mockKey: id })
+      if (!started) return null
 
       const { rows: created } = await tx.query<{ id: string }>(
         `insert into public.mock_tests (user_id, subject_id, task_ids, duration_minutes, preparation_key)
@@ -113,6 +101,15 @@ export async function finishPreparationReview(
   const { data: paper } = await supabase.from('mock_tests').select('id, preparation_key, submitted_at')
     .eq('user_id', user.id).eq('id', id).maybeSingle()
   if (!paper?.preparation_key || !paper.submitted_at) return { ok: false, error: t('That test was not found.') }
+  const preparation = await getPreparation()
+  if (preparation && paper.preparation_key.startsWith(preparation.mockPrefix)) {
+    const reviewKey = paper.preparation_key.slice(preparation.mockPrefix.length)
+    const reviews = preparation.plan.sessions.filter((session) => session.review_mock_key === reviewKey && !session.superseded_at && !session.skipped_at)
+    if (reviews.length) {
+      const today = reviews.find((session) => session.on_date === trainingToday() && !session.completed_at)
+      redirect(today ? `/plan/session/${today.id}#review` : '/plan#training-calendar')
+    }
+  }
   const { error } = await createAdminClient().from('mock_tests')
     .update({ preparation_reviewed_at: new Date().toISOString() })
     .eq('id', id).eq('user_id', user.id).is('preparation_reviewed_at', null)

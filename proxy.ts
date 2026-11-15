@@ -25,6 +25,7 @@ const PROTECTED = [
   '/plan',
   '/method',
   '/methods',
+  '/diagnostic',
   '/pricing',
   '/checkout',
   '/documents',

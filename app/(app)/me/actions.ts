@@ -61,7 +61,10 @@ export async function saveProfilePreferences(formData: FormData): Promise<Prefer
   } = await supabase.auth.getUser()
   if (!user) return { ok: false, error: t('Your session has expired. Please log in again.') }
 
-  const fields = ['primary_subject', 'level', 'goal', 'training_intensity'] as const
+  // Older profile clients can still send training_intensity. Deliberately do
+  // not write it: changing a fallback rhythm here used to raise agreed hours
+  // without the numeric confirmation provided by /plan/settings.
+  const fields = ['primary_subject', 'level', 'goal'] as const
   const update: ProfileUpdate = {}
   for (const field of fields satisfies readonly ProfileField[]) {
     const value = formData.get(field)

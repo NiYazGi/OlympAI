@@ -5,14 +5,12 @@ import { CalendarRange, GraduationCap } from 'lucide-react'
 import { PageHeader } from '@/components/page-header'
 import { EmptyState } from '@/components/empty-state'
 import { ScopeNote } from '@/components/learn/next-action-card'
-import { GoalSetup } from '@/components/path/goal-setup'
+import { redirect } from 'next/navigation'
 import { GoalSummary } from '@/components/path/goal-summary'
-import { TargetPicker } from '@/components/path/target-picker'
 import { BlockSkeleton, PendingRegion } from '@/components/skeletons'
 import { getStudyOverview } from '@/lib/supabase/study'
 import {
   getCompetitionOptions,
-  getCurrentProfile,
   getGoal,
   getSubjectSummary,
 } from '@/lib/supabase/queries'
@@ -65,44 +63,16 @@ export default async function LearnPage({
 async function Plan({ showAll, goalParam }: { showAll: boolean; goalParam: string | null }) {
   const t = await getT()
 
-  const [surface, goal, competitions, subjects, profile] =
+  const [surface, goal, competitions, subjects] =
     await Promise.all([
       getStudyOverview(showAll),
       getGoal(),
       getCompetitionOptions(),
       getSubjectSummary(),
-      getCurrentProfile(),
     ])
 
-  // Choosing the target is the first step, not a separate page. Until it is
-  // answered there is nothing to order the topics by, so the form is the whole
-  // page rather than one card among several.
-  // Arriving from an olympiad's page with "Build preparation": the picker opens
-  // with that olympiad already chosen, and saving goes straight to the plan.
-  const requested = goalParam ? competitions.find((entry) => entry.id === goalParam) ?? null : null
-  if (!goal.competition || !goal.targetDate || requested) {
-    return (
-      <GoalSetup
-        competitions={competitions}
-        currentId={requested?.id ?? goal.competition?.id ?? null}
-        currentDate={goal.targetDate}
-        preferredType={profile?.target_competition_type ?? null}
-        afterSave={requested ? '/dashboard' : undefined}
-      />
-    )
-  }
-
-  // A generic target — a national round, say — names no subject of its own.
-  if (!goal.subjectName) {
-    return (
-      <>
-        <p className="text-sm text-muted-foreground">
-          {goal.competition.name} {t('covers more than one subject — choose the one you are training in.')}
-        </p>
-        <TargetPicker subjects={subjects} current={goal.subjectId} />
-      </>
-    )
-  }
+  if (goalParam) redirect('/plan/settings?competition='+encodeURIComponent(goalParam))
+  if (!goal.competition || !goal.targetDate || !goal.subjectName) redirect('/plan/settings')
 
   return (
     <>

@@ -6,7 +6,11 @@ import type { DailyTopic } from '@/lib/daily-preparation'
 import { getDailyPreparation } from '@/lib/supabase/daily-preparation'
 import { analyseCompetition } from '@/lib/competition-analysis'
 import { getAnalysedTaskCatalogue } from '@/lib/supabase/curriculum-analysis'
-import { getDayStatus } from '@/lib/supabase/day'
+import { EMPTY_DAY, type DayInputs } from '@/lib/day-state'
+import { trainingToday } from '@/lib/training-time'
+import { getDiagnosticProfile } from '@/lib/supabase/diagnostic'
+import { taskSkills } from '@/lib/skill-catalogue'
+import { getPreparationPersonalGoal } from '@/lib/supabase/preparation-settings'
 import { getReference, getStudyReference } from '@/lib/supabase/reference'
 import { getAttempts, getCurrentProfile, getGoal, getPreparationSettings } from '@/lib/supabase/queries'
 import { createClient } from '@/lib/supabase/server'
@@ -17,10 +21,11 @@ export const getPreparation = cache(async () => {
   if (!profile || profile.role === 'teacher' || !goal.subjectName || !goal.subjectId || !goal.targetDate) return null
 
   const supabase = await createClient()
-  const [day, reference, study, progress, attempts, tasks, settings, { data: papers }, { data: competition }] =
+  const [reference, study, progress, attempts, tasks, settings, diagnostic, personalGoal, { data: rawDay }, { data: papers }, { data: competition }] =
     await Promise.all([
-      getDayStatus(), getReference(), getStudyReference(), getStudyProgress(), getAttempts(), getAnalysedTaskCatalogue(),
-      getPreparationSettings(),
+      getReference(), getStudyReference(), getStudyProgress(), getAttempts(), getAnalysedTaskCatalogue(),
+      getPreparationSettings(), getDiagnosticProfile(goal.subjectName), getPreparationPersonalGoal(),
+      supabase.from('day_states').select('theory_minutes,solving_minutes,mental,sleep_hours,lights_out,load_minutes').eq('user_id',profile.id).eq('on_date',trainingToday()).maybeSingle(),
       supabase.from('mock_tests').select('id, preparation_key, task_ids, duration_minutes, started_at, submitted_at, preparation_reviewed_at')
         .eq('user_id', profile.id).eq('subject_id', goal.subjectId).order('started_at'),
       goal.competition
@@ -29,7 +34,9 @@ export const getPreparation = cache(async () => {
     ])
 
   const { preferences } = settings
-  const goalStart = goal.goalSetAt ?? '1970-01-01T00:00:00.000Z'
+  const today = trainingToday()
+  const day: DayInputs = rawDay && settings.preferences.telegramReflectionEnabled ? { theoryMinutes:rawDay.theory_minutes,solvingMinutes:rawDay.solving_minutes,mental:rawDay.mental,sleepHours:Number(rawDay.sleep_hours),lightsOut:rawDay.lights_out,loadMinutes:rawDay.load_minutes,reported:true } : EMPTY_DAY
+  const goalStart = goal.goalSetAt ?? `${today}T00:00:00Z`
   const mockPrefix = `${goal.competition?.id ?? 'subject'}:${goal.subjectId}:${goalStart}:`
   const correctByMock = new Map<string, Set<string>>()
   for (const attempt of attempts) {
@@ -47,7 +54,7 @@ export const getPreparation = cache(async () => {
       }]
     : [])
 
-  const taskTopic = new Map(reference.tasks.map((task) => [task.id, task.topic_id]))
+  const taskTopic = new Map(tasks.map((task) => [task.id, reference.topics.find((topic) => topic.name === task.topic && reference.subjectById[topic.subject_id] === task.subject)?.id]))
   const currentGrade = preferences.schoolGrade ?? profile.grade
   const results = new Map<string, { correct: number; total: number }>()
   const record = (topic: string, correct: boolean) => {
@@ -104,6 +111,7 @@ export const getPreparation = cache(async () => {
     }
   })
 
+  const taskLinks=reference.tasks.filter((task)=>task.subject_id===goal.subjectId).map((task)=>({id:task.id,skills:taskSkills({id:task.id,subject:reference.subjectById[task.subject_id] ?? '',topic:reference.topicById[task.topic_id],problem:task.problem})}))
   return {
     name: goal.competition?.name ?? goal.subjectName,
     subject: goal.subjectName,
@@ -116,10 +124,15 @@ export const getPreparation = cache(async () => {
     currentGrade,
     intensity: profile.training_intensity,
     analysis: analyseCompetition(tasks, goal.subjectName, competition?.slug ?? null),
+    personalGoal, diagnostic,
     plan: await getDailyPreparation({
-      today: day.date, targetDate: goal.targetDate, goalStart, competitionSlug: competition?.slug ?? null,
+      today, targetDate: goal.targetDate, goalStart, competitionSlug: competition?.slug ?? null,
       competitionLevel: goal.competition?.level ?? null, subject: goal.subjectName, grade: profile.grade, level: profile.level,
-      preferences, day: day.inputs, topics, tasks, completedTasks, mocks,
+      preferences, day, topics, tasks, completedTasks, mocks,
+      taskSkillIds: Object.fromEntries(taskLinks.map((task)=>[task.id,task.skills.map((skill)=>skill.id)])),
+      taskSkillWeights: Object.fromEntries(taskLinks.map((task)=>[task.id,Object.fromEntries(task.skills.map((skill)=>[skill.id,skill.provenance==='editorial'?1:0.25]))])),
+      skillPriorities: Object.fromEntries(Object.entries(diagnostic.skillScores).map(([id,score])=>[id,diagnostic.strongSkillIds.includes(id)?100-score:Math.max(25,100-score)+(diagnostic.skillChecks[id]?.hinted?20:0)])),
+      reservedMinutesByDate: !diagnostic.completedAt || diagnostic.studyDate===today ? { [today]: Math.min(preferences.sessionMinutes,diagnostic.studyMinutes || diagnostic.estimatedMinutes) } : {},
     }, topics, mockPrefix),
   }
 })

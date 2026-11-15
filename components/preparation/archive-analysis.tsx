@@ -27,12 +27,12 @@ export async function ArchiveAnalysis({ analysis, daily }: {
       </ul>
       {daily ? (
         <div className="mt-4 space-y-2 text-sm leading-6">
-          <p>{t('A study day contains one topic, {n} problems and a quiz. Mock papers have their own days.', { n: daily.tasks })}</p>
+          <p>Объём зависит от доступных минут: до {daily.tasks} задач, теория, квиз и разбор распределяются по занятиям. Длинные активности продолжаются в следующие дни. Пробники и их разборы занимают отдельное время.</p>
           {daily.overloadedDays > 0 ? (
             <p className="text-muted-foreground">{t('The selected daily volume exceeds your time budget on {n} days. Increase your session time or reduce the daily problem count.', { n: daily.overloadedDays })}</p>
           ) : null}
           {daily.contentShortage ? (
-            <p className="text-muted-foreground">{t('There are not enough new matching problems for a full block on every study day. The program shows complete available blocks.')}</p>
+            <p className="text-muted-foreground">Не все оставшиеся блоки можно целиком поместить в выбранный срок. План показывает посильный объём; невыбранные задачи не превращаются в долг.</p>
           ) : null}
         </div>
       ) : null}

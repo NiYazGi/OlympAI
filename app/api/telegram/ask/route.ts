@@ -1,59 +1,27 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { createAdminClient } from '@/lib/supabase/admin'
-import { QUESTIONS, hasTelegram, say, utcToday } from '@/lib/telegram'
+import { hasTelegram } from '@/lib/telegram'
+import { beginTelegramReflection, dueTelegramReflectionChats } from '@/lib/telegram-reflection'
 
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 export const maxDuration = 60
 
-/**
- * The evening ask, once a day, to everyone linked who has not reported.
- *
- * The laptop script does this by watching a clock in a loop. A deployment has
- * no loop, so Vercel calls this on a schedule (`vercel.json`) and the route
- * does the one pass. Timing is approximate on the Hobby plan, which is the
- * right precision for "some time in the evening".
- *
- * Guarded by CRON_SECRET: the path is guessable and the effect is a message to
- * every student.
- */
+/** Only linked students who explicitly opted in may receive this self-report prompt. */
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET
-  if (!secret || request.headers.get('authorization') !== `Bearer ${secret}`) {
-    return new NextResponse('no', { status: 401 })
+  if (!secret || request.headers.get('authorization') !== `Bearer ${secret}`) return new NextResponse('no', { status: 401 })
+  if (!hasTelegram()) return new NextResponse('not configured', { status: 503 })
+  const due = await dueTelegramReflectionChats()
+  let asked = 0
+  let failed = 0
+  // Independent chats can be sent together. Each begin re-checks current consent
+  // and an existing same-day reply/session before creating its own prompt.
+  for (let offset = 0; offset < due.length; offset += 5) {
+    const results = await Promise.allSettled(due.slice(offset, offset + 5).map((row) => beginTelegramReflection(row.chatId, row.userId, 'cron')))
+    for (const result of results) {
+      if (result.status === 'fulfilled') asked += result.value ? 1 : 0
+      else failed++
+    }
   }
-  if (!hasTelegram()) {
-    return new NextResponse('not configured', { status: 503 })
-  }
-
-  const admin = createAdminClient()
-  const date = utcToday()
-
-  const { data: linked } = await admin
-    .from('profiles')
-    .select('id, telegram_chat_id')
-    .not('telegram_chat_id', 'is', null)
-
-  const { data: reported } = await admin
-    .from('day_states')
-    .select('user_id')
-    .eq('on_date', date)
-  const already = new Set((reported ?? []).map((row) => row.user_id))
-
-  const due = (linked ?? []).filter((row) => row.telegram_chat_id && !already.has(row.id))
-
-  for (const row of due) {
-    const chatId = Number(row.telegram_chat_id)
-    // Asking opens a session, exactly as /day does, so the first answer lands
-    // on the first question rather than on nothing.
-    await admin.from('telegram_sessions').upsert({
-      chat_id: chatId,
-      user_id: row.id,
-      step: 0,
-      answers: {},
-      updated_at: new Date().toISOString(),
-    })
-    await say(chatId, `Как прошёл день?\n\n${QUESTIONS[0]!.text}`, QUESTIONS[0]!.keyboard)
-  }
-
-  return NextResponse.json({ asked: due.length })
+  return NextResponse.json({ asked, failed })
 }

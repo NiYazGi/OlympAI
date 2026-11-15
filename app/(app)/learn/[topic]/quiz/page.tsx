@@ -1,11 +1,12 @@
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { ArrowLeft, ClipboardCheck } from 'lucide-react'
 import { PageHeader } from '@/components/page-header'
 import { EmptyState } from '@/components/empty-state'
 import { QuizRunner } from '@/components/learn/quiz-runner'
 import { getTopicQuiz } from '@/lib/supabase/study'
 import { getDailySession } from '@/lib/supabase/daily-preparation'
+import { trainingToday } from '@/lib/training-time'
 import { getT } from '@/lib/i18n/server'
 
 export const dynamic = 'force-dynamic'
@@ -26,6 +27,7 @@ export default async function QuizPage({ params, searchParams }: {
   const { topic } = await params
   const { session: sessionId } = await searchParams
   const session = await getDailySession(sessionId)
+  if (session && (session.on_date !== trainingToday() || session.completed_at || session.skipped_at || session.superseded_at)) redirect(`/plan/session/${session.id}`)
   if (sessionId && !session) notFound()
   const quiz = await getTopicQuiz(topic, session?.question_ids)
   if (!quiz) notFound()

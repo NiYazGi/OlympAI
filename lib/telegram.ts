@@ -40,6 +40,7 @@ async function call<T>(method: string, body?: unknown): Promise<T | null> {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body ?? {}),
     cache: 'no-store',
+    signal: AbortSignal.timeout(10_000),
   })
   const payload = await response.json().catch(() => null)
   if (!payload?.ok) {

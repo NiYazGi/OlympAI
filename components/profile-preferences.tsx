@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import Link from 'next/link'
 import { Check, Settings2 } from 'lucide-react'
 import { saveProfilePreferences } from '@/app/(app)/me/actions'
-import { GOALS, INTENSITIES, LEVELS, SUBJECTS } from '@/lib/profile-options'
+import { GOALS, LEVELS, SUBJECTS } from '@/lib/profile-options'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useT } from '@/components/i18n-provider'
@@ -14,7 +15,6 @@ const SECTIONS: Choice[] = [
   { field: 'primary_subject', label: 'Primary subject', options: SUBJECTS },
   { field: 'level', label: 'Current level', options: LEVELS },
   { field: 'goal', label: 'Current goal', options: GOALS },
-  { field: 'training_intensity', label: 'Training rhythm', options: INTENSITIES },
 ]
 
 export function ProfilePreferences({
@@ -57,7 +57,7 @@ export function ProfilePreferences({
         <div>
           <h2 className="font-medium">{t('Training preferences')}</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            {t('These drive your weekly plan and how Sulu pitches its hints.')}
+            Предмет, текущий уровень и общий ориентир помогают Sulu подбирать объяснения.
           </p>
         </div>
         <Settings2 className="size-5 shrink-0 text-muted-foreground" />
@@ -103,6 +103,12 @@ export function ProfilePreferences({
             </div>
           </fieldset>
         ))}
+      </div>
+
+      <div className="mt-6 rounded-xl border border-border p-4 text-sm">
+        <p className="font-medium">Расписание и нагрузка</p>
+        <p className="mt-1 leading-relaxed text-muted-foreground">Дни, минуты занятий и дата олимпиады меняются в общих настройках подготовки. Увеличение часов требует твоего подтверждения.</p>
+        <Link href="/plan/settings" className="mt-3 inline-block font-medium text-primary hover:underline">Открыть настройки подготовки →</Link>
       </div>
 
       {status === 'error' ? (

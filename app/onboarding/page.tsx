@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { OnboardingFlow } from '@/components/onboarding-flow'
 import { getSessionUser } from '@/lib/db/auth'
 import { getT } from '@/lib/i18n/server'
+import { getCurrentProfile } from '@/lib/supabase/queries'
 
 export async function generateMetadata() {
   const t = await getT()
@@ -10,6 +11,7 @@ export async function generateMetadata() {
 
 export default async function OnboardingPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   if (!(await getSessionUser())) redirect('/login')
+  if ((await getCurrentProfile())?.onboarding_completed_at) redirect('/plan/settings')
   const { next } = await searchParams
   return <OnboardingFlow next={next} />
 }

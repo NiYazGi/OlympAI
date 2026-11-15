@@ -1,7 +1,7 @@
 import { ViewTransition } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { ArrowLeft, Clock, Trophy, Zap } from 'lucide-react'
 import { PageHeader } from '@/components/page-header'
 import { MAX_POINTS } from '@/lib/protocol'
@@ -23,6 +23,8 @@ import { cardClass } from '@/lib/utils'
 import { getT } from '@/lib/i18n/server'
 import { MathText } from '@/components/math-text'
 import { TaskDiscussion } from '@/components/community/task-discussion'
+import { getDailySession } from '@/lib/supabase/daily-preparation'
+import { trainingToday, trainingMinutes } from '@/lib/training-time'
 
 // Task content is behind RLS and the solved state is per-user, so this page is
 // rendered per request. It previously ran generateStaticParams over the mock
@@ -36,12 +38,16 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return { title: task ? task.title : t('Task') }
 }
 
-export default async function TaskPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function TaskPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ session?: string }> }) {
   const t = await getT()
 
   const { slug } = await params
   const task = await getTaskDetail(slug)
   if (!task) notFound()
+  const {session:sessionId}=await searchParams
+  const session=await getDailySession(sessionId)
+  if (sessionId && (!session || !session.task_ids.includes(task.id))) notFound()
+  if (session && (session.on_date!==trainingToday() || session.completed_at || session.skipped_at || session.superseded_at)) redirect(`/plan/session/${session.id}`)
   const [resources, history, reports, serverDraft] = await Promise.all([
     getTaskResources(slug),
     getTaskHistory(slug),
@@ -52,12 +58,14 @@ export default async function TaskPage({ params }: { params: Promise<{ slug: str
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-6xl flex-col gap-5 p-4 sm:gap-6 sm:p-8">
       <Link
-        href="/tasks"
+        href={session ? `/plan/session/${session.id}` : "/tasks"}
         className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
-        {t('Back to problems')}
+        {session ? 'К занятию' : t('Back to problems')}
       </Link>
+
+      {session ? <p className="rounded-xl border border-border px-4 py-3 text-sm leading-relaxed">На эту часть сегодня — <strong>{trainingMinutes(session.task_minutes[session.task_ids.indexOf(task.id)] ?? 0)}</strong>. Черновик сохраняется; продолжение учтено в плане. Оценка всей задачи указана ниже.</p> : null}
 
       <PageHeader
         title={
@@ -188,14 +196,14 @@ export default async function TaskPage({ params }: { params: Promise<{ slug: str
           ) : null}
 
           <div className="print-hide flex flex-col gap-6">
-          <TaskMethodGraph taskId={task.id} />
+          <TaskMethodGraph task={task} />
           <ResourceList resources={methodsForTask(task.id).length ? [] : resources} />
           </div>
         </div>
 
         <div className="print-hide min-w-0 lg:col-span-2">
           <div className="flex flex-col gap-6">
-            <SolutionPanel taskId={task.id} serverDraft={serverDraft} />
+            <SolutionPanel taskId={task.id} serverDraft={serverDraft} trainingSessionId={session?.id} />
             <AttemptHistory taskId={task.id} attempts={history} reports={reports} />
             <SuluAssistantPanel taskId={task.id} />
           </div>

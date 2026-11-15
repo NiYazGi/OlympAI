@@ -1,10 +1,14 @@
 import 'server-only'
 
 import { cache } from 'react'
+import { getDb } from '@/lib/db'
+import type { PreparationPreferences } from '@/lib/preparation'
 import { getSessionUserId } from '@/lib/supabase/auth'
 import { defaultPreparationPreferences } from '@/lib/preparation'
 import { getReference } from '@/lib/supabase/reference'
 import { getFlame } from '@/lib/supabase/visits'
+import { getT } from '@/lib/i18n/server'
+import { topicAccuracy } from '@/lib/topic-analytics'
 import { pointsFromScore, protocolFromRow, verdictOf, type Protocol } from '@/lib/protocol'
 import { createClient } from '@/lib/supabase/server'
 import {
@@ -89,16 +93,23 @@ export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
   return data
 })
 
-export const getPreparationSettings = cache(async () => {
+export const getPreparationSettings = cache(async (): Promise<{
+  preferences: PreparationPreferences & { stage: string | null; reviewPercent: number; telegramReflectionEnabled: boolean }
+  custom: boolean
+}> => {
   const profile = await getCurrentProfile()
-  const defaults = defaultPreparationPreferences(profile?.training_intensity)
+  const defaults = { ...defaultPreparationPreferences(profile?.training_intensity), stage: null, reviewPercent: 20, telegramReflectionEnabled: false }
   if (!profile) return { preferences: defaults, custom: false }
-
-  const supabase = await createClient()
-  const { data } = await supabase.from('preparation_preferences')
-    .select('weekdays, session_minutes, school_grade, daily_tasks').eq('user_id', profile.id).maybeSingle()
+  const db = await getDb()
+  const { rows } = await db.query<{
+    weekdays: number[]; session_minutes: number; school_grade: number | null; daily_tasks: number
+    competition_stage: string | null; review_percent: number; telegram_reflection_enabled: boolean
+  }>(`select weekdays,session_minutes,school_grade,daily_tasks,competition_stage,review_percent,telegram_reflection_enabled
+      from public.preparation_preferences where user_id=$1`, [profile.id])
+  const data = rows[0]
   return data
-    ? { preferences: { weekdays: data.weekdays, sessionMinutes: data.session_minutes, schoolGrade: data.school_grade, dailyTasks: data.daily_tasks }, custom: true }
+    ? { preferences: { weekdays: data.weekdays, sessionMinutes: data.session_minutes, schoolGrade: data.school_grade, dailyTasks: data.daily_tasks,
+        stage: data.competition_stage, reviewPercent: data.review_percent, telegramReflectionEnabled: data.telegram_reflection_enabled }, custom: true }
     : { preferences: defaults, custom: false }
 })
 
@@ -448,13 +459,14 @@ export const getGoal = cache(async (): Promise<Goal> => {
 
 export const getProgressAnalytics = cache(async (): Promise<ProgressAnalytics> => {
 
-  const [attemptsList, reference, profile, quizAnswers, flame, lessonCompletions] = await Promise.all([
+  const [attemptsList, reference, profile, quizAnswers, flame, lessonCompletions, t] = await Promise.all([
     getAttempts(),
     getReference(),
     getCurrentProfile(),
     getQuizAnswers(),
     getFlame(),
     getFirstLessonCompletions(),
+    getT(),
   ])
   const goal = profile?.daily_xp_goal ?? 50
 
@@ -472,21 +484,9 @@ export const getProgressAnalytics = cache(async (): Promise<ProgressAnalytics> =
   }
 
   const taskById = new Map(reference.tasks.map((task) => [task.id, task]))
-  const topicOf = (taskId: string) => {
-    const task = taskById.get(taskId)
-    return task ? reference.topicById[task.topic_id] ?? 'General practice' : 'General practice'
-  }
-
-  const byTopic = new Map<string, { attempts: number; correct: number }>()
   const dayCounts = new Map<string, number>()
   const byWeek = new Map<string, { attempts: number; correct: number }>()
   for (const attempt of attemptsList) {
-    const topic = topicOf(attempt.task_id)
-    const current = byTopic.get(topic) ?? { attempts: 0, correct: 0 }
-    current.attempts += 1
-    current.correct += attempt.is_correct ? 1 : 0
-    byTopic.set(topic, current)
-
     const day = utcDay(attempt.created_at)
     dayCounts.set(day, (dayCounts.get(day) ?? 0) + 1)
 
@@ -509,15 +509,7 @@ export const getProgressAnalytics = cache(async (): Promise<ProgressAnalytics> =
       accuracy: Math.round((value.correct / value.attempts) * 100),
     }))
 
-  const topicStats = [...byTopic]
-    .map(([topic, value]) => ({
-      topic,
-      slug: reference.topics.find((item) => item.name === topic)?.slug,
-      attempts: value.attempts,
-      correct: value.correct,
-      mastery: Math.round((value.correct / value.attempts) * 100),
-    }))
-    .sort((a, b) => a.mastery - b.mastery)
+  const topicStats = topicAccuracy(attemptsList, reference.tasks, reference.topics, reference.subjectById, t)
 
   // Answering questions is activity. Counting only submitted derivations meant
   // a week of lessons and quizzes showed a streak of zero.

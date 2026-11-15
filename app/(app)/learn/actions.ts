@@ -8,6 +8,9 @@ import type { Rating } from '@/lib/srs'
 import { quizAnswerXp } from '@/lib/xp'
 import { runAs } from '@/lib/db/query'
 import { getDailySession } from '@/lib/supabase/daily-preparation'
+import { getPreparation } from '@/lib/supabase/preparation'
+import { trainingToday } from '@/lib/training-time'
+import { reserveTrainingActivity, syncTimedLessonCompletion } from '@/lib/training-mutations'
 import { getLocale, getT } from '@/lib/i18n/server'
 
 export type ActionResult = { ok: boolean; error?: string }
@@ -61,11 +64,16 @@ export async function answerQuizQuestion(
     .eq('id', questionId)
     .maybeSingle()
   if (!question) return { ok: false, error: t('That question is no longer available.') }
+  let sessionGoalKey: string | null = null
   if (sessionId) {
     const session = await getDailySession(sessionId)
-    if (!session || !session.question_ids.includes(question.id)) {
+    const preparation = await getPreparation()
+    if (!session || session.completed_at || session.on_date !== trainingToday() || session.goal_key !== preparation?.mockPrefix ||
+      !preparation.plan.sessions.some((row) => row.id === session.id && !row.superseded_at && !row.skipped_at) ||
+      session.skipped_at || session.superseded_at || !session.question_ids.includes(question.id)) {
       return { ok: false, error: t('This activity does not belong to the selected study day.') }
     }
+    sessionGoalKey = session.goal_key
   }
 
   if (chosenIndex >= question.options.length) {
@@ -90,6 +98,10 @@ export async function answerQuizQuestion(
 
   try {
     await runAs({ role: 'service_role', userId: user.id }, async (tx) => {
+      if (sessionId) {
+        if (!sessionGoalKey || !await reserveTrainingActivity(tx, { userId: user.id, sessionId, goalKey: sessionGoalKey,
+          today: trainingToday(), kind: 'quiz', questionId: question.id })) throw new Error('Study day no longer active')
+      }
       await tx.query(
         'insert into public.quiz_attempts(user_id,question_id,chosen_index,is_correct,preparation_session_id) values($1,$2,$3,$4,$5)',
         [user.id, question.id, chosenIndex, isCorrect, sessionId ?? null],
@@ -163,18 +175,23 @@ export async function setLessonComplete(
 
   if (sessionId) {
     const session = await getDailySession(sessionId)
-    if (!session || session.lesson_id !== lessonId) {
+    const preparation = await getPreparation()
+    if (!session || session.completed_at || session.on_date !== trainingToday() || session.goal_key !== preparation?.mockPrefix ||
+      !preparation.plan.sessions.some((row) => row.id === session.id && !row.superseded_at && !row.skipped_at) ||
+      session.lesson_id !== lessonId || session.skipped_at || session.superseded_at) {
       return { ok: false, error: t('This activity does not belong to the selected study day.') }
     }
     try {
       await runAs({ role: 'service_role', userId: user.id }, async (tx) => {
-        await tx.query([
-          'insert into public.lesson_views(user_id,lesson_id,completed_at) values($1,$2,$3)',
-          'on conflict(user_id,lesson_id) do update set completed_at=excluded.completed_at',
-        ].join(' '), [user.id, lessonId, complete ? new Date().toISOString() : null])
-        const updated = await tx.query('update public.preparation_sessions set lesson_completed_at=$3 where id=$1 and user_id=$2 returning id',
+        const updated = await tx.query('update public.preparation_sessions set started_at=coalesce(started_at,now()),lesson_completed_at=$3 where id=$1 and user_id=$2 and completed_at is null and skipped_at is null and superseded_at is null returning id',
           [sessionId, user.id, complete ? new Date().toISOString() : null])
         if (!updated.rows.length) throw new Error('Study day no longer exists')
+        if (session.plan_version==='time-budget-v3') {
+          await syncTimedLessonCompletion(tx, { userId: user.id, goalKey: session.goal_key, lessonId, complete })
+        } else {
+          await tx.query(`insert into public.lesson_views(user_id,lesson_id,completed_at) values($1,$2,$3)
+            on conflict(user_id,lesson_id) do update set completed_at=excluded.completed_at`,[user.id,lessonId,complete?new Date().toISOString():null])
+        }
       })
     } catch {
       return { ok: false, error: t('Could not save that. Please try again.') }

@@ -1,7 +1,5 @@
 import Link from 'next/link'
 import { ArrowRight, BookOpen, CalendarDays } from 'lucide-react'
-import { GoalSetup } from '@/components/path/goal-setup'
-import { TargetPicker } from '@/components/path/target-picker'
 import type { Readiness } from '@/lib/goal'
 import { formatDay } from '@/lib/i18n/config'
 import { cardClass, cn } from '@/lib/utils'
@@ -10,8 +8,6 @@ import { getLocale, getT } from '@/lib/i18n/server'
 
 export async function GoalSummary({
   goal,
-  competitions,
-  subjects,
 }: {
   goal: Goal
   competitions: CompetitionOption[]
@@ -41,23 +37,7 @@ export async function GoalSummary({
             </span>
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {/*
-            A generic target — a national round, say — names no subject, so the
-            student has to be able to change it. Without this the subject was
-            writable exactly once and then frozen, which is how an account that
-            answered "Economics" at setup ended up stuck on a physics path.
-          */}
-          {goal.subjectLocked ? null : (
-            <TargetPicker subjects={subjects} current={goal.subjectId} compact />
-          )}
-          <GoalSetup
-            competitions={competitions}
-            currentId={goal.competition?.id ?? null}
-            currentDate={goal.targetDate}
-            compact
-          />
-        </div>
+        <Link href="/plan/settings" className="text-sm font-medium text-primary hover:underline">Все настройки подготовки →</Link>
       </div>
 
       <Link href="/plan" className="mt-4 inline-flex items-center gap-2 text-sm font-medium underline-offset-4 hover:underline">

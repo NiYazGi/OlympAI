@@ -8,7 +8,11 @@ export type PreparationPreferences = {
   weekdays: number[]
   sessionMinutes: number
   schoolGrade: number | null
+  /** Maximum task count in a day, not a quota that can override the time budget. */
   dailyTasks?: number
+  minutesByWeekday?: Record<string, number>
+  reviewPercent?: number
+  stage?: string | null
 }
 
 export function defaultPreparationPreferences(intensity: string | null | undefined): PreparationPreferences {
@@ -47,7 +51,12 @@ type Activity = {
   source?: 'archive' | 'similar'
   mock?: { taskIds: string[]; fullPaper: boolean }
   completedAt?: string
+  part?: number
+  parts?: number
+  phase?: import('@/lib/preparation-phases').PreparationPhase
+  sessionId?: string
 }
+
 
 export type PreparationStep = Activity & { date: string; endDate?: string }
 
@@ -78,7 +87,15 @@ export type PreparationInput = {
   tasks: CatalogueTask[]
   completedTasks: ReadonlyMap<string, string>
   mocks: PreparationMock[]
+  /** Actual completed timed work, independent of correct solutions. */
+  workCompleted?: Readonly<Record<string, number>>
+  reservedMinutesByDate?: Readonly<Record<string, number>>
+  taskSkillIds?: Readonly<Record<string, readonly string[]>>
+  taskSkillWeights?: Readonly<Record<string, Readonly<Record<string, number>>>>
+  /** Larger means more practice is needed; only explicit skill links are used. */
+  skillPriorities?: Readonly<Record<string, number>>
 }
+
 
 const DAY = 86_400_000
 const MAX_HORIZON = 730

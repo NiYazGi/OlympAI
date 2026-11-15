@@ -171,7 +171,7 @@ export default async function OlympiadPage({ params }: { params: Promise<{ slug:
           <Button
             nativeButton={false}
             render={
-              <Link href={`/learn?goal=${competition.id}`}>
+              <Link href={`/plan/settings?competition=${competition.id}`}>
                 <CalendarCheck className="size-4" /> {t('Build preparation for this olympiad')}
               </Link>
             }

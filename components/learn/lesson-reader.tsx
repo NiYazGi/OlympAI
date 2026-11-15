@@ -18,18 +18,20 @@ import { LESSON_XP } from '@/lib/xp'
  * and the short list worth memorising. Long enough to say something, short
  * enough that the check step follows while it is still in mind.
  */
-export function LessonReader({ lesson, children, sessionId, dayCompleted, practiceHref }: {
+export function LessonReader({ lesson, children, sessionId, dayCompleted, practiceHref, timeboxed }: {
   lesson: Lesson
   children: ReactNode
   sessionId?: string
   dayCompleted?: boolean
   practiceHref?: string
+  timeboxed?: boolean
 }) {
   const t = useT()
 
   const router = useRouter()
   const [completed, setCompleted] = useState(sessionId ? Boolean(dayCompleted) : Boolean(lesson.completedAt))
   const [pending, startTransition] = useTransition()
+  const [error, setError] = useState('')
 
   // Recorded once, on arrival. "Opened" is a fact about this student's reading
   // and the only one available without asking them to grade themselves.
@@ -38,11 +40,12 @@ export function LessonReader({ lesson, children, sessionId, dayCompleted, practi
   }, [lesson.id, lesson.openedAt])
 
   function toggle() {
+    setError('')
     const next = !completed
     setCompleted(next)
     startTransition(async () => {
       const result = await setLessonComplete(lesson.id, next, sessionId)
-      if (!result.ok) setCompleted(!next)
+      if (!result.ok) { setCompleted(!next); setError(result.error ?? 'Не удалось сохранить отметку. Попробуй ещё раз.') }
       else router.refresh()
     })
   }
@@ -53,9 +56,9 @@ export function LessonReader({ lesson, children, sessionId, dayCompleted, practi
 
       <div className={cn(cardClass, 'flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5')}>
         <div>
-          <p className="font-medium">{completed ? t('Marked as read.') : t('Finished reading?')}</p>
+          <p className="font-medium">{completed ? timeboxed ? 'Сегодняшняя часть отмечена' : t('Marked as read.') : timeboxed ? 'Закончил сегодняшнюю часть?' : t('Finished reading?')}</p>
           <p className="text-sm text-muted-foreground">
-            {t('The first completion earns {n} XP.', { n: LESSON_XP })}
+            {timeboxed ? 'Часть входит в маршрут. Полное прочтение конспекта засчитывается после всех его частей.' : t('The first completion earns {n} XP.', { n: LESSON_XP })}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -67,12 +70,13 @@ export function LessonReader({ lesson, children, sessionId, dayCompleted, practi
             nativeButton={false}
             render={
               <Link href={practiceHref ?? ('/learn/' + lesson.topicSlug + '/quiz')} prefetch>
-                {t(practiceHref ? 'Start daily practice' : 'Check yourself')}
+                {timeboxed ? 'К занятию' : t(practiceHref ? 'Start daily practice' : 'Check yourself')}
               </Link>
             }
           />
         </div>
       </div>
+      {error ? <p role="alert" className="rounded-xl bg-muted p-4 text-sm">{error}</p> : null}
     </div>
   )
 }
