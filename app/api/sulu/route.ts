@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { preparationContext } from '@/lib/sulu/coach-context'
 import { createClient } from '@/lib/supabase/server'
 import { checkChatRateLimit } from '@/lib/rate-limit'
 import { buildCoachInstructions, type CoachContext } from '@/lib/sulu/prompt'
@@ -20,6 +21,10 @@ type RequestBody = { message?: unknown; sessionId?: unknown; taskId?: unknown; d
 function fail(message: string, status: number) {
   return NextResponse.json({ error: message }, { status })
 }
+
+/** Seconds of silence before giving up: longer before the first words (the model may think first), shorter mid-answer. */
+const IDLE_BEFORE_FIRST_MS = 90_000
+const IDLE_AFTER_FIRST_MS = 30_000
 
 export async function POST(request: Request) {
   const t = await getT()
@@ -55,6 +60,12 @@ export async function POST(request: Request) {
     .maybeSingle()
 
   const context: CoachContext = { studentLevel: profile?.level ?? null }
+  // Goal, phase, today's session and open mistakes: what a personal coach knows.
+  try {
+    context.preparation = await preparationContext(user.id)
+  } catch {
+    context.preparation = null
+  }
 
   // Resolve the session first: a conversation started from a task keeps that
   // task's context even when it is continued from the general Sulu page.
@@ -182,9 +193,22 @@ export async function POST(request: Request) {
     async start(controller) {
       const reader = upstream.getReader()
       let buffer = ''
+      let failed = false
       try {
         while (true) {
-          const { value, done } = await reader.read()
+          const read = reader.read()
+          let timer: ReturnType<typeof setTimeout> | undefined
+          const idle = new Promise<'idle'>((resolve) => {
+            timer = setTimeout(() => resolve('idle'), answer ? IDLE_AFTER_FIRST_MS : IDLE_BEFORE_FIRST_MS)
+          })
+          const next = await Promise.race([read, idle])
+          clearTimeout(timer)
+          if (next === 'idle') {
+            void reader.cancel().catch(() => {})
+            failed = true
+            break
+          }
+          const { value, done } = next
           if (done) break
           buffer += decoder.decode(value, { stream: true })
           const lines = buffer.split('\n')
@@ -204,6 +228,8 @@ export async function POST(request: Request) {
                   answer += clean
                   controller.enqueue(encoder.encode(clean))
                 }
+              } else if (event.type === 'response.failed' || event.type === 'error' || event.type === 'response.incomplete') {
+                failed = true
               } else if (event.type === 'response.completed' && event.response?.usage) {
                 const usage = event.response.usage
                 void recordUsage({
@@ -224,6 +250,10 @@ export async function POST(request: Request) {
         if (tail) {
           answer += tail
           controller.enqueue(encoder.encode(tail))
+        }
+        if (failed && !answer.trim()) {
+          controller.error(new Error('Sulu AI did not answer in time.'))
+          return
         }
         controller.close()
       } catch {

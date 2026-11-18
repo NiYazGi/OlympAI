@@ -143,7 +143,12 @@ export function AuthForm({
         {isSignup ? (
           <label className="flex items-start gap-2.5 pt-2 text-xs leading-5 text-muted-foreground">
             <input type="checkbox" required className="mt-1 accent-primary" />
-            {t('I agree to the terms and understand that OlympAI is a practice tool.')}
+            <span>
+              {t('I agree to the terms and understand that OlympAI is a practice tool.')}{' '}
+              <Link href="/terms" target="_blank" rel="noopener" className="font-medium text-primary underline underline-offset-2">
+                {t('Read the terms')}
+              </Link>
+            </span>
           </label>
         ) : (
           <div className="flex justify-end">

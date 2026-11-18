@@ -98,11 +98,14 @@ export function CoachChat({
     if (action === 'ask') setInput('')
     setError('')
     setLoading(true)
+    const controller = new AbortController()
+    const stop = setTimeout(() => controller.abort(), 100_000)
     try {
       const response = await fetch('/api/sulu/hint', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, message, sessionId, taskId, draft: attached || undefined }),
+        signal: controller.signal,
       })
       const payload = (await response.json().catch(() => null)) as
         | { error?: string; sessionId?: string; reply?: string; meta?: ChatMessage['meta'] }
@@ -115,9 +118,14 @@ export function CoachChat({
         { id: crypto.randomUUID(), role: 'assistant', content: reply, meta: payload.meta ?? null },
       ])
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t('Sulu AI is unavailable.'))
+      setError(
+        controller.signal.aborted
+          ? t('Sulu took too long to answer. Press Retry — the question is kept.')
+          : cause instanceof Error ? cause.message : t('Sulu AI is unavailable.'),
+      )
       setMessages((current) => current.filter((item) => item.id !== pendingId))
     } finally {
+      clearTimeout(stop)
       setLoading(false)
     }
   }
@@ -155,11 +163,21 @@ export function CoachChat({
     setError('')
     setLoading(true)
 
+    // A stalled connection must end in an error with Retry, never an endless
+    // "thinking": the request is aborted after a long silence.
+    const controller = new AbortController()
+    let silence: ReturnType<typeof setTimeout> | undefined
+    const arm = (ms: number) => {
+      clearTimeout(silence)
+      silence = setTimeout(() => controller.abort(), ms)
+    }
+    arm(100_000)
     try {
       const response = await fetch('/api/sulu', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message, sessionId, taskId, draft: attached || undefined }),
+        signal: controller.signal,
       })
       if (!response.ok || !response.body) {
         const payload = (await response.json().catch(() => null)) as { error?: string } | null
@@ -175,6 +193,7 @@ export function CoachChat({
       while (true) {
         const { value, done } = await reader.read()
         if (done) break
+        arm(40_000)
         const chunk = decoder.decode(value, { stream: true })
         setMessages((current) =>
           current.map((item) =>
@@ -183,11 +202,16 @@ export function CoachChat({
         )
       }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t('Sulu AI is unavailable.'))
+      setError(
+        controller.signal.aborted
+          ? t('Sulu took too long to answer. Press Retry — the question is kept.')
+          : cause instanceof Error ? cause.message : t('Sulu AI is unavailable.'),
+      )
       // Drop the empty assistant bubble, but keep the user's message so Retry
       // has something to resend.
       setMessages((current) => current.filter((item) => item.content))
     } finally {
+      clearTimeout(silence)
       setLoading(false)
     }
   }

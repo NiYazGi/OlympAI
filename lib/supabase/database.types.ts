@@ -121,7 +121,7 @@ export type Database = {
         Relationships: []
       }
       competitions: {
-        Row: { id: string; name: string; slug: string | null; subject_id: string | null; level: string | null; starts_on: string | null; ends_on: string | null; registration_url: string | null; registration_deadline: string | null; created_by: string | null; created_at: string; region: string | null; founded: number | null; official_url: string | null; papers_url: string | null; active: boolean; sources: Json; reviewed_on: string | null }
+        Row: { id: string; name: string; slug: string | null; subject_id: string | null; level: string | null; starts_on: string | null; ends_on: string | null; registration_url: string | null; registration_deadline: string | null; created_by: string | null; created_at: string; region: string | null; founded: number | null; official_url: string | null; papers_url: string | null; active: boolean; sources: Json; reviewed_on: string | null; typical_month: number | null }
         Insert: { id?: string; name: string; slug?: string | null; subject_id?: string | null; level?: string | null; starts_on?: string | null; ends_on?: string | null; registration_url?: string | null; registration_deadline?: string | null; created_by?: string | null; created_at?: string; region?: string | null; founded?: number | null; official_url?: string | null; papers_url?: string | null; active?: boolean; sources?: Json; reviewed_on?: string | null }
         Update: { name?: string; slug?: string | null; subject_id?: string | null; level?: string | null; starts_on?: string | null; ends_on?: string | null; registration_url?: string | null; registration_deadline?: string | null; region?: string | null; founded?: number | null; official_url?: string | null; papers_url?: string | null; active?: boolean; sources?: Json; reviewed_on?: string | null }
         Relationships: []
@@ -153,9 +153,9 @@ export type Database = {
       mock_tests: {
         // Written only through the service-role client: a client that could
         // compose its own paper could compose an easy one.
-        Row: { id: string; user_id: string; subject_id: string; task_ids: string[]; duration_minutes: number; started_at: string; submitted_at: string | null; score_percent: number | null; level: string | null; created_at: string; preparation_key: string | null; preparation_reviewed_at: string | null; submitted_late: boolean; level_applied: boolean }
+        Row: { id: string; user_id: string; subject_id: string; task_ids: string[]; duration_minutes: number; started_at: string; submitted_at: string | null; score_percent: number | null; level: string | null; created_at: string; preparation_key: string | null; preparation_reviewed_at: string | null; submitted_late: boolean; level_applied: boolean; abandoned_at: string | null }
         Insert: { id?: string; user_id: string; subject_id: string; task_ids: string[]; duration_minutes: number; started_at?: string; submitted_at?: string | null; score_percent?: number | null; level?: string | null; preparation_key?: string | null; preparation_reviewed_at?: string | null }
-        Update: { submitted_at?: string | null; score_percent?: number | null; level?: string | null; preparation_key?: string | null; preparation_reviewed_at?: string | null; submitted_late?: boolean; level_applied?: boolean }
+        Update: { submitted_at?: string | null; score_percent?: number | null; level?: string | null; preparation_key?: string | null; preparation_reviewed_at?: string | null; submitted_late?: boolean; level_applied?: boolean; abandoned_at?: string | null }
         Relationships: []
       }
       competition_registrations: {

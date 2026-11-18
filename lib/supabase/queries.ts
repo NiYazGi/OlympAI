@@ -609,6 +609,8 @@ export type MockSummary = {
   durationMinutes: number
   startedAt: string
   submittedAt: string | null
+  /** Closed without handing in: it no longer blocks a new paper. */
+  abandonedAt: string | null
   scorePercent: number | null
   level: string | null
 }
@@ -619,6 +621,7 @@ export type MockPaper = {
   durationMinutes: number
   startedAt: string
   submittedAt: string | null
+  abandonedAt: string | null
   scorePercent: number | null
   level: string | null
   /** Handed in after the clock: graded as practice, not as a timed result. */
@@ -639,6 +642,13 @@ export type MockPaper = {
     score: number | null
     isCorrect: boolean | null
     feedback: string | null
+    /** For the review: the attempt, its points out of 7, and where it broke. */
+    attemptId: string | null
+    points: number | null
+    summary: string | null
+    breakNeed: string | null
+    subject: string
+    topic: string
   }[]
 }
 
@@ -650,7 +660,7 @@ export const getMockHistory = cache(async (): Promise<MockSummary[]> => {
   const [{ data: rows }, reference] = await Promise.all([
     supabase
       .from('mock_tests')
-      .select('id, subject_id, task_ids, duration_minutes, started_at, submitted_at, score_percent, level')
+      .select('id, subject_id, task_ids, duration_minutes, started_at, submitted_at, score_percent, level, abandoned_at')
       .eq('user_id', userId)
       .order('started_at', { ascending: false })
       .limit(20),
@@ -664,6 +674,7 @@ export const getMockHistory = cache(async (): Promise<MockSummary[]> => {
     durationMinutes: row.duration_minutes,
     startedAt: row.started_at,
     submittedAt: row.submitted_at,
+    abandonedAt: row.abandoned_at,
     scorePercent: row.score_percent,
     level: row.level,
   }))
@@ -682,7 +693,7 @@ export const getMockPaper = cache(async (id: string): Promise<MockPaper | null> 
   const supabase = await createClient()
   const { data: test } = await supabase
     .from('mock_tests')
-    .select('id, subject_id, task_ids, duration_minutes, started_at, submitted_at, score_percent, level, preparation_key, preparation_reviewed_at, submitted_late, level_applied')
+    .select('id, subject_id, task_ids, duration_minutes, started_at, submitted_at, score_percent, level, preparation_key, preparation_reviewed_at, submitted_late, level_applied, abandoned_at')
     .eq('id', id)
     .eq('user_id', userId)
     .maybeSingle()
@@ -692,7 +703,7 @@ export const getMockPaper = cache(async (id: string): Promise<MockPaper | null> 
     getReference(),
     supabase
       .from('task_attempts')
-      .select('task_id, answer, score, is_correct, feedback')
+      .select('id, task_id, answer, score, is_correct, feedback, points, summary, break_point')
       .eq('mock_test_id', test.id)
       .eq('user_id', userId),
   ])
@@ -706,6 +717,7 @@ export const getMockPaper = cache(async (id: string): Promise<MockPaper | null> 
     durationMinutes: test.duration_minutes,
     startedAt: test.started_at,
     submittedAt: test.submitted_at,
+    abandonedAt: test.abandoned_at,
     scorePercent: test.score_percent,
     level: test.level,
     late: test.submitted_late,
@@ -728,6 +740,12 @@ export const getMockPaper = cache(async (id: string): Promise<MockPaper | null> 
           score: attempt?.score ?? null,
           isCorrect: attempt?.is_correct ?? null,
           feedback: attempt?.feedback ?? null,
+          attemptId: attempt?.id ?? null,
+          points: attempt?.points ?? null,
+          summary: attempt?.summary ?? null,
+          breakNeed: (attempt?.break_point as { need?: string } | null)?.need ?? null,
+          subject: reference.subjectById[task.subject_id] ?? '',
+          topic: reference.topicById[task.topic_id] ?? '',
         },
       ]
     }),

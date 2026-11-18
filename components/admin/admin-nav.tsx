@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Activity, BookOpen, Cpu, Layers, Flag, GraduationCap, LayoutGrid, Library, ScrollText, Settings, Trophy, Users } from 'lucide-react'
+import { Activity, BookOpen, Cpu, Layers, Flag, GraduationCap, LayoutGrid, Library, ScrollText, Settings, Trophy, Users, Gavel, FlaskConical } from 'lucide-react'
 import { RollText } from '@/components/motion'
 import { cn } from '@/lib/utils'
 import { useT } from '@/components/i18n-provider'
@@ -15,6 +15,8 @@ const items = [
   { href: '/admin/ai', label: 'AI', icon: Cpu },
   { href: '/admin/attempts', label: 'Attempts', icon: Activity },
   { href: '/admin/reports', label: 'Reports', icon: Flag },
+  { href: '/admin/appeals', label: 'Appeals', icon: Gavel },
+  { href: '/admin/pilot', label: 'Pilot group', icon: FlaskConical },
   { href: '/admin/olympiads', label: 'Olympiads', icon: Trophy },
   { href: '/admin/classes', label: 'Classes', icon: GraduationCap },
   { href: '/settings/material', label: 'Material', icon: BookOpen },

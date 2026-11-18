@@ -41,7 +41,11 @@ export default async function OlympiadsPage() {
       <PageHeader
         title={t('Olympiads')}
         description={t('Olympiad catalogue: eligibility, selection and past papers.')}
-      />
+      >
+        <Link href="/olympiads/calendar" className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-foreground/[0.04]">
+          <CalendarDays className="size-4" /> {t('Olympiad calendar')}
+        </Link>
+      </PageHeader>
       <Reveal
         fallback={
           <>

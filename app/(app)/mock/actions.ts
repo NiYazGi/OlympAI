@@ -14,6 +14,9 @@ import { composeMockFor, realPapers, scoreMock } from '@/lib/mock'
 import { getCurrentProfile, getTaskCatalogue } from '@/lib/supabase/queries'
 import { getLocale, getT } from '@/lib/i18n/server'
 import { canUse } from '@/lib/features'
+import { abandonPaper, closeStalePapers, STAGE_FORMAT, type OlympiadStage } from '@/lib/mock-lifecycle'
+import { getPreparationSettings } from '@/lib/supabase/queries'
+import { recordOutcome } from '@/lib/mistakes'
 
 export type MockResult = { ok: boolean; error?: string }
 
@@ -43,19 +46,23 @@ export async function startMock(subjectName: string): Promise<MockResult> {
     .maybeSingle()
   if (!subject) return { ok: false, error: t('That subject is no longer available.') }
 
-  // An unfinished paper is resumed rather than replaced.
+  // An unfinished paper is resumed rather than replaced; one that can no
+  // longer be finished is closed first, so it never blocks a new one.
+  await closeStalePapers(user.id)
   const { data: open } = await supabase
     .from('mock_tests')
     .select('id')
     .eq('user_id', user.id)
     .is('submitted_at', null)
+    .is('abandoned_at', null)
     .order('started_at', { ascending: false })
     .limit(1)
     .maybeSingle()
   if (open) redirect(`/mock/${open.id}`)
 
-  const [catalogue, profile] = await Promise.all([getTaskCatalogue(), getCurrentProfile()])
-  const blueprint = composeMockFor(catalogue, subject.name, profile?.grade)
+  const [catalogue, profile, settings] = await Promise.all([getTaskCatalogue(), getCurrentProfile(), getPreparationSettings()])
+  const stage = settings.preferences.stage as OlympiadStage | null
+  const blueprint = composeMockFor(catalogue, subject.name, profile?.grade, stage ? STAGE_FORMAT[stage] : {})
   if (!blueprint) {
     return { ok: false, error: t('This subject needs at least three tasks before a mock test.') }
   }
@@ -185,7 +192,7 @@ export async function submitMock(testId: string, answers: Record<string, string>
       const { rows } = await tx.query(
         `update public.mock_tests set submitted_at = now(), score_percent = $3, level = $4,
            submitted_late = $5, level_applied = $6
-         where id = $1 and user_id = $2 and submitted_at is null returning id`,
+         where id = $1 and user_id = $2 and submitted_at is null and abandoned_at is null returning id`,
         [test.id, user.id, outcome.scorePercent, test.preparation_key || late ? null : outcome.level, late, applyLevel],
       )
       if (!rows.length) return false
@@ -223,6 +230,19 @@ export async function submitMock(testId: string, answers: Record<string, string>
   } catch {
     return { ok: false, error: t('Your answers could not be saved. Please try again.') }
   }
+  try {
+    const db = await getDb()
+    const { rows } = await db.query<{ id: string; task_id: string; is_correct: boolean; points: number | null; break_point: { need?: string } | null; summary: string | null; created_at: string }>(
+      'select id, task_id, is_correct, points, break_point, summary, created_at from public.task_attempts where mock_test_id = $1 and user_id = $2',
+      [test.id, user.id],
+    )
+    const catalogue = await getTaskCatalogue()
+    for (const row of rows) {
+      await recordOutcome(user.id, { id: row.id, taskId: row.task_id, correct: row.is_correct, points: row.points, breakNeed: row.break_point?.need ?? row.summary, mockTestId: test.id, at: row.created_at }, catalogue)
+    }
+  } catch {
+    // The paper is saved; the mistake log catches up on the next attempt.
+  }
 
   revalidatePath('/mock')
   revalidatePath(`/mock/${test.id}`)
@@ -246,11 +266,13 @@ export async function startPaper(paper: string, minutes?: number): Promise<MockR
   if (!(await canUse('realPapers'))) return { ok: false, error: t('Olympiad simulation is included in Pro.') }
 
   const supabase = await createClient()
+  await closeStalePapers(user.id)
   const { data: open } = await supabase
     .from('mock_tests')
     .select('id')
     .eq('user_id', user.id)
     .is('submitted_at', null)
+    .is('abandoned_at', null)
     .order('started_at', { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -281,4 +303,16 @@ export async function startPaper(paper: string, minutes?: number): Promise<MockR
 
   revalidatePath('/mock')
   redirect(`/mock/${created.id}`)
+}
+
+/** Closes an unfinished paper without grading it, so a new one can start. */
+export async function abandonMock(testId: string): Promise<MockResult> {
+  const t = await getT()
+  const user = await getVerifiedUser()
+  if (!user) return { ok: false, error: t('Your session has expired. Please log in again.') }
+  if (!/^[0-9a-f-]{36}$/i.test(testId) || !(await abandonPaper(user.id, testId))) return { ok: false, error: t('That paper is already closed.') }
+  revalidatePath('/mock')
+  revalidatePath('/dashboard')
+  revalidatePath('/plan')
+  return { ok: true }
 }

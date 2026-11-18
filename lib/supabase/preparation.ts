@@ -26,7 +26,7 @@ export const getPreparation = cache(async () => {
       getReference(), getStudyReference(), getStudyProgress(), getAttempts(), getAnalysedTaskCatalogue(),
       getPreparationSettings(), getDiagnosticProfile(goal.subjectName), getPreparationPersonalGoal(),
       supabase.from('day_states').select('theory_minutes,solving_minutes,mental,sleep_hours,lights_out,load_minutes').eq('user_id',profile.id).eq('on_date',trainingToday()).maybeSingle(),
-      supabase.from('mock_tests').select('id, preparation_key, task_ids, duration_minutes, started_at, submitted_at, preparation_reviewed_at')
+      supabase.from('mock_tests').select('id, preparation_key, task_ids, duration_minutes, started_at, submitted_at, preparation_reviewed_at, abandoned_at')
         .eq('user_id', profile.id).eq('subject_id', goal.subjectId).order('started_at'),
       goal.competition
         ? supabase.from('competitions').select('slug').eq('id', goal.competition.id).maybeSingle()
@@ -35,7 +35,7 @@ export const getPreparation = cache(async () => {
 
   const { preferences } = settings
   const today = trainingToday()
-  const day: DayInputs = rawDay && settings.preferences.telegramReflectionEnabled ? { theoryMinutes:rawDay.theory_minutes,solvingMinutes:rawDay.solving_minutes,mental:rawDay.mental,sleepHours:Number(rawDay.sleep_hours),lightsOut:rawDay.lights_out,loadMinutes:rawDay.load_minutes,reported:true } : EMPTY_DAY
+  const day: DayInputs = rawDay ? { theoryMinutes:rawDay.theory_minutes,solvingMinutes:rawDay.solving_minutes,mental:rawDay.mental,sleepHours:Number(rawDay.sleep_hours),lightsOut:rawDay.lights_out,loadMinutes:rawDay.load_minutes,reported:true } : EMPTY_DAY
   const goalStart = goal.goalSetAt ?? `${today}T00:00:00Z`
   const mockPrefix = `${goal.competition?.id ?? 'subject'}:${goal.subjectId}:${goalStart}:`
   const correctByMock = new Map<string, Set<string>>()
@@ -45,7 +45,7 @@ export const getPreparation = cache(async () => {
     correct.add(attempt.task_id)
     correctByMock.set(attempt.mock_test_id, correct)
   }
-  const mocks: PreparationMock[] = (papers ?? []).flatMap((paper) => paper.preparation_key?.startsWith(mockPrefix)
+  const mocks: PreparationMock[] = (papers ?? []).flatMap((paper) => paper.preparation_key?.startsWith(mockPrefix) && !paper.abandoned_at
     ? [{
         id: paper.id, key: paper.preparation_key.slice(mockPrefix.length), taskIds: paper.task_ids,
         minutes: paper.duration_minutes, startedAt: paper.started_at, completedAt: paper.submitted_at,

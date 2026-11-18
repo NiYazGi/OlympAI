@@ -11,6 +11,10 @@ import { SessionMockStart } from '@/components/preparation/session-mock-start'
 import { trainingMinutes,trainingToday } from '@/lib/training-time'
 import { getT } from '@/lib/i18n/server'
 import { diagnosticSupport } from '@/lib/diagnostic-support'
+import { taskReasons } from '@/lib/task-reason'
+import { getProgressAnalytics } from '@/lib/supabase/queries'
+import { getSessionUserId } from '@/lib/supabase/auth'
+import { retestFor } from '@/lib/mistakes'
 
 export const dynamic='force-dynamic'
 export const metadata={title:'Сегодняшнее занятие'}
@@ -27,16 +31,31 @@ export default async function SessionPage({params}:{params:Promise<{id:string}>}
   const today=session.on_date===trainingToday()
   const activityQuery=today&&!session.completed_at&&!stale?`?session=${id}`:''
   const topic=reference.topics.find((item)=>item.id===session.topic_id)
+  // Why each problem is here, from the same signals the planner used to pick it.
+  const [analytics,viewer]=await Promise.all([getProgressAnalytics(),getSessionUserId()])
+  const why=new Map<string,string[]>()
+  for (const taskId of session.task_ids) {
+    const task=reference.tasks.find((item)=>item.id===taskId)
+    if (!task||!preparation) continue
+    const topicName=reference.topicById[task.topic_id] ?? ''
+    const rank=preparation.analysis.topics.findIndex((entry)=>entry.topic===topicName)
+    const mastery=analytics.topics.find((entry)=>entry.topic===topicName&&entry.attempts>=3)?.mastery ?? null
+    const reasons=taskReasons({id:task.id,subject:preparation.subject,topic:topicName,problem:task.problem,difficulty:task.difficulty},{
+      phase:session.phase ?? preparation.plan.phase,stage:preparation.preferences.stage,skillScores:preparation.diagnostic.skillScores,
+      topicMastery:mastery,topicRank:rank>=0?rank:null,retest:Boolean(viewer&&await retestFor(viewer,task.id)),
+    })
+    why.set(taskId,reasons.map((reason)=>t(reason.key,reason.vars?Object.fromEntries(Object.entries(reason.vars).map(([key,value])=>[key,typeof value==='string'?t(value):value])):undefined)))
+  }
   const mock=session.goal_key===preparation?.mockPrefix?preparation?.plan.steps.find((step)=>step.id===session.mock_key):undefined
-  const row=(title:string,minutes:number,href:string,Icon:typeof BookOpen,description?:string)=><li key={title} className="flex items-start gap-3 rounded-xl border border-border p-4"><Icon aria-hidden className="mt-0.5 size-5 shrink-0 text-primary"/><div className="min-w-0 flex-1"><h2 className="text-sm font-semibold">{title}</h2>{description?<p className="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</p>:null}<p className="mt-2 text-sm text-primary">{trainingMinutes(minutes)}</p></div><Link href={href} className="shrink-0 text-sm font-medium hover:underline">Открыть →</Link></li>
+  const row=(title:string,minutes:number,href:string,Icon:typeof BookOpen,description?:string,reasons?:string[])=><li key={title} className="flex items-start gap-3 rounded-xl border border-border p-4"><Icon aria-hidden className="mt-0.5 size-5 shrink-0 text-primary"/><div className="min-w-0 flex-1"><h2 className="text-sm font-semibold">{title}</h2>{description?<p className="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</p>:null}{reasons?.length?<details className="mt-1.5 text-xs"><summary className="cursor-pointer text-primary">{t('Why this problem')}</summary><ul className="mt-1.5 list-disc space-y-1 pl-4 text-muted-foreground">{reasons.map((reason)=><li key={reason}>{reason}</li>)}</ul></details>:null}<p className="mt-2 text-sm text-primary">{trainingMinutes(minutes)}</p></div><Link href={href} className="shrink-0 text-sm font-medium hover:underline">Открыть →</Link></li>
   return <div className="mx-auto max-w-3xl space-y-6 p-4 sm:p-8">
     <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-muted-foreground"><ArrowLeft className="size-4"/>На главную</Link>
     <header><p className="eyebrow">Занятие · {session.on_date}</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">{session.session_kind==='mock'?'Пробный тур':session.session_kind==='review'?'Разбор и закрепление':topic?.name==='Mathematics'?'Практика':topic?t(topic.name):'Подготовка'}</h1><p className="mt-3 text-muted-foreground">{trainingMinutes(session.minutes)} с учётом разбора. По окончании выделенного времени можно остановиться и сохранить черновик.</p></header>
     {stale?<div className="rounded-2xl bg-muted p-5"><h2 className="font-semibold">Это занятие уже перепланировано</h2><p className="mt-2 text-sm text-muted-foreground">Его оставшаяся работа учтена в новом плане. Проходить два занятия за один день не требуется.</p><Link href="/dashboard" className="mt-4 inline-block font-medium text-primary">Открыть актуальное занятие →</Link></div>:<>
-      {!today&&!session.completed_at?<p className="rounded-xl bg-muted p-4 text-sm">Это план на будущую дату. Сегодняшняя нагрузка указана на главной.</p>:null}
+      {!today&&!session.completed_at?<p className="rounded-xl bg-muted p-4 text-sm">Это занятие на {session.on_date}. Если есть свободное время, можно начать его уже сейчас: решённые задачи засчитаются, и план на будущие дни станет короче. Сегодняшняя обязательная нагрузка — на главной.</p>:null}
       <ol className="space-y-3">
         {session.lesson_id&&session.lesson_minutes>0&&topic?row('Конспект'+part(session.lesson_part,session.lesson_parts),session.lesson_minutes,`/learn/${topic.slug}/lesson${activityQuery}`,BookOpen,session.lesson_parts>1?'Читаем по частям: на сегодня выделен этот блок времени. Не нужно заканчивать весь конспект за один подход.':undefined):null}
-        {!session.mock_key?session.task_ids.map((taskId,index)=>{const task=reference.tasks.find((item)=>item.id===taskId);return task?row(task.title+part(session.task_parts[index],session.task_part_totals[index]),session.task_minutes[index]??0,`/tasks/${encodeURIComponent(taskId)}${activityQuery}`,PenLine,session.task_part_totals[index]>1?'Продолжение одной задачи. Черновик решения сохраняется в редакторе; оставшееся время уже выделено в следующих занятиях.':undefined):null}):null}
+        {!session.mock_key?session.task_ids.map((taskId,index)=>{const task=reference.tasks.find((item)=>item.id===taskId);return task?row(task.title+part(session.task_parts[index],session.task_part_totals[index]),session.task_minutes[index]??0,`/tasks/${encodeURIComponent(taskId)}${activityQuery}`,PenLine,session.task_part_totals[index]>1?'Продолжение одной задачи. Черновик решения сохраняется в редакторе; оставшееся время уже выделено в следующих занятиях.':undefined,why.get(taskId)):null}):null}
         {session.quiz_minutes>0&&topic?row('Квиз'+part(session.quiz_part,session.quiz_parts),session.quiz_minutes,`/learn/${topic.slug}/quiz${activityQuery}`,ClipboardCheck):null}
       </ol>
       {session.mock_key?<section className="rounded-2xl border border-border p-5"><div className="flex items-center gap-2"><Timer className="size-5 text-primary"/><h2 className="font-semibold">Пробник в пределах выбранного времени</h2></div><p className="mt-2 text-sm text-muted-foreground">{session.full_paper?'Полный тур.':'Тренировочный тур с ограничением времени, не полный официальный тур.'} Разбор запланирован отдельно и входит в общий бюджет.</p>{mock?.href?.startsWith('/mock/')?<Link href={mock.href} className={buttonVariants({className:'mt-4'})}>Открыть тур</Link>:today&&mock&&preparation?<SessionMockStart step={mock.id} scope={preparation.mockPrefix}/>:null}</section>:null}

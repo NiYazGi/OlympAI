@@ -19,6 +19,7 @@ export async function DayCard({ status }: { status: DayStatus }) {
   const t = await getT()
   const { score } = status
   const phase = phaseCopy(score.phase, t)
+  const weak = score.axes.filter((axis) => axis.score <= 2)
 
   return (
     <section className={cn(cardClass, 'p-5 sm:p-6')}>
@@ -55,6 +56,15 @@ export async function DayCard({ status }: { status: DayStatus }) {
             ))}
           </ul>
 
+          {/* A total of 15 can be 5+5+5+0+0: the sum alone hides the axis that is failing. */}
+          {status.recorded && weak.length ? (
+            <p role="status" className="mt-4 rounded-lg bg-warning/10 px-3 py-2 text-sm text-pretty">
+              {score.met
+                ? t('The total is fine, but it hides an imbalance: {axes} at {n} or less out of 5.', { axes: weak.map((axis) => axis.label).join(', '), n: 2 })
+                : t('Weakest today: {axes}. Start there — it moves the day most.', { axes: weak.map((axis) => axis.label).join(', ') })}
+            </p>
+          ) : null}
+
           <p className="mt-4 text-sm leading-6 text-pretty text-muted-foreground">
             {score.met
               ? phase.rule
@@ -67,6 +77,17 @@ export async function DayCard({ status }: { status: DayStatus }) {
 
       <div className="mt-6 border-t border-border/60 pt-5">
         <DayCheckIn inputs={status.inputs} />
+        <details className="mt-4 text-sm">
+          <summary className="cursor-pointer font-medium text-muted-foreground hover:text-foreground">{t('How the points are counted')}</summary>
+          <ul className="mt-3 space-y-1.5 leading-6 text-muted-foreground">
+            <li><span className="font-medium text-foreground">{t('Theory')}</span> — {t('minutes on notes and lectures against your session length; 5 points for the full theory share of a session.')}</li>
+            <li><span className="font-medium text-foreground">{t('Solving')}</span> — {t('minutes on problems, or the work graded in the app today, whichever is higher.')}</li>
+            <li><span className="font-medium text-foreground">{t('Head')}</span> — {t('how you feel, from 1 (in pieces) to 5 (sharp).')}</li>
+            <li><span className="font-medium text-foreground">{t('Sleep')}</span> — {t('5 h, 6 h, 7 h, 7.5 h and 8 h each add a point.')}</li>
+            <li><span className="font-medium text-foreground">{t('Taken')}</span> — {t('everything else that took time today (school, clubs, the road): under 8 h, 6.5 h, 5 h, 3.5 h and 2 h each add a point.')}</li>
+            <li>{t('In the last two days before the olympiad, theory and solving score for resting, not for work.')}</li>
+          </ul>
+        </details>
         <Link
           href="/method"
           prefetch

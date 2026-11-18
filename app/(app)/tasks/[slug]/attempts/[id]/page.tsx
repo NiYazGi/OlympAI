@@ -9,6 +9,8 @@ import { getAttemptDetail, getTaskDetail, getTaskHistory, getTaskReports } from 
 import { getSessionUserId } from '@/lib/supabase/auth'
 import { canUse } from '@/lib/features'
 import { withoutReview } from '@/lib/protocol'
+import { AppealPanel } from '@/components/problems/appeal-panel'
+import { appealsFor } from '@/lib/appeals'
 import { getLocale, getT } from '@/lib/i18n/server'
 import { formatDate } from '@/lib/i18n/config'
 import { cardClass, cn } from '@/lib/utils'
@@ -74,9 +76,15 @@ export default async function AttemptPage({ params }: { params: Promise<{ slug: 
           <div className={cn(cardClass, 'p-5 sm:p-6')}>
             <AttemptProtocol protocol={(await canUse('deepReview')) ? attempt.protocol : withoutReview(attempt.protocol)} />
           </div>
+          {own && userId ? <Appeals attemptId={attempt.id} taskId={task.id} criteria={attempt.protocol.criteria} userId={userId} /> : null}
           {own ? <AttemptHistory taskId={task.id} attempts={history} reports={reports} /> : null}
         </div>
       </div>
     </div>
   )
+}
+
+async function Appeals({ attemptId, taskId, criteria, userId }: { attemptId: string; taskId: string; criteria: { text: string; max: number; earned: number }[]; userId: string }) {
+  const appeals = await appealsFor(userId, attemptId)
+  return <AppealPanel attemptId={attemptId} taskId={taskId} criteria={criteria} appeals={appeals} canDispute={!appeals.some((appeal) => appeal.mode === 'dispute')} />
 }

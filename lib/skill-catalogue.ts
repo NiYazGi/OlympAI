@@ -26,6 +26,9 @@ export const SKILLS: readonly ConcreteSkill[] = [
   { id: 'momentum-system', name: 'Выбор системы для сохранения импульса', subject: 'Physics', topic: 'Mechanics', prerequisite: 'Включить оба взаимодействующих тела и проверить внешний импульс.' },
   { id: 'heat-balance', name: 'Выбор системы и уравнение теплового баланса', subject: 'Physics', topic: 'Thermodynamics', prerequisite: 'Учитывать теплоёмкость всех тел в изолированной системе.' },
   ...TASK_METHODS.map((method): ConcreteSkill => ({ id: method.id, name: method.name, subject: 'Physics', topic: method.topicSlug === 'mechanics' ? 'Mechanics' : 'Electrodynamics', prerequisite: method.prerequisites.map((item) => item.title).join('; '), lessonHref: `/methods/${method.id}` })),
+  { id: 'measurement-uncertainty', name: 'Погрешности прямых и косвенных измерений', subject: 'Physics', topic: 'Experimental physics', prerequisite: 'Случайная и систематическая погрешность; сложение относительных погрешностей для произведения.' },
+  { id: 'graph-linearisation', name: 'Линеаризация графика и метод наименьших квадратов', subject: 'Physics', topic: 'Experimental physics', prerequisite: 'Выбрать оси, в которых закон — прямая; смысл наклона и отрезка.' },
+  { id: 'experiment-report', name: 'Оформление экспериментального отчёта', subject: 'Physics', topic: 'Experimental physics', prerequisite: 'Метод, таблица данных, график, результат с погрешностью, источники ошибок.' },
   { id: 'loop-invariant', name: 'Инвариант цикла', subject: 'Informatics', topic: 'Implementation', prerequisite: 'Состояние до итерации, переход и условие завершения.' },
   { id: 'algorithm-complexity', name: 'Оценка времени алгоритма', subject: 'Informatics', topic: 'Implementation', prerequisite: 'Число повторений операций как функция размера входа.' },
   { id: 'algorithm-correctness', name: 'Доказательство корректности алгоритма', subject: 'Informatics', topic: 'Implementation', prerequisite: 'Отделить доказательство от проверки на нескольких примерах.' },
@@ -33,6 +36,12 @@ export const SKILLS: readonly ConcreteSkill[] = [
 
 /** Audited links refer to the stated part, not to a speculative solution. */
 export const EDITORIAL_TASK_SKILLS: Readonly<Record<string, readonly string[]>> = {
+  'exp-pendulum-g': ['graph-linearisation', 'measurement-uncertainty', 'experiment-report'],
+  'exp-resistor-iv': ['graph-linearisation', 'measurement-uncertainty'],
+  'exp-cooling-law': ['graph-linearisation', 'experiment-report'],
+  'exp-spring-mass': ['graph-linearisation', 'measurement-uncertainty'],
+  'exp-density-uncertainty': ['measurement-uncertainty', 'experiment-report'],
+  'exp-friction-design': ['experiment-report', 'measurement-uncertainty'],
   'phys-oblast-2011-10-t1-2': ['geometric-similarity', 'momentum-flux', 'energy-flux', 'dimensional-check'],
   'phys-oblast-2011-9-t1-1': ['geometric-similarity', 'momentum-flux', 'energy-flux', 'dimensional-check'],
   'phys-national-2025-9-t1-3': ['kirchhoff-rules', 'balanced-bridge', 'iv-characteristic'],

@@ -10,6 +10,8 @@ import { transcribeSolutionPhoto } from '@/lib/sulu/transcribe'
 import { attemptXp } from '@/lib/xp'
 import { withoutReview, type Protocol } from '@/lib/protocol'
 import { canUse } from '@/lib/features'
+import { recordOutcome } from '@/lib/mistakes'
+import { getTaskCatalogue } from '@/lib/supabase/queries'
 import { SuluError } from '@/lib/sulu/provider'
 import { getLocale, getT } from '@/lib/i18n/server'
 import { getPreparation } from '@/lib/supabase/preparation'
@@ -174,6 +176,15 @@ export async function submitTaskAttempt(
   }).select('id').single()
   if (insertError || !inserted) {
     return { ok: false, error: t('Your attempt could not be saved. Please try again.') }
+  }
+  // The mistake log never stands between a student and their mark.
+  try {
+    await recordOutcome(user.id, {
+      id: inserted.id, taskId: task.id, correct: grade.verdict === 'correct', points: grade.points,
+      breakNeed: grade.breakPoint?.need ?? grade.summary ?? null, at: new Date().toISOString(),
+    }, await getTaskCatalogue())
+  } catch {
+    // Logged nowhere on purpose: the attempt itself is saved.
   }
 
   revalidatePath('/tasks')

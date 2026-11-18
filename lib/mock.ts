@@ -29,7 +29,8 @@ const TIME_MULTIPLIER = 1.25
  * measures recall, not level — but solved ones fill the gaps rather than
  * shortening the paper below the point where the result means anything.
  */
-export function composeMock(tasks: CatalogueTask[]): MockBlueprint | null {
+export function composeMock(tasks: CatalogueTask[], format: { shape?: readonly number[]; minMinutes?: number } = {}): MockBlueprint | null {
+  const shape = format.shape ?? SHAPE
   if (tasks.length < MIN_TASKS) return null
 
   const pool = [...tasks].sort((a, b) => {
@@ -40,7 +41,7 @@ export function composeMock(tasks: CatalogueTask[]): MockBlueprint | null {
   const used = new Set<string>()
   const chosen: CatalogueTask[] = []
 
-  for (const wanted of SHAPE) {
+  for (const wanted of shape) {
     // Closest difficulty still available, preferring unsolved.
     const candidate = pool
       .filter((task) => !used.has(task.id))
@@ -64,7 +65,7 @@ export function composeMock(tasks: CatalogueTask[]): MockBlueprint | null {
 
   return {
     taskIds: chosen.map((task) => task.id),
-    durationMinutes: Math.max(15, Math.round((minutes * TIME_MULTIPLIER) / 5) * 5),
+    durationMinutes: Math.max(format.minMinutes ?? 15, Math.round((minutes * TIME_MULTIPLIER) / 5) * 5),
     difficulties: chosen.map((task) => task.difficulty),
   }
 }
@@ -75,11 +76,11 @@ export function composeMock(tasks: CatalogueTask[]): MockBlueprint | null {
  * the start action and the page, so the length shown before starting is the
  * length of the paper that starts.
  */
-export function composeMockFor(catalogue: CatalogueTask[], subject: string, grade: string | null | undefined) {
+export function composeMockFor(catalogue: CatalogueTask[], subject: string, grade: string | null | undefined, format: { shape?: readonly number[]; minMinutes?: number } = {}) {
   const inSubject = catalogue.filter((task) => task.subject === subject)
   const grades = gradeRange(grade)
   const ownGrade = inSubject.filter((task) => fitsGrade(task, grades))
-  return composeMock(ownGrade.length >= 5 ? ownGrade : inSubject)
+  return composeMock(ownGrade.length >= 5 ? ownGrade : inSubject, format)
 }
 
 export type MockOutcome = {

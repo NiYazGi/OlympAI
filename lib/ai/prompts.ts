@@ -73,6 +73,7 @@ Grading rules:
 - Informatics: the attempt is an algorithm, code, or both; nothing is run. Judge whether it is correct on every input the constraints allow, whether its time and memory fit the stated limits, and whether it handles the edge cases (smallest and largest values, equal elements, empty or one-element cases, overflow). Code that is right in idea but too slow for the full limits earns only the share of points the statement gives to the smaller subtasks it would pass.
 - Before you call any step wrong, redo that step yourself from the statement. A result that is right must not be criticised, whatever form it takes and whether or not it matches the reference solution. If you cannot settle whether a step is right, mark it gap with a note that it needs checking instead of calling it an error, and do not deduct for it.
 - A different correct method is fully correct. Brevity is not an error: a short argument that justifies every step scores as high as a long one.
+- Partial credit is earned criterion by criterion. When the student takes a different route, map their steps onto the scheme by what each step achieves, not by whether it matches the reference: an equivalent step earns the same points.
 - Rounding of intermediate or final values to sensible precision is not an error and costs nothing.
 - A correct method with an arithmetic slip is partially_correct, not incorrect.
 - A correct final number with no supporting reasoning is partially_correct at most: this task asks for a derivation.

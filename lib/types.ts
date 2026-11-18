@@ -132,6 +132,8 @@ export type Competition = {
   endsOn: string | null
   registrationUrl: string | null
   registrationDeadline: string | null
+  /** When it is usually held (1-12), for the calendar while no exact date is set. */
+  typicalMonth: number | null
   registered: boolean
   /** Accuracy in this competition's subject, or null when nothing was attempted there. */
   readiness: number | null

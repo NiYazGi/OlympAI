@@ -21,6 +21,8 @@ export type CoachContext = {
   /** The grader's latest verdict on this student's attempt at the task. */
   lastScore?: number | null
   lastFeedback?: string | null
+  /** The student's preparation: goal, phase, today's session, open mistakes, weak skills. */
+  preparation?: import('@/lib/sulu/coach-context').PreparationContext | null
 }
 
 /** Trim and cap any value that reaches the prompt, whatever its origin. */
@@ -54,7 +56,28 @@ Task: ${field(context.taskTitle, 200)}
 Problem statement: ${field(context.taskStatement ? numberFigures(context.taskStatement) : null, 2000)}
 Student level: ${field(context.studentLevel, 80)}
 Latest graded attempt: ${context.lastScore === null || context.lastScore === undefined ? 'none' : `${context.lastScore}/100 — ${field(context.lastFeedback, 600)}`}
-</learning_context>`
+</learning_context>${preparationBlock(context.preparation)}`
+}
+
+/**
+ * The coach's view of the student's preparation. Sulu uses it to keep advice
+ * in line with the goal and the plan, and to say why a problem was assigned;
+ * it never recites it back unprompted.
+ */
+function preparationBlock(prep: CoachContext['preparation']) {
+  if (!prep || (!prep.olympiad && !prep.targetDate && !prep.recentMistakes.length)) return ''
+  return `
+
+<preparation_context>
+Target olympiad: ${field(prep.olympiad, 120)}${prep.stage ? ` (stage: ${prep.stage})` : ''}
+Date: ${field(prep.targetDate, 20)}${prep.daysLeft !== null ? ` — ${prep.daysLeft} days left` : ''}
+Preparation phase: ${field(prep.phase, 40)}
+The student's own goal: ${field(prep.desiredResult, 300)}
+Today's planned session: ${field(prep.todaysSession, 200)}
+Open mistakes from the log: ${prep.recentMistakes.length ? prep.recentMistakes.map((item) => field(item, 260)).join('; ') : 'none'}
+Weak skills from the diagnostic: ${prep.weakSkills.length ? prep.weakSkills.join(', ') : 'none recorded'}
+</preparation_context>
+Use this as a personal coach would: connect advice to the goal and the phase (base work early, timed practice late, light review in the last days), point back to open mistakes when the same idea comes up, and when asked why a problem was assigned, explain it from the weak skills, the mistakes and the phase above. Do not recite this block; the student can read the plan themselves.`
 }
 
 export type GraderContext = {

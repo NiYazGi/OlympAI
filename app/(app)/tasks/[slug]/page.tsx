@@ -23,6 +23,8 @@ import { cardClass } from '@/lib/utils'
 import { getT } from '@/lib/i18n/server'
 import { MathText } from '@/components/math-text'
 import { TaskDiscussion } from '@/components/community/task-discussion'
+import { retestFor } from '@/lib/mistakes'
+import { getSessionUserId } from '@/lib/supabase/auth'
 import { getDailySession } from '@/lib/supabase/daily-preparation'
 import { trainingToday, trainingMinutes } from '@/lib/training-time'
 
@@ -48,11 +50,13 @@ export default async function TaskPage({ params, searchParams }: { params: Promi
   const session=await getDailySession(sessionId)
   if (sessionId && (!session || !session.task_ids.includes(task.id))) notFound()
   if (session && (session.on_date!==trainingToday() || session.completed_at || session.skipped_at || session.superseded_at)) redirect(`/plan/session/${session.id}`)
-  const [resources, history, reports, serverDraft] = await Promise.all([
+  const viewer = await getSessionUserId()
+  const [resources, history, reports, serverDraft, retest] = await Promise.all([
     getTaskResources(slug),
     getTaskHistory(slug),
     getTaskReports(slug),
     getServerDraft(slug),
+    viewer ? retestFor(viewer, task.id) : Promise.resolve(null),
   ])
 
   return (
@@ -67,6 +71,13 @@ export default async function TaskPage({ params, searchParams }: { params: Promi
 
       {session ? <p className="rounded-xl border border-border px-4 py-3 text-sm leading-relaxed">На эту часть сегодня — <strong>{trainingMinutes(session.task_minutes[session.task_ids.indexOf(task.id)] ?? 0)}</strong>. Черновик сохраняется; продолжение учтено в плане. Оценка всей задачи указана ниже.</p> : null}
 
+      {retest ? (
+        <p role="status" className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
+          <span className="font-medium">{t('Check problem from your mistake log.')}</span>{' '}
+          {t('Solve it without hints and without Sulu: only then does the mistake count as fixed.')}{' '}
+          <Link href="/mistakes" className="text-primary hover:underline">{t('Mistake log')}</Link>
+        </p>
+      ) : null}
       <PageHeader
         title={
           <ViewTransition name={`task-${task.id}`} share="morph" default="none">

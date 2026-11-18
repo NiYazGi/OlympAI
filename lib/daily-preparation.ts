@@ -118,10 +118,30 @@ export function planDailySessions(input: PreparationInput, topics: DailyTopic[])
 
   const rehearsalSlots = slots.filter((day) => day.phase === 'competition' && !day.draft &&
     Math.round((Date.parse(input.targetDate) - Date.parse(day.date)) / 86_400_000) <= 14 && day.capacity >= 15)
-  const proposed = rehearsalSlots.length >= 6
-    ? [rehearsalSlots[Math.floor(rehearsalSlots.length / 3)], rehearsalSlots[rehearsalSlots.length - 2]]
-    : rehearsalSlots.length ? [rehearsalSlots[Math.max(0, rehearsalSlots.length - 2)]] : []
-  const mockKeys = ['mock-1', 'mock-2'].filter((key) => !input.mocks.some((mock) => mock.key === key))
+  // The intensive block: a paper every other study day, the day between for
+  // its review. Only when sessions are long enough to sit a paper and still
+  // review it; with short sessions, one or two rehearsals as before.
+  const intensive = rehearsalSlots.length >= 6 && rehearsalSlots.filter((day) => day.capacity >= 60).length >= 4
+  let proposed: typeof rehearsalSlots
+  if (intensive) {
+    proposed = []
+    let last = Number.NEGATIVE_INFINITY
+    for (const slot of rehearsalSlots) {
+      const at = Date.parse(slot.date)
+      if (slot.capacity < 60 || at - last < 2 * 86_400_000) continue
+      proposed.push(slot)
+      last = at
+    }
+    // The last study day before the taper is left for the final review.
+    if (proposed.length > 1 && proposed[proposed.length - 1] === rehearsalSlots[rehearsalSlots.length - 1]) proposed.pop()
+    proposed = proposed.slice(0, 6)
+  } else {
+    proposed = rehearsalSlots.length >= 6
+      ? [rehearsalSlots[Math.floor(rehearsalSlots.length / 3)], rehearsalSlots[rehearsalSlots.length - 2]]
+      : rehearsalSlots.length ? [rehearsalSlots[Math.max(0, rehearsalSlots.length - 2)]] : []
+  }
+  const mockKeys = Array.from({ length: Math.max(2, proposed.length) }, (_, index) => `mock-${index + 1}`)
+    .filter((key) => !input.mocks.some((mock) => mock.key === key))
   if (!input.mocks.some((mock) => !mock.completedAt)) {
     for (const slot of proposed) {
       if (!mockKeys.length || slot.draft) continue

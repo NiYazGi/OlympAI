@@ -29,6 +29,7 @@ const PROTECTED = [
   '/pricing',
   '/checkout',
   '/documents',
+  '/mistakes',
   '/forum',
   '/u',
 ]

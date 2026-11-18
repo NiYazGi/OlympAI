@@ -55,7 +55,7 @@ export async function startPreparationMock(
       if (!step?.mock || !planned) return null
 
       const { rows: open } = await tx.query(
-        'select id from public.mock_tests where user_id = $1 and submitted_at is null limit 1', [user.id],
+        'select id from public.mock_tests where user_id = $1 and submitted_at is null and abandoned_at is null limit 1', [user.id],
       )
       if (open.length > 0) return null
 

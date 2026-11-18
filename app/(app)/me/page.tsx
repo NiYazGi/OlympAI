@@ -25,6 +25,7 @@ import { getAvatarSrc } from '@/lib/supabase/avatar'
 import { getCurrentProfile, getProgressAnalytics } from '@/lib/supabase/queries'
 import { cardClass, cn, initials } from '@/lib/utils'
 import { getT } from '@/lib/i18n/server'
+import { IndependentProgressCard } from '@/components/progress/independent-progress'
 import { Locked } from '@/components/billing/locked'
 import { canUse } from '@/lib/features'
 import { billingEnabled } from '@/lib/billing'
@@ -172,6 +173,8 @@ async function MeBody() {
       <h2 className="eyebrow mt-2">
         {t('Progress')}
       </h2>
+
+      {profile?.id ? <IndependentProgressCard userId={profile.id} /> : null}
 
       {communityEnabled() && profile?.username ? (
         <Link href={`/u/${profile.username}`} className="-mt-2 text-sm text-primary hover:underline">

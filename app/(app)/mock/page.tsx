@@ -16,6 +16,10 @@ import { composeMockFor, realPapers } from '@/lib/mock'
 import { PaperBrowser } from '@/components/mock/paper-browser'
 import { Locked } from '@/components/billing/locked'
 import { canUse } from '@/lib/features'
+import { AbandonMock } from '@/components/mock/abandon-mock'
+import { closeStalePapers, STAGE_FORMAT, type OlympiadStage } from '@/lib/mock-lifecycle'
+import { getPreparationSettings } from '@/lib/supabase/queries'
+import { getSessionUserId } from '@/lib/supabase/auth'
 import { cardClass, cn } from '@/lib/utils'
 import { getLocale, getT } from '@/lib/i18n/server'
 import { formatDate } from '@/lib/i18n/config'
@@ -53,6 +57,12 @@ export default async function MockPage() {
 async function MockList() {
   const t = await getT()
   const locale = await getLocale()
+  // A paper past its clock and the hour after it is closed before the list is read.
+  const viewer = await getSessionUserId()
+  if (viewer) await closeStalePapers(viewer)
+  const settings = await getPreparationSettings()
+  const stage = settings.preferences.stage as OlympiadStage | null
+  const format = stage ? STAGE_FORMAT[stage] : {}
 
   const [history, subjects, goal, catalogue, profile] = await Promise.all([
     getMockHistory(),
@@ -68,10 +78,15 @@ async function MockList() {
     goal.subjectName ? catalogue.filter((task) => task.subject === goal.subjectName) : catalogue,
   )
 
-  const open = history.find((entry) => !entry.submittedAt) ?? null
+  const open = history.find((entry) => !entry.submittedAt && !entry.abandonedAt) ?? null
   const done = history.filter((entry) => entry.submittedAt)
-  // Three tasks is the floor below which a score says nothing.
-  const eligible = subjects.filter((subject) => subject.taskCount >= 3)
+  // Three tasks is the floor below which a score says nothing. With a target
+  // set, the paper is in the olympiad's subject: a physics student preparing
+  // for the physics olympiad is not offered a mathematics paper first.
+  const enough = subjects.filter((subject) => subject.taskCount >= 3)
+  const eligible = goal.subjectName && enough.some((subject) => subject.name === goal.subjectName)
+    ? enough.filter((subject) => subject.name === goal.subjectName)
+    : enough
   const short = subjects.filter((subject) => subject.taskCount < 3)
 
   if (eligible.length === 0) {
@@ -106,6 +121,7 @@ async function MockList() {
             >
               {t('Resume')}
             </Link>
+            <AbandonMock id={open.id} />
           </div>
         </section>
       ) : (
@@ -138,7 +154,7 @@ async function MockList() {
                 // The paper that would start, so the button states its real
                 // length: a full paper can run past three hours, and the page
                 // used to promise "about an hour".
-                const paper = composeMockFor(catalogue, subject.name, profile?.grade)
+                const paper = composeMockFor(catalogue, subject.name, profile?.grade, format)
                 return (
                   <StartMock
                     key={subject.id}

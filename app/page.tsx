@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { getDb } from '@/lib/db'
 import { getT } from '@/lib/i18n/server'
 import { cn } from '@/lib/utils'
+import { MathText } from '@/components/math-text'
 
 /**
  * The front page, written for a student or a parent seeing the site for the
@@ -63,7 +64,7 @@ const inside = [
 const faq = [
   {
     q: 'Is it free?',
-    a: 'Yes. You only need an email address to create an account.',
+    a: 'Yes. To create an account you need your name, an email address and a password. Before that you can try the check and the hints on a demo problem, with no account.',
   },
   {
     q: 'Who is it for?',
@@ -96,7 +97,7 @@ export default async function LandingPage() {
       {/* First screen ------------------------------------------------------ */}
       <section className="mx-auto grid max-w-[1120px] gap-12 px-5 pt-14 pb-16 sm:px-8 sm:pt-20 lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-16">
         <div>
-          <p className="text-[15px] font-medium text-coral">{t('Mathematics and physics olympiads')}</p>
+          <p className="text-[15px] font-medium text-coral">{t('Mathematics, physics and informatics olympiads')}</p>
           <h1 className="font-display mt-4 text-[38px] leading-[1.1] font-semibold text-balance sm:text-[48px] xl:text-[54px]">
             {t('Prepare for olympiads with real problems and honest feedback')}
           </h1>
@@ -113,8 +114,11 @@ export default async function LandingPage() {
                 </Link>
               }
             />
-            <Button size="lg" variant="outline" nativeButton={false} render={<Link href="/login">{t('I already have an account')}</Link>} />
+            <Button size="lg" variant="outline" nativeButton={false} render={<Link href="/try">{t('Try it without signing up')}</Link>} />
           </div>
+          <p className="mt-3 text-sm text-muted-foreground">
+            <Link href="/login" className="hover:text-foreground hover:underline">{t('I already have an account')}</Link>
+          </p>
         </div>
 
         <ExampleCheck />
@@ -257,15 +261,22 @@ function SubjectCard({ title, topics, olympiads }: { title: string; topics: stri
 
 /**
  * What a checked solution looks like, as an example: a short attempt with a
- * mark on each line and the score, the way the real check shows it.
+ * mark on each line, the scheme that adds up to the score, and the setup the
+ * marks refer to (which way the block moves, which axis was chosen).
  */
 async function ExampleCheck() {
   const t = await getT()
   const lines: { text: string; mark: 'ok' | 'gap' | 'error'; note?: string }[] = [
-    { text: 'mg sin α − F_тр = ma', mark: 'ok' },
-    { text: 'N = mg cos α', mark: 'ok' },
-    { text: 'F_тр = μN', mark: 'gap', note: t('Say that the block slides: only then is friction equal to μN') },
-    { text: 'a = g (sin α + μ cos α)', mark: 'error', note: t('Sign error: friction points up the slope') },
+    { text: String.raw`\(Ox:\ mg\sin\alpha - F_{\text{тр}} = ma\)`, mark: 'ok' },
+    { text: String.raw`\(Oy:\ N = mg\cos\alpha\)`, mark: 'ok' },
+    { text: String.raw`\(F_{\text{тр}} = \mu N\)`, mark: 'gap', note: t('Say that the block slides: only then is friction equal to μN') },
+    { text: String.raw`\(a = g(\sin\alpha + \mu\cos\alpha)\)`, mark: 'error', note: t('Sign error: friction points up the slope, against the motion') },
+  ]
+  const scheme: { text: string; earned: number; max: number }[] = [
+    { text: t('Newton’s second law along the slope'), earned: 2, max: 2 },
+    { text: t('Normal force from the perpendicular axis'), earned: 1, max: 1 },
+    { text: t('Friction law, with the sliding condition stated'), earned: 1, max: 2 },
+    { text: t('Correct final expression for the acceleration'), earned: 0, max: 2 },
   ]
   const markIcon = { ok: Check, gap: Minus, error: X }
   const markClass = { ok: 'text-success', gap: 'text-warning', error: 'text-destructive' }
@@ -276,6 +287,10 @@ async function ExampleCheck() {
         <span className="text-[14px] font-medium">{t('A block on an inclined plane')}</span>
         <span className="text-[13px] text-muted-foreground">{t('Example')}</span>
       </div>
+      <MathText
+        className="border-b border-border px-5 py-3 text-[13px] leading-5 text-muted-foreground"
+        text={t('The block slides down a slope at angle \\(\\alpha\\), friction coefficient \\(\\mu\\). Axis \\(Ox\\) along the slope, down — the direction of motion; axis \\(Oy\\) perpendicular to the slope.')}
+      />
       <ol className="divide-y divide-border">
         {lines.map((line, index) => {
           const Icon = markIcon[line.mark]
@@ -283,7 +298,7 @@ async function ExampleCheck() {
             <li key={line.text} className="flex gap-3 px-5 py-3">
               <span className="w-4 shrink-0 pt-0.5 text-right font-mono text-[12px] text-muted-foreground tabular-nums">{index + 1}</span>
               <div className="min-w-0 flex-1">
-                <p className="text-[15px] tracking-[0.01em]">{line.text}</p>
+                <MathText text={line.text} className="text-[15px]" />
                 {line.note ? <p className={cn('mt-1 text-[13px]', markClass[line.mark])}>{line.note}</p> : null}
               </div>
               <Icon className={cn('size-4 shrink-0', markClass[line.mark])} />
@@ -291,11 +306,24 @@ async function ExampleCheck() {
           )
         })}
       </ol>
+      <div className="border-t border-border px-5 py-3">
+        <p className="text-[12px] font-medium text-muted-foreground">{t('Where the points come from')}</p>
+        <ul className="mt-1.5 space-y-1 text-[13px]">
+          {scheme.map((item) => (
+            <li key={item.text} className="flex justify-between gap-3">
+              <span>{item.text}</span>
+              <span className={cn('shrink-0 font-mono tabular-nums', item.earned < item.max ? 'text-destructive' : 'text-success')}>
+                {item.earned}/{item.max}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
       <figcaption className="flex items-baseline gap-3 border-t border-border px-5 py-4">
         <span className="shrink-0 text-[28px] leading-none font-semibold whitespace-nowrap tabular-nums">
           4<span className="text-[16px] text-muted-foreground"> / 7</span>
         </span>
-        <span className="text-[14px] leading-5 text-muted-foreground">{t('The method is right; fix the sign in line 4 and justify line 3.')}</span>
+        <span className="text-[14px] leading-5 text-muted-foreground">{t('The method is right: −1 for line 3 without the sliding condition, −2 for the sign in line 4.')}</span>
       </figcaption>
     </figure>
   )

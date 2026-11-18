@@ -38,6 +38,8 @@ function stillOn(row: { starts_on: string | null; ends_on: string | null }, toda
 }
 
 export const getCompetitions = cache(async (): Promise<Competition[]> => loadCompetitions(false))
+/** Past sittings too, for the calendar. */
+export const getAllCompetitions = cache(async (): Promise<Competition[]> => loadCompetitions(true))
 
 const loadCompetitions = cache(async (includePast: boolean): Promise<Competition[]> => {
   const userId = await getSessionUserId()
@@ -107,6 +109,7 @@ const loadCompetitions = cache(async (includePast: boolean): Promise<Competition
       endsOn: competition.ends_on,
       registrationUrl: competition.registration_url,
       registrationDeadline: competition.registration_deadline,
+      typicalMonth: competition.typical_month ?? null,
       registered: registered.has(competition.id),
       readiness: stats?.total ? Math.round((stats.correct / stats.total) * 100) : null,
       region: competition.region,

@@ -9,10 +9,12 @@ import { LanguageSwitcher } from '@/components/language-switcher'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'
 
+// From the front page and from /try or /terms alike, so the anchors carry the path.
 const links = [
-  { href: '#how', label: 'How it works' },
-  { href: '#subjects', label: 'Subjects' },
-  { href: '#faq', label: 'Questions' },
+  { href: '/#how', label: 'How it works' },
+  { href: '/#subjects', label: 'Subjects' },
+  { href: '/try', label: 'Try it' },
+  { href: '/#faq', label: 'Questions' },
 ]
 
 /** A plain bar: the name, three anchors, and the two ways in. */
