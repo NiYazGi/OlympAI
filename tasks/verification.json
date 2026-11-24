@@ -1,0 +1,269 @@
+{
+  "archive": "/Users/niya/Desktop/tasks",
+  "verified": true,
+  "verification_failures": [],
+  "source_defects": [
+    {
+      "section": "Азиатская-Тихоокеанская",
+      "url": "https://olympiads.bc-pf.org/math/s/apmo/2000/2000_2.jpg",
+      "error": "not an image response (text/html)",
+      "item_type": "asset"
+    },
+    {
+      "section": "ГЖО",
+      "url": "https://olympiads.bc-pf.org/math/gzho/2001/7/2001_7_4.png",
+      "error": "not an image response (text/html)",
+      "item_type": "asset"
+    },
+    {
+      "section": "ГЖО",
+      "url": "https://olympiads.bc-pf.org/math/gzho/2001/9/2001_9_4.png",
+      "error": "not an image response (text/html)",
+      "item_type": "asset"
+    },
+    {
+      "section": "ГЖО",
+      "url": "https://olympiads.bc-pf.org/math/gzho/2006/7/1.png",
+      "error": "not an image response (text/html)",
+      "item_type": "asset"
+    },
+    {
+      "section": "ГЖО",
+      "url": "https://olympiads.bc-pf.org/math/gzho/2007/7/2007_7_2.jpg",
+      "error": "not an image response (text/html)",
+      "item_type": "asset"
+    },
+    {
+      "section": "ГЖО",
+      "url": "https://olympiads.bc-pf.org/math/gzho/2007/7/2007_7_6.jpg",
+      "error": "not an image response (text/html)",
+      "item_type": "asset"
+    },
+    {
+      "section": "ГЖО",
+      "url": "https://olympiads.bc-pf.org/math/gzho/2007/8/2007_8_1.jpg",
+      "error": "not an image response (text/html)",
+      "item_type": "asset"
+    },
+    {
+      "section": "ГЖО",
+      "url": "https://olympiads.bc-pf.org/math/gzho/2007/8/2007_8_6.jpg",
+      "error": "not an image response (text/html)",
+      "item_type": "asset"
+    },
+    {
+      "section": "ГЖО",
+      "url": "http:&&matol.kz&images&19&2007_9_6.jpg",
+      "error": "Invalid URL 'http:&&matol.kz&images&19&2007_9_6.jpg': No host supplied",
+      "item_type": "asset"
+    },
+    {
+      "section": "ГЖО",
+      "url": "https://olympiads.bc-pf.org/math/gzho/2008/7/2008_7_4.jpg",
+      "error": "not an image response (text/html)",
+      "item_type": "asset"
+    },
+    {
+      "section": "ГЖО",
+      "url": "https://olympiads.bc-pf.org/math/gzho/2010/7/2010_7_1.jpg",
+      "error": "not an image response (text/html)",
+      "item_type": "asset"
+    },
+    {
+      "section": "ГЖО",
+      "url": "https://olympiads.bc-pf.org/math/gzho/2011/8/2011_8_7.jpg",
+      "error": "not an image response (text/html)",
+      "item_type": "asset"
+    },
+    {
+      "section": "ГЖО",
+      "url": "https://olympiads.bc-pf.org/math/gzho/2013/8/2013_8_71.jpg",
+      "error": "not an image response (text/html)",
+      "item_type": "asset"
+    },
+    {
+      "section": "ГЖО",
+      "url": "https://olympiads.bc-pf.org/math/gzho/2013/8/2013_8_72.jpg",
+      "error": "not an image response (text/html)",
+      "item_type": "asset"
+    },
+    {
+      "section": "ГЖО",
+      "url": "https://olympiads.bc-pf.org/math/gzho/2018/6/gzho2018-620-1.png",
+      "error": "not an image response (text/html)",
+      "item_type": "asset"
+    },
+    {
+      "section": "ГЖО",
+      "url": "https://olympiads.bc-pf.org/math/gzho/2018/6/gzho2018-650-1.png",
+      "error": "not an image response (text/html)",
+      "item_type": "asset"
+    },
+    {
+      "section": "ГЖО",
+      "url": "https://olympiads.bc-pf.org/math/gzho/2018/7/gzho2018-730-1.png",
+      "error": "not an image response (text/html)",
+      "item_type": "asset"
+    },
+    {
+      "section": "ГЖО",
+      "url": "https://olympiads.bc-pf.org/math/gzho/2018/7/gzho2018-750-1.png",
+      "error": "not an image response (text/html)",
+      "item_type": "asset"
+    },
+    {
+      "section": "ГЖО",
+      "url": "https://olympiads.bc-pf.org/math/gzho/2018/8/gzho2018-810-1.png",
+      "error": "not an image response (text/html)",
+      "item_type": "asset"
+    },
+    {
+      "section": "ГЖО",
+      "url": "https://olympiads.bc-pf.org/math/gzho/2018/9/gzho2018-910-1.png",
+      "error": "not an image response (text/html)",
+      "item_type": "asset"
+    },
+    {
+      "section": "Областная",
+      "url": "https://olympiads.bc-pf.org/math/oblast/1999/11/16/obl_1999_11_6_1.jpg",
+      "error": "not an image response (text/html)",
+      "item_type": "asset"
+    },
+    {
+      "section": "Областная",
+      "url": "https://olympiads.bc-pf.org/math/oblast/1999/11/obl_1999_11_6_2.jpg",
+      "error": "not an image response (text/html)",
+      "item_type": "asset"
+    },
+    {
+      "section": "Областная",
+      "url": "https://olympiads.bc-pf.org/math/oblast/2000/9/O00_911.png",
+      "error": "not an image response (text/html)",
+      "item_type": "asset"
+    },
+    {
+      "section": "Областная",
+      "url": "https://olympiads.bc-pf.org/math/oblast/2001/10/obl_2001_10_7_1.jpg",
+      "error": "not an image response (text/html)",
+      "item_type": "asset"
+    },
+    {
+      "section": "Областная",
+      "url": "https://olympiads.bc-pf.org/math/oblast/2001/10/obl_2001_10_7_2.jpg",
+      "error": "not an image response (text/html)",
+      "item_type": "asset"
+    },
+    {
+      "section": "Областная",
+      "url": "https://olympiads.bc-pf.org/math/oblast/2001/11/obl_2001_11_4.jpg",
+      "error": "not an image response (text/html)",
+      "item_type": "asset"
+    },
+    {
+      "section": "Областная",
+      "url": "https://olympiads.bc-pf.org/math/oblast/2001/9/obl_2001_10_7_1.jpg",
+      "error": "not an image response (text/html)",
+      "item_type": "asset"
+    },
+    {
+      "section": "Областная",
+      "url": "https://olympiads.bc-pf.org/math/oblast/2001/9/obl_2001_10_7_2.jpg",
+      "error": "not an image response (text/html)",
+      "item_type": "asset"
+    },
+    {
+      "section": "Республиканская",
+      "url": "https://olympiads.bc-pf.org/math/national/2015/9/R1_95.jpg",
+      "error": "not an image response (text/html)",
+      "item_type": "asset"
+    },
+    {
+      "section": "Республиканская",
+      "url": "https://olympiads.bc-pf.org/math/national/2016/11/11_day1.png",
+      "error": "not an image response (text/html)",
+      "item_type": "asset"
+    }
+  ],
+  "counts_by_section": {
+    "Республиканская": {
+      "total_items": 563,
+      "pdf": 83,
+      "other_downloads": 0,
+      "html_tasks": 480,
+      "assets": 0,
+      "errors": 2
+    },
+    "Областная": {
+      "total_items": 571,
+      "pdf": 85,
+      "other_downloads": 0,
+      "html_tasks": 486,
+      "assets": 1,
+      "errors": 8
+    },
+    "ГЖО": {
+      "total_items": 446,
+      "pdf": 0,
+      "other_downloads": 0,
+      "html_tasks": 446,
+      "assets": 0,
+      "errors": 19
+    },
+    "Балканская": {
+      "total_items": 78,
+      "pdf": 2,
+      "other_downloads": 0,
+      "html_tasks": 76,
+      "assets": 0,
+      "errors": 0
+    },
+    "Юниорская": {
+      "total_items": 3,
+      "pdf": 3,
+      "other_downloads": 0,
+      "html_tasks": 0,
+      "assets": 0,
+      "errors": 0
+    },
+    "Шелковый путь": {
+      "total_items": 86,
+      "pdf": 2,
+      "other_downloads": 0,
+      "html_tasks": 84,
+      "assets": 0,
+      "errors": 0
+    },
+    "Юниорская Балканская": {
+      "total_items": 107,
+      "pdf": 2,
+      "other_downloads": 0,
+      "html_tasks": 105,
+      "assets": 0,
+      "errors": 0
+    },
+    "Азиатская-Тихоокеанская": {
+      "total_items": 172,
+      "pdf": 2,
+      "other_downloads": 0,
+      "html_tasks": 170,
+      "assets": 0,
+      "errors": 1
+    }
+  },
+  "totals": {
+    "manifest_rows": 2057,
+    "successful_manifest_rows": 2027,
+    "pdf": 179,
+    "other_downloads": 0,
+    "html_tasks": 1847,
+    "assets": 1,
+    "errors": 30,
+    "visited_pages": 2254,
+    "filesystem_content_files": 2027,
+    "manifest_content_paths": 2027,
+    "total_size_bytes": 20893749
+  },
+  "filesystem_manifest_extra": [],
+  "manifest_filesystem_missing": [],
+  "partial_files": []
+}
